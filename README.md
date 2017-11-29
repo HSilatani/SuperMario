@@ -1,69 +1,31 @@
-Welcome to the AWS CodeStar sample web application
-==================================================
+## IG Web API Java Sample
+[![Build Status](https://travis-ci.org/IG-Group/ig-webapi-java-sample.svg?branch=master)](https://travis-ci.org/IG-Group/ig-webapi-java-sample)
 
-This sample code helps get you started with a simple Java web application
-deployed by AWS Elastic Beanstalk.
+###  Overview
+This repository contains two simple Java console sample applications which access the IG REST and Streaming APIs:
 
-What's Here
------------
+1) **ig-webapi-java-sample-console**: A basic console based application which logs in via /session V2, retrieves a list of position, watchlist, subscribes to lightstreamer and create a position.
 
-This sample includes:
+2) **ig-webapi-java-sample-console-ui**: A UI based console application (please increase the windows size to prevent scrolling) which shows a graph with the current market price and allows user to place a trade. Authentication is via /session V3.
 
-* README.md - this file
-* .ebextensions/ - this directory contains the Java configuration file that
-  allows AWS Elastic Beanstalk to deploy your Java application
-* buildspec.yml - this file is used by AWS CodeBuild to build the web
-  application
-* pom.xml - this file is the Maven Project Object Model for the web application
-* src/ - this directory contains your Java application source files
+### Getting started
+1) Set the destination IG environment in **environment.properties**.
 
+2) Open a command line / shell prompt and run **mvn clean** to install the Lighstreamer client in ig-webapi-java-client/lib to your local maven repository.
 
-Getting Started
----------------
+3) Run **mvn clean install** to build the project.
 
-These directions assume you want to develop on your local computer, and not
-from the Amazon EC2 instance itself. If you're on the Amazon EC2 instance, the
-virtual environment is already set up for you, and you can start working on the
-code.
+4.a) Run basic console app:
+```
+    cd ig-webapi-java-sample-console
+    java -jar target\ig-webapi-java-sample-console-<project version>.jar <username> <password> <api key>
+```
 
-To work on the sample code, you'll need to clone your project's repository to your
-local computer. If you haven't, do that first. You can find instructions in the
-AWS CodeStar user guide.
+4.b) Run UI based console app
+```
+    cd ig-webapi-java-sample-console-ui
+    java -jar target\ig-webapi-java-sample-console-ui-<project version>.jar <username> <password> <api key> [<optional epic>]
+```
 
-1. Install maven.  See https://maven.apache.org/install.html for details.
-
-2. Install tomcat.  See https://tomcat.apache.org/tomcat-7.0-doc/setup.html for
-   details.
-
-3. Build the application.
-
-        $ mvn -f pom.xml compile
-        $ mvn -f pom.xml package
-
-4. Copy the built application to the Tomcat webapp directory.  The actual
-   location of that directory will vary depending on your platform and
-   installation.
-
-        $ cp target/ROOT.war <tomcat webapp directory>
-
-4. Restart your tomcat server
-
-5. Open http://127.0.0.1:8080/ in a web browser to view your application.
-
-What Do I Do Next?
-------------------
-
-Once you have a virtual environment running, you can start making changes to
-the sample Java web application. We suggest making a small change to
-/src/main/webapp/WEB-INF/views/index.jsp first, so you can see how changes
-pushed to your project's repository are automatically picked up and deployed
-to the Amazon EC2 instance by AWS Elastic Beanstalk. (You can watch the progress
-on your project dashboard.) Once you've seen how that works, start developing
-your own code, and have fun!
-
-Learn more about AWS CodeStar by reading the user guide.  Ask questions or make
-suggestions on our forum.
-
-User Guide: http://docs.aws.amazon.com/codestar/latest/userguide/welcome.html
-
-Forum: https://forums.aws.amazon.com/forum.jspa?forumID=248
+To attach a remote debugger:
+    java -Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=y -jar target\ig-webapi-java-sample-console...

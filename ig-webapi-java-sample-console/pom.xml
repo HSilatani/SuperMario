@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+
+   <parent>
+      <groupId>com.iggroup.webapi.samples</groupId>
+      <artifactId>ig-webapi-java</artifactId>
+      <version>2.2.0-SNAPSHOT</version>
+   </parent>
+   <packaging>war</packaging>
+   <name>IG Web API Java Spring Boot Sample</name>
+   <description>Spring Boot sample application for accessing the IG REST and Streaming APIs</description>
+
+   <artifactId>ig-webapi-java-sample-console</artifactId>
+
+   <properties>
+      <spring-boot.version>1.5.8.RELEASE</spring-boot.version>
+     <!-- The main class to start by executing java -jar -->
+      <start-class>com.dario.agenttrader.JBotApplication</start-class>
+   </properties>
+
+   <dependencies>
+      <dependency>
+         <groupId>org.springframework.boot</groupId>
+         <artifactId>spring-boot-starter-tomcat</artifactId>
+         <!--<scope>provided</scope>-->
+      </dependency>
+      <dependency>
+         <groupId>${project.parent.groupId}</groupId>
+         <artifactId>ig-webapi-java-client</artifactId>
+         <version>${project.parent.version}</version>
+      </dependency>
+      <dependency>
+         <groupId>me.ramswaroop.jbot</groupId>
+         <artifactId>jbot</artifactId>
+         <version>3.0.2</version>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.httpcomponents</groupId>
+         <artifactId>httpclient</artifactId>
+      </dependency>
+
+      <dependency>
+         <groupId>org.slf4j</groupId>
+         <artifactId>slf4j-api</artifactId>
+      </dependency>
+      <dependency>
+         <groupId>ch.qos.logback</groupId>
+         <artifactId>logback-classic</artifactId>
+      </dependency>
+
+   </dependencies>
+
+   <build>
+
+      <plugins>
+         <!-- Create a spring boot executable app -->
+         <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+            <version>${spring-boot.version}</version>
+         </plugin>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-war-plugin</artifactId>
+            <version>2.6</version>
+            <configuration>
+               <warSourceDirectory>src/main/webapp</warSourceDirectory>
+               <warName>IG</warName>
+               <failOnMissingWebXml>false</failOnMissingWebXml>
+            </configuration>
+         </plugin>
+         <!-- Create samples app sources -->
+         <plugin>
+            <artifactId>maven-source-plugin</artifactId>
+            <executions>
+               <execution>
+                  <id>attach-sources</id>
+                  <goals>
+                     <goal>jar</goal>
+                  </goals>
+               </execution>
+            </executions>
+         </plugin>
+
+      </plugins>
+
+   </build>
+
+</project>
