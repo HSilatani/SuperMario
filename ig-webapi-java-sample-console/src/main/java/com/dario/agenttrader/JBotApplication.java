@@ -34,7 +34,6 @@ public class JBotApplication extends SpringBootServletInitializer {
 
         JBotApplication jbApp = new JBotApplication();
         try {
-            IGClient igclient = jbApp.igClient();
             Runtime.getRuntime().addShutdownHook(new IGClientShutDownHook());
             SpringApplication app = new SpringApplication(JBotApplication.class);
             app.run(JBotApplication.class, args);
@@ -45,11 +44,20 @@ public class JBotApplication extends SpringBootServletInitializer {
 
     }
 
+//    @Bean
+//    public IGClient igClient() throws Exception {
+//        IGClient igClient = IGClient.getInstance();
+//        igClient.connect();
+//        return igClient;
+//    }
     @Bean
-    public IGClient igClient() throws Exception {
+    public InterpreterAgent iAgent() throws Exception {
         IGClient igClient = IGClient.getInstance();
         igClient.connect();
-        return igClient;
-    }
 
+        InterpreterAgent interpreterAgent = InterpreterAgent.getInstance();
+        interpreterAgent.setIGClient(igClient);
+
+        return interpreterAgent;
+    }
 }

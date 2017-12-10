@@ -1,10 +1,13 @@
 package com.dario.agenttrader;
 
+import com.dario.agenttrader.dto.PositionSnapshot;
 import com.iggroup.webapi.samples.PropertiesUtil;
 import com.iggroup.webapi.samples.client.RestAPI;
 import com.iggroup.webapi.samples.client.StreamingAPI;
 import com.iggroup.webapi.samples.client.rest.AuthenticationResponseAndConversationContext;
 import com.iggroup.webapi.samples.client.rest.ConversationContext;
+import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.AccountsItem;
+import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.GetAccountsV1Response;
 import com.iggroup.webapi.samples.client.rest.dto.markets.getMarketDetailsV2.CurrenciesItem;
 import com.iggroup.webapi.samples.client.rest.dto.markets.getMarketDetailsV2.GetMarketDetailsV2Response;
 import com.iggroup.webapi.samples.client.rest.dto.markets.getMarketDetailsV2.MarketOrderPreference;
@@ -27,9 +30,10 @@ import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
 import com.lightstreamer.ls_client.UpdateInfo;
 
 
-import java.util.ArrayList;
-import java.util.StringJoiner;
+import java.math.BigDecimal;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +49,7 @@ public class IGClient {
     public static final String IDENTIFIER = "identifier";
     public static final String PASSWORD = "password";
     public static final String API_KEY = "apiKey";
+    public static final String ACCOUNT_ID="ig.accountID";
 
     private Calculator cal = new Calculator();
 
@@ -57,6 +62,11 @@ public class IGClient {
 
     private StreamingAPI streamingAPI;
     private RestAPI restAPI;
+
+
+    private AccountsItem accountSetting;
+
+    private Locale locale;
 
 
 
@@ -73,6 +83,7 @@ public class IGClient {
     private void init() {
         streamingAPI = applicationBootStrapper.streamingAPI();
         restAPI = applicationBootStrapper.restAPI();
+
 
     }
 
@@ -95,6 +106,8 @@ public class IGClient {
                 authenticationContext.getAccountId(),
                 authenticationContext.getConversationContext(),
                 authenticationContext.getLightstreamerEndpoint());
+
+        loadAccountPreferences(authenticationContext.getAccountId());
     }
 
     public void disconnect() throws Exception {
@@ -124,30 +137,38 @@ public class IGClient {
 
     }
     
-    public String listOpenPositions() throws Exception {
+    public List<PositionSnapshot> listOpenPositions() throws Exception {
 
-        StringJoiner positionsStr = new StringJoiner("\n\n");
-        positionsStr.add("Ammo amir");
         ConversationContext conversationContext = authenticationContext.getConversationContext();
         GetPositionsV2Response positionsResponse = restAPI.getPositionsV2(conversationContext);
       LOG.info("Open positions Amoo Amir: {}", positionsResponse.getPositions().size());
-      for (PositionsItem position : positionsResponse.getPositions()) {
-         GetPricesByNumberOfPointsV2Response prices=restAPI.getPricesByNumberOfPointsV2(conversationContext
-                 ,"1",position.getMarket().getEpic(),"MINUTE");
 
-         StringJoiner positionStr = new StringJoiner("|","","");
-         String name = position.getMarket().getInstrumentName();
-         positionStr.add(name.substring(0, Math.min(name.length(), 3)));
-         positionStr.add(""+position.getPosition().getDirection());
-         positionStr.add(""+position.getPosition().getSize());
-         String pl = cal.calPandLString(position,prices);
-         int idx = pl.indexOf(45);
-         pl= ((idx>=0)?"#FF0000"+pl:pl);
-         positionStr.add(""+ pl);
-         positionsStr.add(positionStr.toString());
-      }
-      LOG.info(positionsStr.toString());
-      return positionsStr.toString();
+      List<PositionSnapshot> positionSnapshotList = positionsResponse.getPositions().stream()
+              .map( positionsItem -> createPositionSnapshot(positionsItem))
+              .collect(Collectors.toList());
+
+      return positionSnapshotList;
+   }
+
+
+   public PositionSnapshot createPositionSnapshot(PositionsItem position){
+        PositionSnapshot psnap = new PositionSnapshot(position);
+
+        try {
+            ConversationContext conversationContext = authenticationContext.getConversationContext();
+            GetPricesByNumberOfPointsV2Response prices = restAPI.getPricesByNumberOfPointsV2(conversationContext
+                    , "1", position.getMarket().getEpic(), "DAY");
+
+            BigDecimal pl = cal.calPandL(position, prices);
+            BigDecimal marketMoveToday = cal.calPriceMove(prices);
+
+            psnap.setMarketMoveToday(marketMoveToday);
+            psnap.setProfitLoss(pl);
+        }catch (Exception ex){
+            LOG.warn("Unable to calculate p&l for: " + position.getPosition().getDealId() ,ex);
+        }
+
+        return  psnap;
 
    }
 
@@ -167,4 +188,26 @@ public class IGClient {
       }
    }
 
+   public AccountsItem accountPreferences(){
+       return accountSetting;
+   }
+   public void loadAccountPreferences(String accID) throws Exception {
+        GetAccountsV1Response getAccountsV1Response =
+                restAPI.getAccountsV1(authenticationContext.getConversationContext());
+        Optional<AccountsItem> optional = getAccountsV1Response.getAccounts()
+                .stream().filter(x -> accID.equalsIgnoreCase(x.getAccountId()))
+                .findFirst();
+
+        if(optional.isPresent()){
+            this.accountSetting = optional.get();
+            this.locale = IGClientUtility.findLocalForCurrency(
+                    accountSetting.getCurrency());
+        }else{
+            throw new Exception("Account setting not found!");
+        }
+   }
+
+    public Locale getLocale() {
+        return locale;
+    }
 }

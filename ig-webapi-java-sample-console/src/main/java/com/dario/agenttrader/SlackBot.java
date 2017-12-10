@@ -6,6 +6,7 @@ import me.ramswaroop.jbot.core.slack.Controller;
 import me.ramswaroop.jbot.core.slack.EventType;
 import me.ramswaroop.jbot.core.slack.models.Event;
 import me.ramswaroop.jbot.core.slack.models.Message;
+import me.ramswaroop.jbot.core.slack.models.RichMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +27,7 @@ public class SlackBot extends Bot {
 
     public static final String SLACK_BOT_TOKEN = "slackBotToken";
     private static final Logger logger = LoggerFactory.getLogger(SlackBot.class);
-    private final IGClient igClient = IGClient.getInstance();
+    private InterpreterAgent iAgent = InterpreterAgent.getInstance();
     /**
      * Slack token from application.properties file. You can get your slack token
      * next <a href="https://my.slack.com/services/new/bot">creating a new bot</a>.
@@ -58,13 +59,11 @@ public class SlackBot extends Bot {
      */
     @Controller(events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
     public void onReceiveDM(WebSocketSession session, Event event) {
-        String replyMessage = "Oops... cant find positions";
-        try {
-            replyMessage = igClient.listOpenPositions();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+
+        String replyMessage = iAgent.respond(event.getText());
+
         Message message = new Message(replyMessage);
+
         reply(session, event, message);
     }
 
