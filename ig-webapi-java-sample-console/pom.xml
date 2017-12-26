@@ -41,7 +41,18 @@
          <groupId>org.apache.httpcomponents</groupId>
          <artifactId>httpclient</artifactId>
       </dependency>
-
+<!-- AKKA framework -->
+       <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-actor_2.12</artifactId>
+            <version>2.5.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-testkit_2.12</artifactId>
+            <version>2.5.3</version>
+        </dependency>
+<!-- Logging frameworks -->
       <dependency>
          <groupId>org.slf4j</groupId>
          <artifactId>slf4j-api</artifactId>
@@ -50,7 +61,14 @@
          <groupId>ch.qos.logback</groupId>
          <artifactId>logback-classic</artifactId>
       </dependency>
+<!-- testing framework -->
 
+      <dependency>
+         <groupId>junit</groupId>
+         <artifactId>junit</artifactId>
+         <version>4.12</version>
+         <scope>test</scope>
+      </dependency>
    </dependencies>
 
    <build>

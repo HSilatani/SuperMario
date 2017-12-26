@@ -1,0 +1,11 @@
+@startuml
+class marketManagerActor
+marketManagerActor --> marketStrategyManager : A link
+note on link #red: note that is red
+
+class marketStrategyManager
+class TrackerStrategy
+marketStrategyManager --> TrackerStrategy
+class marketStrategyOpenOnLow
+marketStrategyManager --> marketStrategyOpenOnLow
+@enduml

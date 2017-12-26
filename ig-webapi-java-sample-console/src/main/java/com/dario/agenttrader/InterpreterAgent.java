@@ -38,6 +38,12 @@ public class InterpreterAgent {
         try {
             List<PositionSnapshot> positionSnapshots = igClient.listOpenPositions();
             reply = formatPositionList(positionSnapshots);
+//            igClient.subscribeToLighstreamerPriceUpdates(
+//                    positionSnapshots.get(2).getPositionsItem().getMarket().getEpic()
+//            );
+            igClient.subscribeToLighstreamerChartUpdates(
+                    positionSnapshots.get(2).getPositionsItem().getMarket().getEpic()
+            );
         } catch (Exception e) {
             e.printStackTrace();
         }

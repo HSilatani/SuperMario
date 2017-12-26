@@ -188,6 +188,33 @@ public class IGClient {
       }
    }
 
+   public void subscribeToLighstreamerPriceUpdates(String tradeableEpic) throws Exception {
+
+        if (tradeableEpic != null) {
+            LOG.info("Subscribing to Lightstreamer price updates for market: {} ", tradeableEpic);
+            listeners.add(streamingAPI.subscribeForMarket(tradeableEpic,
+                    new HandyTableListenerAdapter() {
+                @Override
+                public void onUpdate(int i, String s, UpdateInfo updateInfo) {
+                    LOG.info("Market i {} s {} data {}", i, s, updateInfo);
+                }
+            }));
+        }
+    }
+
+    public void subscribeToLighstreamerChartUpdates(String tradeableEpic) throws Exception {
+
+        if (tradeableEpic != null) {
+            LOG.info("Subscribing to Lightstreamer chart updates for market: {} ", tradeableEpic);
+            listeners.add(streamingAPI.subscribeForChartTicks(tradeableEpic, new HandyTableListenerAdapter() {
+                @Override
+                public void onUpdate(int i, String s, UpdateInfo updateInfo) {
+                    LOG.info("Chart i {} s {} data {}", i, s, updateInfo);
+                }
+            }));
+        }
+    }
+
    public AccountsItem accountPreferences(){
        return accountSetting;
    }
