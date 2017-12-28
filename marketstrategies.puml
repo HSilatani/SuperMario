@@ -1,11 +1,18 @@
 @startuml
-class marketManagerActor
-marketManagerActor --> marketStrategyManager : A link
+class MarketStrategySystem
+MarketStrategySystem --> marketStrategyManager : A link
 note on link #red: note that is red
 
 class marketStrategyManager
+class marketManager
+marketStrategyManager --> marketManager
 class TrackerStrategy
-marketStrategyManager --> TrackerStrategy
+marketManager --> TrackerStrategy
 class marketStrategyOpenOnLow
-marketStrategyManager --> marketStrategyOpenOnLow
+marketManager --> marketStrategyOpenOnLow
+
+class positionManager
+marketStrategyManager --> positionManager
+class position
+positionManager --> position
 @enduml
