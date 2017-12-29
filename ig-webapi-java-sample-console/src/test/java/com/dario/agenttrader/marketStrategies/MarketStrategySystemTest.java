@@ -14,10 +14,16 @@ import org.junit.Test;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class  MarketStrategySystemTest{
 
-    public static final String MARKET_STRATEGY_MANAGER_URL = "akka://MarketStrategySystem/user/marketStrategyManager";
+    public static final String AKKA_SYSTEM_USER_URL = "akka://MarketStrategySystem/user/";
+    public static final String MARKET_STRATEGY_MANAGER_URL = AKKA_SYSTEM_USER_URL
+            +MarketStrategySystem.MARKET_STRATEGY_MANAGER;
+    public static final String POSITION_MANAGER_URL =  AKKA_SYSTEM_USER_URL + MarketStrategySystem.POSITION_MANAGER;
+
     public static final String POSITION_ID = "DIA111";
     static ActorSystem system;
 static MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInstance();
@@ -38,12 +44,14 @@ static MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInsta
     public void testGreeterActorSendingOfGreeting() {
         final TestKit testProbe = new TestKit(system);
         final ActorRef marketStrategyManager = marketStrategySystem.getMarketStrategyManagerActor();
+        final ActorRef positionManager = marketStrategySystem.getPositionManagerActor();
 
         assertEquals(MARKET_STRATEGY_MANAGER_URL, marketStrategyManager.path().toString());
+        assertEquals(POSITION_MANAGER_URL,positionManager.path().toString());
     }
 
     @Test
-    public void testPoitionActors(){
+    public void testPositionActors(){
         final TestKit testProbePositionManager = new TestKit(system);
         final TestKit testProbePosition = new TestKit(system);
 
@@ -59,5 +67,24 @@ static MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInsta
 
         assertNotNull(response);
         assertEquals("Update message positionId does not match",POSITION_ID,response.getPositionId());
+
+        // When position stops itself , it must be removed from Manager
+        positionManager.tell(new PositionManager.ListPositions(),testProbePositionManager.getRef());
+        PositionManager.ListPositionResponse positionsList =
+                testProbePositionManager.expectMsgClass(PositionManager.ListPositionResponse.class);
+        assertEquals(Stream.of(POSITION_ID).collect(Collectors.toSet()),positionsList.getPositionIDs());
+
+        testProbePosition.watch(positionActor);
+        positionActor.tell(new Position.UpdatePosition(Position.UpdatePosition.POSITION_CLOSED),
+                testProbePosition.getRef());
+        testProbePosition.expectTerminated(positionActor);
+
+        testProbePosition.awaitAssert(() ->{
+            positionManager.tell(new PositionManager.ListPositions(),testProbePositionManager.getRef());
+            PositionManager.ListPositionResponse emptyPositionsList =
+                    testProbePositionManager.expectMsgClass(PositionManager.ListPositionResponse.class);
+            assertEquals(Stream.of().collect(Collectors.toSet()),emptyPositionsList.getPositionIDs());
+            return null;
+        });
     }
 }

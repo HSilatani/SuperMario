@@ -1,6 +1,7 @@
 package com.dario.agenttrader;
 
 
+import com.dario.agenttrader.marketStrategies.MarketStrategySystem;
 import com.iggroup.webapi.samples.PropertiesUtil;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -55,8 +56,11 @@ public class JBotApplication extends SpringBootServletInitializer {
         IGClient igClient = IGClient.getInstance();
         igClient.connect();
 
+        MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInstance();
+
         InterpreterAgent interpreterAgent = InterpreterAgent.getInstance();
         interpreterAgent.setIGClient(igClient);
+        interpreterAgent.setMarketStrategySystem(marketStrategySystem);
 
         return interpreterAgent;
     }

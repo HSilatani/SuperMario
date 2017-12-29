@@ -33,6 +33,8 @@ import com.lightstreamer.ls_client.UpdateInfo;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -57,8 +59,6 @@ public class IGClient {
     AuthenticationResponseAndConversationContext authenticationContext = null;
     ArrayList<HandyTableListenerAdapter> listeners = new ArrayList<HandyTableListenerAdapter>();
     String tradeableEpic = null;
-    AtomicBoolean receivedConfirm = new AtomicBoolean(false);
-    AtomicBoolean receivedOPU = new AtomicBoolean(false);
 
     private StreamingAPI streamingAPI;
     private RestAPI restAPI;
@@ -204,6 +204,7 @@ public class IGClient {
 
     public void subscribeToLighstreamerChartUpdates(String tradeableEpic) throws Exception {
 
+
         if (tradeableEpic != null) {
             LOG.info("Subscribing to Lightstreamer chart updates for market: {} ", tradeableEpic);
             listeners.add(streamingAPI.subscribeForChartTicks(tradeableEpic, new HandyTableListenerAdapter() {
@@ -213,6 +214,12 @@ public class IGClient {
                 }
             }));
         }
+    }
+
+    public void subscribeToOpenPositionUpdates(HandyTableListenerAdapter listener) throws Exception{
+
+        listeners.add(streamingAPI.subscribeForOPUs(authenticationContext.getAccountId(),listener));
+
     }
 
    public AccountsItem accountPreferences(){

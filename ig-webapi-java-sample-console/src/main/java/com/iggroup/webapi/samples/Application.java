@@ -283,6 +283,7 @@ public class Application implements CommandLineRunner {
                LOG.info("Position update i {} s {} data {}", i, s, updateInfo);
                receivedOPU.set(true);
             }
+
          }
       }));
       listeners.add(streamingAPI.subscribeForWOUs(authenticationContext.getAccountId(), new HandyTableListenerAdapter() {

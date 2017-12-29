@@ -8,7 +8,12 @@ import java.util.List;
 import java.util.StringJoiner;
 
 
+import com.dario.agenttrader.dto.PositionUpdate;
+import com.dario.agenttrader.marketStrategies.MarketStrategySystem;
+import com.dario.agenttrader.marketStrategies.PositionManager;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
+import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
+import com.lightstreamer.ls_client.UpdateInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +21,7 @@ public class InterpreterAgent {
 
 
     private IGClient igClient = null;
+    private MarketStrategySystem marketStrategySystem = null;
 
     private static InterpreterAgent OneAndOnlyInstance = new InterpreterAgent();
 
@@ -30,7 +36,9 @@ public class InterpreterAgent {
         this.igClient = igClient;
     }
 
-
+    public void setMarketStrategySystem(MarketStrategySystem marketStrategySystem) {
+        this.marketStrategySystem = marketStrategySystem;
+    }
 
     public String respond(String queryCommand){
         String reply = "Oops 0_0";
@@ -38,6 +46,22 @@ public class InterpreterAgent {
         try {
             List<PositionSnapshot> positionSnapshots = igClient.listOpenPositions();
             reply = formatPositionList(positionSnapshots);
+
+            igClient.subscribeToOpenPositionUpdates(new HandyTableListenerAdapter() {
+
+                    @Override
+                    public void onUpdate(int i, String s, UpdateInfo updateInfo) {
+                        PositionUpdate positionUpdate = new PositionUpdate(updateInfo,s,i);
+
+                        if (updateInfo.getNewValue("OPU") != null) {
+                            LOG.info("Position update i {} s {} data {}", i, s, updateInfo);
+                            marketStrategySystem.getPositionManagerActor().tell(
+                                    new PositionManager.OPU(positionUpdate),null);
+                        }
+
+                    }
+                }
+            );
 //            igClient.subscribeToLighstreamerPriceUpdates(
 //                    positionSnapshots.get(2).getPositionsItem().getMarket().getEpic()
 //            );
@@ -94,4 +118,6 @@ public class InterpreterAgent {
                 igClient.getLocale()).format(money);
         return strPandL;
     }
+
+
 }
