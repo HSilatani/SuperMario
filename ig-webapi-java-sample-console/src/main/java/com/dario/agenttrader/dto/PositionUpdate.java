@@ -1,20 +1,28 @@
 package com.dario.agenttrader.dto;
 
-import com.lightstreamer.ls_client.UpdateInfo;
+
+import java.util.Map;
 
 public class PositionUpdate {
-    private UpdateInfo updateInfo;
+    private Map<String,String> updateInfo;
     private String s;
     private int i;
 
-    public PositionUpdate(UpdateInfo updateInfo, String s, int i) {
+    public static final String DEAL_ID_KEY = "dealId";
+    public static final String STOP_LEVE_KEY = "stopLevel";
+
+    public PositionUpdate(Map<String,String> updateInfo, String s, int i) {
         this.updateInfo = updateInfo;
         this.s = s;
         this.i = i;
     }
 
-    public UpdateInfo getUpdateInfo() {
-        return updateInfo;
+    public String getValue(String key) {
+        return updateInfo.get(key);
+    }
+
+    public String getDealId(){
+        return updateInfo.get(DEAL_ID_KEY);
     }
 
     public String getS() {
@@ -25,7 +33,7 @@ public class PositionUpdate {
         return i;
     }
 
-    public String getItemName(){
-        return updateInfo.getItemName();
+    public String getStop() {
+        return updateInfo.get(STOP_LEVE_KEY);
     }
 }

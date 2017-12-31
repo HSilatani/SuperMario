@@ -34,14 +34,22 @@ public class PositionManager extends AbstractActor{
                 .match(ListPositions.class,this::onListPosition)
                 .match(Terminated.class,this::onTerminated)
                 .match(OPU.class,this::onOPU)
+                .match(Position.PositionUpdated.class,this::onPositionUpdated)
                 .build();
     }
 
+    private void onPositionUpdated(Position.PositionUpdated positionupdated){
+        //Ignore confirms for now
+    }
+
     private void onOPU(OPU opu) {
-        LOG.info("OPU {}-{}-{}",opu.getPostionUpdate().getS()
-                ,opu.getPostionUpdate().getI()
-                , opu.getPostionUpdate().getItemName()
+        LOG.info("OPU {}-{}",opu.getPostionUpdate().getS()
+                , opu.getPostionUpdate().getDealId()
         );
+
+        String positionId = opu.getPostionUpdate().getDealId();
+
+        registerPosition(positionId,opu);
     }
 
     private void onListPosition(ListPositions p) {
@@ -58,14 +66,18 @@ public class PositionManager extends AbstractActor{
 
     private void onRegiserPosition(RegisterPosition msg) {
         String regPosId = msg.getPositionId();
+        registerPosition(regPosId,msg);
+    }
+
+    private void registerPosition(String regPosId,Object message) {
         ActorRef positionActor = idToPosition.get(regPosId);
         if(null == positionActor ){
-            positionActor = getContext().actorOf(Position.props(regPosId));
+            positionActor = getContext().actorOf(Position.props(regPosId),regPosId);
             getContext().watch(positionActor);
             idToPosition.put(regPosId,positionActor);
             positionToId.put(positionActor,regPosId);
         }
-        positionActor.forward(msg,getContext());
+        positionActor.forward(message,getContext());
     }
 
     public static final class RegisterPosition{
@@ -112,13 +124,26 @@ public class PositionManager extends AbstractActor{
     }
 
     public static final class OPU {
+        public static final boolean POSITION_CLOSED = true;
         private final PositionUpdate postionUpdate;
+        private boolean closed=false;
+
         public OPU(PositionUpdate ppositionUpdate) {
             this.postionUpdate = ppositionUpdate;
+        }
+
+        public OPU(PositionUpdate ppositionUpdate, boolean positionClosed) {
+            this.closed = positionClosed;
+            postionUpdate = ppositionUpdate;
         }
 
         public PositionUpdate getPostionUpdate() {
             return postionUpdate;
         }
+
+        public boolean isClosed() {
+            return closed;
+        }
     }
+
 }

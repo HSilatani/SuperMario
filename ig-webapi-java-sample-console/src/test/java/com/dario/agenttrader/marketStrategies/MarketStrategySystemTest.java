@@ -8,11 +8,14 @@ import akka.testkit.javadsl.TestKit;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import com.dario.agenttrader.IGClientUtility;
+import com.dario.agenttrader.dto.PositionUpdate;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import scala.concurrent.duration.FiniteDuration;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -27,6 +30,10 @@ public class  MarketStrategySystemTest{
     public static final String POSITION_ID = "DIA111";
     static ActorSystem system;
 static MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInstance();
+
+
+    private final String  OPU_MESSAGE = "{\"stopLevel\":110004,\"trailingStopDistance\":0,\"limitLevel\":null,\"trailingStep\":0,\"guaranteedStop\":false,\"currency\":\"GBP\",\"expiry\":\"DFB\",\"dealIdOrigin\":\"DIAAAABLAADV7A3\",\"dealId\":\"DIAAAABLAADV7A3\",\"dealReference\":\"QC63G1C0266DS3\",\"direction\":\"BUY\",\"epic\":\"UA.D.AMZN.DAILY.IP\",\"dealStatus\":\"ACCEPTED\",\"level\":119255,\"status\":\"UPDATED\",\"size\":2,\"channel\":\"WTP\",\"timestamp\":\"2017-12-30T23:30:00.277\"} ";
+    private final String DEAL_ID = "DIAAAABLAADV7A3";
 
     @BeforeClass
     public static void setup() {
@@ -50,6 +57,15 @@ static MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInsta
         assertEquals(POSITION_MANAGER_URL,positionManager.path().toString());
     }
 
+
+
+
+    public PositionManager.OPU createOPU(){
+        Map<String,String> flattenedOPU = IGClientUtility.flatJSontoMap(OPU_MESSAGE);
+        return new PositionManager.OPU(
+        new PositionUpdate(flattenedOPU,"",1));
+    }
+
     @Test
     public void testPositionActors(){
         final TestKit testProbePositionManager = new TestKit(system);
@@ -61,7 +77,7 @@ static MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInsta
         ActorRef positionActor = testProbePositionManager.getLastSender();
         assertNotNull(positionActor);
 
-        positionActor.tell(new Position.UpdatePosition(), testProbePosition.getRef());
+        positionActor.tell(createOPU(), testProbePosition.getRef());
 
         Position.PositionUpdated response = testProbePosition.expectMsgClass(Position.PositionUpdated.class);
 
@@ -75,7 +91,7 @@ static MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInsta
         assertEquals(Stream.of(POSITION_ID).collect(Collectors.toSet()),positionsList.getPositionIDs());
 
         testProbePosition.watch(positionActor);
-        positionActor.tell(new Position.UpdatePosition(Position.UpdatePosition.POSITION_CLOSED),
+        positionActor.tell(new PositionManager.OPU(null,PositionManager.OPU.POSITION_CLOSED),
                 testProbePosition.getRef());
         testProbePosition.expectTerminated(positionActor);
 

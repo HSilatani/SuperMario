@@ -51,12 +51,14 @@ public class InterpreterAgent {
 
                     @Override
                     public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-                        PositionUpdate positionUpdate = new PositionUpdate(updateInfo,s,i);
+                        PositionUpdate positionUpdate = new PositionUpdate(
+                                IGClientUtility.flatJSontoMap(updateInfo.getNewValue(1)),s,i);
 
                         if (updateInfo.getNewValue("OPU") != null) {
                             LOG.info("Position update i {} s {} data {}", i, s, updateInfo);
                             marketStrategySystem.getPositionManagerActor().tell(
-                                    new PositionManager.OPU(positionUpdate),null);
+                                    new PositionManager.OPU(positionUpdate),
+                                    marketStrategySystem.getPositionManagerActor());
                         }
 
                     }

@@ -30,47 +30,24 @@ public class Position extends AbstractActor{
         LOG.info("Position {} unregistered", positionID);
     }
 
-    public void onPositionUpdate(UpdatePosition opu){
-
-        LOG.info("Position {} updated",positionID);
+    public void onPositionUpdate(PositionManager.OPU opu){
 
         if(opu.isClosed()){
           getContext().stop(getSelf());
-        }else{
-            getSender().tell(new Position.PositionUpdated(positionID),getSelf());
+        }else if(opu.getPostionUpdate()!=null){
+            LOG.info("New Value STOP:{} registered", opu.getPostionUpdate().getStop());
+            getSender().tell(new PositionUpdated(positionID),getSelf());
         }
     }
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(UpdatePosition.class, this::onPositionUpdate)
+                .match(PositionManager.OPU.class, this::onPositionUpdate)
                 .match(PositionManager.RegisterPosition.class, r ->{
             getSender().tell(new PositionManager.PositionRegistered(positionID),getSelf());
         }).build();
     }
 
-    public static final class UpdatePosition{
-        public static final String POSITION_CLOSED = "POSITION_CLOSED";
-        public static final String POSITION_UPDATE = "POSITION_UPDATED";
-        public String getStatus() {
-            return status;
-        }
-
-        private final String status;
-
-        public UpdatePosition(String pstatus){
-            this.status = pstatus;
-        }
-
-        public  UpdatePosition(){
-            this(POSITION_UPDATE);
-        }
-
-        public boolean isClosed(){
-            return POSITION_CLOSED.equals(status);
-        }
-
-    }
 
     public static final class PositionUpdated{
         private final String positionId;
