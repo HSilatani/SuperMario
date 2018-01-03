@@ -4,6 +4,10 @@ import akka.actor.AbstractActor;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import com.dario.agenttrader.IGClientUtility;
+import com.dario.agenttrader.dto.PositionInfo;
+
+import java.util.Map;
 
 public class Position extends AbstractActor{
 
@@ -11,6 +15,7 @@ public class Position extends AbstractActor{
     private final LoggingAdapter LOG = Logging.getLogger(getContext().getSystem(),this);
 
     private final String positionID;
+    private PositionInfo positionInfo;
 
     public Position(String ppositionId){
         this.positionID = ppositionId;
@@ -34,8 +39,13 @@ public class Position extends AbstractActor{
 
         if(opu.isClosed()){
           getContext().stop(getSelf());
-        }else if(opu.getPostionUpdate()!=null){
-            LOG.info("New Value STOP:{} registered", opu.getPostionUpdate().getStop());
+        }else if(opu.getPostionInfo()!=null){
+            PositionInfo newInfo = opu.getPostionInfo();
+            Map<String,String[]> delta = IGClientUtility.findDelta(newInfo,positionInfo);
+
+            delta.forEach((k,v) -> LOG.info("Change detected: {} from {} to {}",k,v[0],v[1]));
+
+            positionInfo=newInfo;
             getSender().tell(new PositionUpdated(positionID),getSelf());
         }
     }
@@ -43,9 +53,13 @@ public class Position extends AbstractActor{
     public Receive createReceive() {
         return receiveBuilder()
                 .match(PositionManager.OPU.class, this::onPositionUpdate)
-                .match(PositionManager.RegisterPosition.class, r ->{
-            getSender().tell(new PositionManager.PositionRegistered(positionID),getSelf());
-        }).build();
+                .match(PositionManager.RegisterPositionRequest.class, this::onRegisterPositionRequest
+                ).build();
+    }
+
+    private void onRegisterPositionRequest(PositionManager.RegisterPositionRequest registerPositionRequest) {
+        this.positionInfo = IGClientUtility.extractPositionInfo(registerPositionRequest);
+        getSender().tell(new PositionManager.PositionRegistered(positionID),getSelf());
     }
 
 

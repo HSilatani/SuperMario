@@ -19,6 +19,10 @@ public class PositionSnapshot{
         this.snapshotTime = ZonedDateTime.now();
     }
 
+    public String getPositionId(){
+        return positionsItem.getPosition().getDealId();
+    }
+
     public PositionsItem getPositionsItem() {
         return positionsItem;
     }

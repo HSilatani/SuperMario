@@ -6,9 +6,12 @@ import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import com.dario.agenttrader.dto.PositionUpdate;
+import com.dario.agenttrader.IGClient;
+import com.dario.agenttrader.dto.PositionInfo;
+import com.dario.agenttrader.dto.PositionSnapshot;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -30,12 +33,26 @@ public class PositionManager extends AbstractActor{
 
     @Override
     public Receive createReceive() {
-        return receiveBuilder().match(RegisterPosition.class, this::onRegiserPosition)
+        return receiveBuilder().match(RegisterPositionRequest.class, this::onRegiserPosition)
                 .match(ListPositions.class,this::onListPosition)
                 .match(Terminated.class,this::onTerminated)
                 .match(OPU.class,this::onOPU)
                 .match(Position.PositionUpdated.class,this::onPositionUpdated)
+                .match(LoadPositionsRequest.class,this::onLoadPositions)
                 .build();
+    }
+
+    private void onLoadPositions(LoadPositionsRequest loadPositionsRequest) {
+        try {
+            List<PositionSnapshot> positionSnapshots = loadPositionsRequest.igClient.listOpenPositions();
+            positionSnapshots.forEach(psnapshot ->{
+                RegisterPositionRequest registerPositionRequest =
+                        new RegisterPositionRequest(psnapshot.getPositionId(),psnapshot);
+                registerPosition(psnapshot.getPositionId(), registerPositionRequest);
+            });
+        } catch (Exception e) {
+            LOG.error(e, "Filed to load positions!");
+        }
     }
 
     private void onPositionUpdated(Position.PositionUpdated positionupdated){
@@ -43,11 +60,11 @@ public class PositionManager extends AbstractActor{
     }
 
     private void onOPU(OPU opu) {
-        LOG.info("OPU {}-{}",opu.getPostionUpdate().getS()
-                , opu.getPostionUpdate().getDealId()
+        LOG.info("OPU {}-{}",opu.getPostionInfo().getS()
+                , opu.getPostionInfo().getDealId()
         );
 
-        String positionId = opu.getPostionUpdate().getDealId();
+        String positionId = opu.getPostionInfo().getDealId();
 
         registerPosition(positionId,opu);
     }
@@ -64,7 +81,7 @@ public class PositionManager extends AbstractActor{
         LOG.info("Actor for Position {} is removed",positionId);
     }
 
-    private void onRegiserPosition(RegisterPosition msg) {
+    private void onRegiserPosition(RegisterPositionRequest msg) {
         String regPosId = msg.getPositionId();
         registerPosition(regPosId,msg);
     }
@@ -80,18 +97,23 @@ public class PositionManager extends AbstractActor{
         positionActor.forward(message,getContext());
     }
 
-    public static final class RegisterPosition{
+    public static final class RegisterPositionRequest {
 
         private final String positionId;
+        private final PositionSnapshot positionSnapshot;
 
-        RegisterPosition(String ppositionId){
+        RegisterPositionRequest(String ppositionId, PositionSnapshot ppositionSnapshot){
             this.positionId = ppositionId;
+            this.positionSnapshot = ppositionSnapshot;
         }
 
         public String getPositionId() {
             return positionId;
         }
 
+        public PositionSnapshot getPositionSnapshot() {
+            return positionSnapshot;
+        }
     }
 
     public static final class PositionRegistered{
@@ -125,19 +147,19 @@ public class PositionManager extends AbstractActor{
 
     public static final class OPU {
         public static final boolean POSITION_CLOSED = true;
-        private final PositionUpdate postionUpdate;
+        private final PositionInfo postionUpdate;
         private boolean closed=false;
 
-        public OPU(PositionUpdate ppositionUpdate) {
-            this.postionUpdate = ppositionUpdate;
+        public OPU(PositionInfo ppositionInfo) {
+            this.postionUpdate = ppositionInfo;
         }
 
-        public OPU(PositionUpdate ppositionUpdate, boolean positionClosed) {
+        public OPU(PositionInfo ppositionInfo, boolean positionClosed) {
             this.closed = positionClosed;
-            postionUpdate = ppositionUpdate;
+            postionUpdate = ppositionInfo;
         }
 
-        public PositionUpdate getPostionUpdate() {
+        public PositionInfo getPostionInfo() {
             return postionUpdate;
         }
 
@@ -146,4 +168,10 @@ public class PositionManager extends AbstractActor{
         }
     }
 
+    public static final class LoadPositionsRequest {
+        private final IGClient igClient;
+        public LoadPositionsRequest(IGClient pigClient) {
+            igClient=pigClient;
+        }
+    }
 }

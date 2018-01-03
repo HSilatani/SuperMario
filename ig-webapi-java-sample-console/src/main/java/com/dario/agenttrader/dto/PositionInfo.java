@@ -1,9 +1,12 @@
 package com.dario.agenttrader.dto;
 
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
-public class PositionUpdate {
+public class PositionInfo {
     private Map<String,String> updateInfo;
     private String s;
     private int i;
@@ -11,8 +14,10 @@ public class PositionUpdate {
     public static final String DEAL_ID_KEY = "dealId";
     public static final String STOP_LEVE_KEY = "stopLevel";
 
-    public PositionUpdate(Map<String,String> updateInfo, String s, int i) {
-        this.updateInfo = updateInfo;
+    public PositionInfo(Map<String,String> pupdateInfo, String s, int i) {
+        Optional<Map<String,String>> optPUpdateInfo = Optional.ofNullable(pupdateInfo);
+
+        this.updateInfo = Collections.unmodifiableMap(optPUpdateInfo.orElse(new HashMap<>()));
         this.s = s;
         this.i = i;
     }
@@ -35,5 +40,9 @@ public class PositionUpdate {
 
     public String getStop() {
         return updateInfo.get(STOP_LEVE_KEY);
+    }
+
+    public Map<String,String> getKeyValues(){
+        return updateInfo;
     }
 }

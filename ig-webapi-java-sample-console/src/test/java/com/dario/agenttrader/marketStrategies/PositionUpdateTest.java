@@ -2,14 +2,11 @@ package com.dario.agenttrader.marketStrategies;
 
 
 import com.dario.agenttrader.IGClientUtility;
-import com.dario.agenttrader.dto.PositionUpdate;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Test;
+import com.dario.agenttrader.dto.PositionInfo;
 
-import java.io.IOException;
 import java.util.Map;
 
+import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -22,7 +19,7 @@ public class PositionUpdateTest {
     public void testJsonFlatter(){
         Map<String,String> flattenedOPU = IGClientUtility.flatJSontoMap(OPU_MESSAGE);
         assertNotNull(flattenedOPU);
-        String dealId = flattenedOPU.get(PositionUpdate.DEAL_ID_KEY);
+        String dealId = flattenedOPU.get(PositionInfo.DEAL_ID_KEY);
         assertEquals(DEAL_ID,dealId);
     }
 }

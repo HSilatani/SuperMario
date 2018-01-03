@@ -61,6 +61,7 @@ public class JBotApplication extends SpringBootServletInitializer {
         InterpreterAgent interpreterAgent = InterpreterAgent.getInstance();
         interpreterAgent.setIGClient(igClient);
         interpreterAgent.setMarketStrategySystem(marketStrategySystem);
+        interpreterAgent.startAgent();
 
         return interpreterAgent;
     }

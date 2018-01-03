@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.StringJoiner;
 
 
-import com.dario.agenttrader.dto.PositionUpdate;
+import com.dario.agenttrader.dto.PositionInfo;
 import com.dario.agenttrader.marketStrategies.MarketStrategySystem;
 import com.dario.agenttrader.marketStrategies.PositionManager;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
@@ -40,6 +40,11 @@ public class InterpreterAgent {
         this.marketStrategySystem = marketStrategySystem;
     }
 
+    public void startAgent(){
+        marketStrategySystem.getPositionManagerActor().tell(new PositionManager.LoadPositionsRequest(igClient),
+                marketStrategySystem.getPositionManagerActor());
+    }
+
     public String respond(String queryCommand){
         String reply = "Oops 0_0";
 
@@ -51,13 +56,13 @@ public class InterpreterAgent {
 
                     @Override
                     public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-                        PositionUpdate positionUpdate = new PositionUpdate(
+                        PositionInfo positionInfo = new PositionInfo(
                                 IGClientUtility.flatJSontoMap(updateInfo.getNewValue(1)),s,i);
 
                         if (updateInfo.getNewValue("OPU") != null) {
                             LOG.info("Position update i {} s {} data {}", i, s, updateInfo);
                             marketStrategySystem.getPositionManagerActor().tell(
-                                    new PositionManager.OPU(positionUpdate),
+                                    new PositionManager.OPU(positionInfo),
                                     marketStrategySystem.getPositionManagerActor());
                         }
 

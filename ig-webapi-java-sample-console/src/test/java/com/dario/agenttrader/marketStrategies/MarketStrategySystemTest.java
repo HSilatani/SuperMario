@@ -7,16 +7,17 @@ import akka.testkit.javadsl.TestKit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import com.dario.agenttrader.IGClientUtility;
-import com.dario.agenttrader.dto.PositionUpdate;
+import com.dario.agenttrader.dto.PositionInfo;
+import com.dario.agenttrader.dto.PositionSnapshot;
+import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import scala.concurrent.duration.FiniteDuration;
 
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -63,7 +64,7 @@ static MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInsta
     public PositionManager.OPU createOPU(){
         Map<String,String> flattenedOPU = IGClientUtility.flatJSontoMap(OPU_MESSAGE);
         return new PositionManager.OPU(
-        new PositionUpdate(flattenedOPU,"",1));
+        new PositionInfo(flattenedOPU,"",1));
     }
 
     @Test
@@ -72,7 +73,8 @@ static MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInsta
         final TestKit testProbePosition = new TestKit(system);
 
         ActorRef positionManager = system.actorOf(PositionManager.props());
-        positionManager.tell(new PositionManager.RegisterPosition(POSITION_ID), testProbePositionManager.getRef());
+        PositionManager.RegisterPositionRequest registerPositionRequest = createTestRegisterPositionRequest();
+        positionManager.tell(registerPositionRequest, testProbePositionManager.getRef());
         testProbePositionManager.expectMsgClass(PositionManager.PositionRegistered.class);
         ActorRef positionActor = testProbePositionManager.getLastSender();
         assertNotNull(positionActor);
@@ -102,5 +104,22 @@ static MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInsta
             assertEquals(Stream.of().collect(Collectors.toSet()),emptyPositionsList.getPositionIDs());
             return null;
         });
+    }
+
+    private PositionManager.RegisterPositionRequest createTestRegisterPositionRequest() {
+        com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Position positionV2 =
+                new com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Position();
+        positionV2.setDealId(DEAL_ID);
+        PositionsItem pitem = new PositionsItem();
+        pitem.setPosition(positionV2);
+        PositionSnapshot pSnap = new PositionSnapshot(pitem);
+        PositionManager.RegisterPositionRequest registerPositionRequest =
+                new PositionManager.RegisterPositionRequest(POSITION_ID,pSnap);
+        return registerPositionRequest;
+    }
+
+    @Test
+    public void testOnLoadPositionReques(){
+        assertTrue("test not implemented",false);
     }
 }
