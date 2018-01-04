@@ -7,8 +7,12 @@ import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.dario.agenttrader.IGClient;
+import com.dario.agenttrader.IGClientUtility;
+import com.dario.agenttrader.InterpreterAgent;
 import com.dario.agenttrader.dto.PositionInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
+import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
+import com.lightstreamer.ls_client.UpdateInfo;
 
 import java.util.HashMap;
 import java.util.List;
@@ -39,7 +43,12 @@ public class PositionManager extends AbstractActor{
                 .match(OPU.class,this::onOPU)
                 .match(Position.PositionUpdated.class,this::onPositionUpdated)
                 .match(LoadPositionsRequest.class,this::onLoadPositions)
+                .match(PositionRegistered.class,this::onPositionRegistered)
                 .build();
+    }
+
+    private void onPositionRegistered(PositionRegistered positionRegistered) {
+        LOG.info("Registration for position {} is confirmed",positionRegistered.getPositionId());
     }
 
     private void onLoadPositions(LoadPositionsRequest loadPositionsRequest) {
@@ -48,15 +57,41 @@ public class PositionManager extends AbstractActor{
             positionSnapshots.forEach(psnapshot ->{
                 RegisterPositionRequest registerPositionRequest =
                         new RegisterPositionRequest(psnapshot.getPositionId(),psnapshot);
-                registerPosition(psnapshot.getPositionId(), registerPositionRequest);
+                ActorRef positionActor = registerPosition(psnapshot.getPositionId());
+                positionActor.forward(registerPositionRequest,getContext());
             });
+
+            subscribeToPositionUpdates(loadPositionsRequest.igClient);
+
         } catch (Exception e) {
             LOG.error(e, "Filed to load positions!");
         }
     }
 
+    private void subscribeToPositionUpdates(IGClient igClient) throws Exception{
+        ActorRef positionManagerActor = getSelf();
+
+        igClient.subscribeToOpenPositionUpdates(
+                new HandyTableListenerAdapter() {
+                    @Override
+                    public void onUpdate(int i, String s, UpdateInfo updateInfo) {
+                        PositionInfo positionInfo = new PositionInfo(
+                                IGClientUtility.flatJSontoMap(updateInfo.getNewValue(1)),s,i);
+
+                                if (updateInfo.getNewValue("OPU") != null)
+                                {
+                                    LOG.info("Position update i {} s {} data {}", i, s, updateInfo);
+                                     positionManagerActor.tell(
+                                            new PositionManager.OPU(positionInfo),
+                                            positionManagerActor);
+                                }
+                    }
+                }
+        );
+    }
+
     private void onPositionUpdated(Position.PositionUpdated positionupdated){
-        //Ignore confirms for now
+        InterpreterAgent.getInstance().sendMessage(positionupdated);
     }
 
     private void onOPU(OPU opu) {
@@ -66,7 +101,9 @@ public class PositionManager extends AbstractActor{
 
         String positionId = opu.getPostionInfo().getDealId();
 
-        registerPosition(positionId,opu);
+        ActorRef positionActor = registerPosition(positionId);
+
+        positionActor.forward(opu,getContext());
     }
 
     private void onListPosition(ListPositions p) {
@@ -83,10 +120,11 @@ public class PositionManager extends AbstractActor{
 
     private void onRegiserPosition(RegisterPositionRequest msg) {
         String regPosId = msg.getPositionId();
-        registerPosition(regPosId,msg);
+        ActorRef positionActor = registerPosition(regPosId);
+        positionActor.forward(msg,getContext());
     }
 
-    private void registerPosition(String regPosId,Object message) {
+    private ActorRef registerPosition(String regPosId) {
         ActorRef positionActor = idToPosition.get(regPosId);
         if(null == positionActor ){
             positionActor = getContext().actorOf(Position.props(regPosId),regPosId);
@@ -94,7 +132,8 @@ public class PositionManager extends AbstractActor{
             idToPosition.put(regPosId,positionActor);
             positionToId.put(positionActor,regPosId);
         }
-        positionActor.forward(message,getContext());
+
+        return positionActor;
     }
 
     public static final class RegisterPositionRequest {

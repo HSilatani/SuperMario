@@ -46,6 +46,15 @@ public class IGClientUtilityTest {
 
         assertEquals(0, actualDelta.size());
 
+        //Test same numerical value but different string
+
+        map1 = generateTestMap("100", "201");
+        map2 = generateTestMap("100", "201.0");
+
+        actualDelta = IGClientUtility.findMapDelta(map1,map2);
+
+        assertEquals(0, actualDelta.size());
+
         //Test empty list
 
         map1 = new HashMap<String,String>();

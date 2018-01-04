@@ -11,8 +11,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.io.IOException;
 import java.util.regex.Matcher;
 
 /**
@@ -27,7 +29,14 @@ public class SlackBot extends Bot {
 
     public static final String SLACK_BOT_TOKEN = "slackBotToken";
     private static final Logger logger = LoggerFactory.getLogger(SlackBot.class);
+    private static final String SLACK_CHANNEL_ID = "slackChannelId";
     private InterpreterAgent iAgent = InterpreterAgent.getInstance();
+    private WebSocketSession currentWebSocketSession = null;
+    private String channelID = null;
+
+    public SlackBot(){
+        iAgent.setSlackBot(this);
+    }
     /**
      * Slack token from application.properties file. You can get your slack token
      * next <a href="https://my.slack.com/services/new/bot">creating a new bot</a>.
@@ -38,7 +47,8 @@ public class SlackBot extends Bot {
     @Override
     public String getSlackToken() {
         if(null == slackToken){
-            slackToken= PropertiesUtil.getProperty(SLACK_BOT_TOKEN);
+            slackToken = PropertiesUtil.getProperty(SLACK_BOT_TOKEN);
+            channelID =  PropertiesUtil.getProperty(SLACK_CHANNEL_ID);
         }
         return slackToken;
     }
@@ -48,6 +58,11 @@ public class SlackBot extends Bot {
         return this;
     }
 
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) {
+        currentWebSocketSession = session;
+        logger.debug("WebSocket connected: {}", session);
+    }
     /**
      * Invoked when the bot receives a direct mention (@botname: message)
      * or a direct message. NOTE: These two event types are added by jbot
@@ -59,6 +74,7 @@ public class SlackBot extends Bot {
      */
     @Controller(events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
     public void onReceiveDM(WebSocketSession session, Event event) {
+        logger.debug("Channel Id = {}" , event.getChannelId());
 
         String replyMessage = iAgent.respond(event.getText());
 
@@ -169,5 +185,16 @@ public class SlackBot extends Bot {
             reply(session, event, new Message("Oh! my boss is smart enough to remind himself :)"));
         }
         stopConversation(event);    // stop conversation
+    }
+
+    public void sendMessage(String msg) {
+        Message message = new Message(msg);
+        message.setType(EventType.MESSAGE.name().toLowerCase());
+        message.setChannel(channelID);
+        try {
+            currentWebSocketSession.sendMessage(new TextMessage(message.toJSONString()));
+        } catch (IOException e) {
+            logger.warn("unable to send message to channel",e);
+        }
     }
 }

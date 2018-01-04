@@ -1,19 +1,19 @@
 package com.dario.agenttrader;
 
+import com.dario.agenttrader.dto.PositionInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
 
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 
-import com.dario.agenttrader.dto.PositionInfo;
 import com.dario.agenttrader.marketStrategies.MarketStrategySystem;
+import com.dario.agenttrader.marketStrategies.Position;
 import com.dario.agenttrader.marketStrategies.PositionManager;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
-import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
-import com.lightstreamer.ls_client.UpdateInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +24,7 @@ public class InterpreterAgent {
     private MarketStrategySystem marketStrategySystem = null;
 
     private static InterpreterAgent OneAndOnlyInstance = new InterpreterAgent();
+    private SlackBot slackBot = null;
 
     public static InterpreterAgent getInstance(){
         return OneAndOnlyInstance;
@@ -52,29 +53,6 @@ public class InterpreterAgent {
             List<PositionSnapshot> positionSnapshots = igClient.listOpenPositions();
             reply = formatPositionList(positionSnapshots);
 
-            igClient.subscribeToOpenPositionUpdates(new HandyTableListenerAdapter() {
-
-                    @Override
-                    public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-                        PositionInfo positionInfo = new PositionInfo(
-                                IGClientUtility.flatJSontoMap(updateInfo.getNewValue(1)),s,i);
-
-                        if (updateInfo.getNewValue("OPU") != null) {
-                            LOG.info("Position update i {} s {} data {}", i, s, updateInfo);
-                            marketStrategySystem.getPositionManagerActor().tell(
-                                    new PositionManager.OPU(positionInfo),
-                                    marketStrategySystem.getPositionManagerActor());
-                        }
-
-                    }
-                }
-            );
-//            igClient.subscribeToLighstreamerPriceUpdates(
-//                    positionSnapshots.get(2).getPositionsItem().getMarket().getEpic()
-//            );
-            igClient.subscribeToLighstreamerChartUpdates(
-                    positionSnapshots.get(2).getPositionsItem().getMarket().getEpic()
-            );
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -127,4 +105,17 @@ public class InterpreterAgent {
     }
 
 
+    public void sendMessage(Position.PositionUpdated positionupdated) {
+        String message = ":)";
+        message = positionupdated.getDelta().keySet().stream()
+                .filter(k -> PositionInfo.STOP_LEVEL_KEY.equals(k)||PositionInfo.LIMIT_LEVEL_KEY.equals(k))
+                .map(k -> k + ":" + positionupdated.getDelta().get(k)[0] + "->" + positionupdated.getDelta().get(k)[1])
+                .collect(Collectors.joining(","));
+        message = positionupdated.getEpic() + "/" + positionupdated.getPositionId() +" : "+ message;
+        slackBot.sendMessage(message);
+    }
+
+    public void setSlackBot(SlackBot pslackBot) {
+        this.slackBot = pslackBot;
+    }
 }

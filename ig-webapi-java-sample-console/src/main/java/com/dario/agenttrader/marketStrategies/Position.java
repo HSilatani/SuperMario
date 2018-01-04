@@ -7,7 +7,9 @@ import akka.event.LoggingAdapter;
 import com.dario.agenttrader.IGClientUtility;
 import com.dario.agenttrader.dto.PositionInfo;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class Position extends AbstractActor{
 
@@ -46,7 +48,9 @@ public class Position extends AbstractActor{
             delta.forEach((k,v) -> LOG.info("Change detected: {} from {} to {}",k,v[0],v[1]));
 
             positionInfo=newInfo;
-            getSender().tell(new PositionUpdated(positionID),getSelf());
+            getSender().tell(
+                    new PositionUpdated(positionID,newInfo.getKeyValues().get(PositionInfo.EPIC_KEY),delta)
+                    ,getSelf());
         }
     }
     @Override
@@ -65,15 +69,28 @@ public class Position extends AbstractActor{
 
     public static final class PositionUpdated{
         private final String positionId;
+        private final String epic;
+        private final Map<String,String[]> delta;
 
-        PositionUpdated(String ppositionId){
-            this.positionId = ppositionId;
+
+
+        public PositionUpdated(String ppositionID, String pepic, Map<String, String[]> pdelta) {
+            delta = pdelta;
+            positionId = ppositionID;
+            epic = pepic;
         }
 
         public String getPositionId(){
             return  positionId;
         }
 
+        public String getEpic() {
+            return epic;
+        }
+
+        public Map<String, String[]> getDelta() {
+            return delta;
+        }
     }
 
 }
