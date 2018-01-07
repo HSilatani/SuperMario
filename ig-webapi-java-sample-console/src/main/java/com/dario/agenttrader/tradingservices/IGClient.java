@@ -1,6 +1,9 @@
-package com.dario.agenttrader;
+package com.dario.agenttrader.tradingservices;
 
+import com.dario.agenttrader.ApplicationBootStrapper;
 import com.dario.agenttrader.dto.PositionSnapshot;
+import com.dario.agenttrader.utility.Calculator;
+import com.dario.agenttrader.utility.IGClientUtility;
 import com.iggroup.webapi.samples.PropertiesUtil;
 import com.iggroup.webapi.samples.client.RestAPI;
 import com.iggroup.webapi.samples.client.StreamingAPI;
@@ -8,17 +11,8 @@ import com.iggroup.webapi.samples.client.rest.AuthenticationResponseAndConversat
 import com.iggroup.webapi.samples.client.rest.ConversationContext;
 import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.AccountsItem;
 import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.GetAccountsV1Response;
-import com.iggroup.webapi.samples.client.rest.dto.markets.getMarketDetailsV2.CurrenciesItem;
-import com.iggroup.webapi.samples.client.rest.dto.markets.getMarketDetailsV2.GetMarketDetailsV2Response;
-import com.iggroup.webapi.samples.client.rest.dto.markets.getMarketDetailsV2.MarketOrderPreference;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.GetPositionsV2Response;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
-import com.iggroup.webapi.samples.client.rest.dto.positions.otc.closeOTCPositionV1.CloseOTCPositionV1Request;
-import com.iggroup.webapi.samples.client.rest.dto.positions.otc.closeOTCPositionV1.TimeInForce;
-import com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.CreateOTCPositionV1Request;
-import com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.Direction;
-import com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.OrderType;
-import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesByDateRangeV2.GetPricesByDateRangeV2Response;
 import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesByNumberOfPointsV2.GetPricesByNumberOfPointsV2Response;
 import com.iggroup.webapi.samples.client.rest.dto.session.createSessionV2.CreateSessionV2Request;
 import com.iggroup.webapi.samples.client.rest.dto.watchlists.getWatchlistByWatchlistIdV1.GetWatchlistByWatchlistIdV1Response;
@@ -32,9 +26,6 @@ import com.lightstreamer.ls_client.UpdateInfo;
 
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;

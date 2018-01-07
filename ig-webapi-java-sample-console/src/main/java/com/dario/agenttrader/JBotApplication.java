@@ -2,6 +2,8 @@ package com.dario.agenttrader;
 
 
 import com.dario.agenttrader.marketStrategies.MarketStrategySystem;
+import com.dario.agenttrader.tradingservices.IGClient;
+import com.dario.agenttrader.tradingservices.IGClientShutDownHook;
 import com.iggroup.webapi.samples.PropertiesUtil;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -1,5 +1,6 @@
 package com.dario.agenttrader;
 
+import com.dario.agenttrader.tradingservices.IGClient;
 import com.iggroup.webapi.samples.PropertiesUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

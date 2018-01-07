@@ -1,5 +1,6 @@
 package com.dario.agenttrader;
 
+import com.dario.agenttrader.bots.SlackBot;
 import com.dario.agenttrader.dto.PositionInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
 
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 import com.dario.agenttrader.marketStrategies.MarketStrategySystem;
 import com.dario.agenttrader.marketStrategies.Position;
 import com.dario.agenttrader.marketStrategies.PositionManager;
+import com.dario.agenttrader.tradingservices.IGClient;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

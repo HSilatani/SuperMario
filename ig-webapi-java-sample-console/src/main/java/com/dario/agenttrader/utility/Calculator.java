@@ -1,4 +1,4 @@
-package com.dario.agenttrader;
+package com.dario.agenttrader.utility;
 
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Direction;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;

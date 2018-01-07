@@ -1,4 +1,4 @@
-package com.dario.agenttrader;
+package com.dario.agenttrader.utility;
 
 import com.dario.agenttrader.dto.PositionInfo;
 import com.dario.agenttrader.marketStrategies.PositionManager;
@@ -9,7 +9,6 @@ import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Marke
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Position;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;

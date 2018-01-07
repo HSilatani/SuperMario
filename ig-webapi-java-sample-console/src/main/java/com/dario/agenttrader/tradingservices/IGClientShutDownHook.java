@@ -1,4 +1,6 @@
-package com.dario.agenttrader;
+package com.dario.agenttrader.tradingservices;
+
+import com.dario.agenttrader.tradingservices.IGClient;
 
 public class IGClientShutDownHook extends Thread {
              @Override

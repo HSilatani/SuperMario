@@ -1,11 +1,15 @@
-package com.dario.agenttrader.marketStrategies;
+package com.dario.agenttrader.utility;
 
 
-import com.dario.agenttrader.IGClientUtility;
+import com.dario.agenttrader.dto.PositionInfo;
+import com.dario.agenttrader.dto.PositionSnapshot;
+import com.dario.agenttrader.marketStrategies.PositionManager;
+import com.dario.agenttrader.TestPositionProvider;
 import org.junit.Test;
 
 import java.util.*;
 
+import static junit.framework.TestCase.assertNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -94,6 +98,66 @@ public class IGClientUtilityTest {
 
     @Test
     public void extractPositionInfTest() {
-        assertTrue("Not implemented",false);
+        String positionId = TestPositionProvider.DEAL_ID;
+        PositionSnapshot positionSnapshot = TestPositionProvider.getPositionSnapshot();
+
+        PositionManager.RegisterPositionRequest registerPositionRequest =
+                new PositionManager.RegisterPositionRequest(positionId, positionSnapshot);
+
+        PositionInfo positionInfoActual = IGClientUtility.extractPositionInfo(registerPositionRequest);
+
+        Map<String,String> positionFields =  new Hashtable<>();
+
+        positionFields.put("level" , "510.0");
+        positionFields.put("limitLevel" , "602.0");
+        positionFields.put("dealId" , "DIAAAABLAADV7A3");
+        positionFields.put("epic" , "KA.D.BP.DAILY.IP");
+        positionFields.put("controlledRisk" , "false");
+        positionFields.put("trailingStopDistance" , "null");
+        positionFields.put("createdDate" , "2017/11/13 08:02:44:000");
+        positionFields.put("size" , "5.0");
+        positionFields.put("stopLevel" , "512.0");
+        positionFields.put("createdDateUTC" , "2017-11-13T08:02:44");
+        positionFields.put("trailingStep" , "null");
+        positionFields.put("currency" , "GBP");
+        positionFields.put("contractSize" , "1.0");
+        positionFields.put("expiry" , "DFB");
+        positionFields.put("direction" , "BUY");
+
+        PositionInfo positionInfoExpected = new PositionInfo(positionFields,"0",0);
+
+        boolean isMapEqual = areMapsEqual(positionInfoActual, positionInfoExpected);
+
+        assertTrue(isMapEqual);
+
+
+
+    }
+
+    public boolean areMapsEqual(PositionInfo positionInfoActual, PositionInfo positionInfoExpected) {
+        Map<String,String> map1 = positionInfoExpected.getKeyValues();
+        Map<String,String> map2 = positionInfoActual.getKeyValues();
+
+        long numberOfMatchesExpected = map1.entrySet().stream().filter(
+                k -> {
+                    String expectedKey = k.getKey();
+                    String actualValue = map2.get(expectedKey);
+
+                    boolean isEqual = IGClientUtility.compareStringEqualOrNull(
+                        actualValue,
+                        k.getValue());
+                    return  isEqual;
+
+                    }).count();
+        return (map1.size() == numberOfMatchesExpected) && (map2.size() == numberOfMatchesExpected);
+    }
+
+
+    @Test
+    public void testJsonFlatter() {
+        Map<String, String> flattenedOPU = IGClientUtility.flatJSontoMap(TestPositionProvider.OPU_MESSAGE);
+        assertNotNull(flattenedOPU);
+        String dealId = flattenedOPU.get(PositionInfo.DEAL_ID_KEY);
+        assertEquals(TestPositionProvider.DEAL_ID, dealId);
     }
 }

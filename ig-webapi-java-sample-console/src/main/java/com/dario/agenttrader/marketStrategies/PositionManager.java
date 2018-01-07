@@ -6,8 +6,8 @@ import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import com.dario.agenttrader.IGClient;
-import com.dario.agenttrader.IGClientUtility;
+import com.dario.agenttrader.tradingservices.IGClient;
+import com.dario.agenttrader.utility.IGClientUtility;
 import com.dario.agenttrader.InterpreterAgent;
 import com.dario.agenttrader.dto.PositionInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
@@ -141,7 +141,7 @@ public class PositionManager extends AbstractActor{
         private final String positionId;
         private final PositionSnapshot positionSnapshot;
 
-        RegisterPositionRequest(String ppositionId, PositionSnapshot ppositionSnapshot){
+        public RegisterPositionRequest(String ppositionId, PositionSnapshot ppositionSnapshot){
             this.positionId = ppositionId;
             this.positionSnapshot = ppositionSnapshot;
         }

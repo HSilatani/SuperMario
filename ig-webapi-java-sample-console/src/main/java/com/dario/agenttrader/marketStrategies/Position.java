@@ -4,12 +4,10 @@ import akka.actor.AbstractActor;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import com.dario.agenttrader.IGClientUtility;
+import com.dario.agenttrader.utility.IGClientUtility;
 import com.dario.agenttrader.dto.PositionInfo;
 
-import java.util.Collections;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class Position extends AbstractActor{
 

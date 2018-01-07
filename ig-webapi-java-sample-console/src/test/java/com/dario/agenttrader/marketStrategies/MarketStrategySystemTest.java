@@ -9,7 +9,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.dario.agenttrader.IGClientUtility;
+import com.dario.agenttrader.TestPositionProvider;
+import com.dario.agenttrader.utility.IGClientUtility;
 import com.dario.agenttrader.dto.PositionInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
@@ -67,59 +68,73 @@ static MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInsta
         new PositionInfo(flattenedOPU,"",1));
     }
 
-    @Test
-    public void testPositionActors(){
-        final TestKit testProbePositionManager = new TestKit(system);
-        final TestKit testProbePosition = new TestKit(system);
+    private ActorRef setupPositionActor(TestKit testKit,ActorRef positionManager){
+         PositionManager.RegisterPositionRequest registerPositionRequest =
+                TestPositionProvider.createTestRegisterPositionRequest();
 
+        positionManager.tell(registerPositionRequest, testKit.getRef());
+
+        testKit.expectMsgClass(PositionManager.PositionRegistered.class);
+        ActorRef positionActor = testKit.getLastSender();
+
+        return positionActor;
+    }
+
+    @Test
+    public void testOnPositionUpdate(){
+        final TestKit testProbePositionManagerProbe = new TestKit(system);
         ActorRef positionManager = system.actorOf(PositionManager.props());
-        PositionManager.RegisterPositionRequest registerPositionRequest = createTestRegisterPositionRequest();
-        positionManager.tell(registerPositionRequest, testProbePositionManager.getRef());
-        testProbePositionManager.expectMsgClass(PositionManager.PositionRegistered.class);
-        ActorRef positionActor = testProbePositionManager.getLastSender();
+
+        ActorRef positionActor = setupPositionActor(testProbePositionManagerProbe,positionManager);
         assertNotNull(positionActor);
 
-        positionActor.tell(createOPU(), testProbePosition.getRef());
+        positionActor.tell(createOPU(), testProbePositionManagerProbe.getRef());
 
-        Position.PositionUpdated response = testProbePosition.expectMsgClass(Position.PositionUpdated.class);
+        Position.PositionUpdated response = testProbePositionManagerProbe.expectMsgClass(Position.PositionUpdated.class);
 
         assertNotNull(response);
-        assertEquals("Update message positionId does not match",POSITION_ID,response.getPositionId());
+        assertEquals("Update message positionId does not match",TestPositionProvider.DEAL_ID,response.getPositionId());
 
-        // When position stops itself , it must be removed from Manager
-        positionManager.tell(new PositionManager.ListPositions(),testProbePositionManager.getRef());
-        PositionManager.ListPositionResponse positionsList =
-                testProbePositionManager.expectMsgClass(PositionManager.ListPositionResponse.class);
-        assertEquals(Stream.of(POSITION_ID).collect(Collectors.toSet()),positionsList.getPositionIDs());
+    }
 
-        testProbePosition.watch(positionActor);
+    @Test
+    public void testPositionActorStop(){
+        final TestKit testProbe = new TestKit(system);
+        ActorRef positionManager = system.actorOf(PositionManager.props());
+
+        ActorRef positionActor = setupPositionActor(testProbe,positionManager);
+        assertNotNull(positionActor);
+
+        testProbe.watch(positionActor);
         positionActor.tell(new PositionManager.OPU(null,PositionManager.OPU.POSITION_CLOSED),
-                testProbePosition.getRef());
-        testProbePosition.expectTerminated(positionActor);
+                testProbe.getRef());
 
-        testProbePosition.awaitAssert(() ->{
-            positionManager.tell(new PositionManager.ListPositions(),testProbePositionManager.getRef());
+        testProbe.expectTerminated(positionActor);
+
+        testProbe.awaitAssert(() ->{
+            positionManager.tell(new PositionManager.ListPositions(),testProbe.getRef());
             PositionManager.ListPositionResponse emptyPositionsList =
-                    testProbePositionManager.expectMsgClass(PositionManager.ListPositionResponse.class);
+                    testProbe.expectMsgClass(PositionManager.ListPositionResponse.class);
             assertEquals(Stream.of().collect(Collectors.toSet()),emptyPositionsList.getPositionIDs());
             return null;
         });
-    }
 
-    private PositionManager.RegisterPositionRequest createTestRegisterPositionRequest() {
-        com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Position positionV2 =
-                new com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Position();
-        positionV2.setDealId(DEAL_ID);
-        PositionsItem pitem = new PositionsItem();
-        pitem.setPosition(positionV2);
-        PositionSnapshot pSnap = new PositionSnapshot(pitem);
-        PositionManager.RegisterPositionRequest registerPositionRequest =
-                new PositionManager.RegisterPositionRequest(POSITION_ID,pSnap);
-        return registerPositionRequest;
     }
 
     @Test
-    public void testOnLoadPositionReques(){
-        assertTrue("test not implemented",false);
+    public void testPositionCreate(){
+
+        final TestKit testProbe = new TestKit(system);
+        ActorRef positionManager = system.actorOf(PositionManager.props());
+
+        ActorRef positionActor = setupPositionActor(testProbe,positionManager);
+        assertNotNull(positionActor);
+
+        positionManager.tell(new PositionManager.ListPositions(),testProbe.getRef());
+        PositionManager.ListPositionResponse positionsList =
+                    testProbe.expectMsgClass(PositionManager.ListPositionResponse.class);
+        assertEquals(Stream.of(TestPositionProvider.DEAL_ID).collect(Collectors.toSet()),
+                positionsList.getPositionIDs());
     }
+
 }

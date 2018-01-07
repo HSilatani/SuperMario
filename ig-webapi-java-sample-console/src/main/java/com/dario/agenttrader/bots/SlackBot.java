@@ -1,15 +1,14 @@
-package com.dario.agenttrader;
+package com.dario.agenttrader.bots;
 
+import com.dario.agenttrader.InterpreterAgent;
 import com.iggroup.webapi.samples.PropertiesUtil;
 import me.ramswaroop.jbot.core.slack.Bot;
 import me.ramswaroop.jbot.core.slack.Controller;
 import me.ramswaroop.jbot.core.slack.EventType;
 import me.ramswaroop.jbot.core.slack.models.Event;
 import me.ramswaroop.jbot.core.slack.models.Message;
-import me.ramswaroop.jbot.core.slack.models.RichMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
