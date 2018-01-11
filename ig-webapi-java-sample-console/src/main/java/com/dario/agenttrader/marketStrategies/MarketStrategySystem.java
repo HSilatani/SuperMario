@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 public class MarketStrategySystem {
     public static final String MARKET_STRATEGY_MANAGER = "marketStrategyManager";
     public static final String POSITION_MANAGER = "positionManager";
+    private static final String MARKET_MANAGER = "marketManager";
     private static MarketStrategySystem oneAndOnly = new MarketStrategySystem();
 
     public static MarketStrategySystem getInstance(){
@@ -26,14 +27,18 @@ public class MarketStrategySystem {
 
     private final ActorRef positionManagerActor;
 
+    private final ActorRef marketManagerActor;
+
     private MarketStrategySystem(){
         system = ActorSystem.create("MarketStrategySystem");
 
              marketStrategyManagerActor =
-                    system.actorOf(MarketStrategyManager.props(), MARKET_STRATEGY_MANAGER);
+                    system.actorOf(StrategyManager.props(), MARKET_STRATEGY_MANAGER);
 
              positionManagerActor =
                      system.actorOf(PositionManager.props(), POSITION_MANAGER);
+
+             marketManagerActor = system.actorOf(MarketManager.props(),MARKET_MANAGER);
 
             isStrategySystemRunning = true;
     }
@@ -47,7 +52,11 @@ public class MarketStrategySystem {
         return marketStrategyManagerActor;
     }
 
-    public ActorRef getPositionManagerActor() {
+    public ActorRef getPositionManagerActor(){
         return positionManagerActor;
+    }
+
+    public ActorRef getMarketManagerActor() {
+        return marketManagerActor;
     }
 }

@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public class PositionInfo {
+    //TODO far too many position related objects - needs a refactor and simplification
     public static final String CREATED_DATE_KEY = "createdDate";
     public static final String CREATED_DATE_UTC_KEY = "createdDateUTC";
     public static final String CURRENCY_KEY = "currency";

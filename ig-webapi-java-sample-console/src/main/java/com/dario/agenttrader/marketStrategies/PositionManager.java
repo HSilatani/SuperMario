@@ -7,6 +7,7 @@ import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.dario.agenttrader.tradingservices.IGClient;
+import com.dario.agenttrader.utility.ActorRegistery;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.dario.agenttrader.InterpreterAgent;
 import com.dario.agenttrader.dto.PositionInfo;
@@ -14,17 +15,14 @@ import com.dario.agenttrader.dto.PositionSnapshot;
 import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
 import com.lightstreamer.ls_client.UpdateInfo;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class PositionManager extends AbstractActor{
 
     private final LoggingAdapter LOG = Logging.getLogger(getContext().getSystem(),this);
 
-    private Map<String,ActorRef> idToPosition = new HashMap<String, ActorRef>();
-    private Map<ActorRef,String> positionToId = new HashMap<ActorRef,String>();
+    private final ActorRegistery registry = new ActorRegistery();
 
 
     public PositionManager(){
@@ -53,12 +51,13 @@ public class PositionManager extends AbstractActor{
 
     private void onLoadPositions(LoadPositionsRequest loadPositionsRequest) {
         try {
-            List<PositionSnapshot> positionSnapshots = loadPositionsRequest.igClient.listOpenPositions();
+            List<PositionSnapshot> positionSnapshots =
+                    loadPositionsRequest.igClient.listOpenPositions();
+
             positionSnapshots.forEach(psnapshot ->{
                 RegisterPositionRequest registerPositionRequest =
                         new RegisterPositionRequest(psnapshot.getPositionId(),psnapshot);
-                ActorRef positionActor = registerPosition(psnapshot.getPositionId());
-                positionActor.forward(registerPositionRequest,getContext());
+                getSelf().forward(registerPositionRequest,getContext());
             });
 
             subscribeToPositionUpdates(loadPositionsRequest.igClient);
@@ -101,40 +100,28 @@ public class PositionManager extends AbstractActor{
 
         String positionId = opu.getPostionInfo().getDealId();
 
-        ActorRef positionActor = registerPosition(positionId);
+        ActorRef positionActor = registry.getActorForUniqId(positionId);
 
         positionActor.forward(opu,getContext());
     }
 
     private void onListPosition(ListPositions p) {
-        getSender().tell(new ListPositionResponse(idToPosition.keySet()),getSelf());
+        Set<String> uniqIds = registry.getUniqIds();
+        getSender().tell(new ListPositionResponse(uniqIds),getSelf());
     }
 
     public void onTerminated(Terminated t) {
         ActorRef position = t.getActor();
-        String positionId = positionToId.get(position);
-        idToPosition.remove(positionId);
-        positionToId.remove(position);
+        String positionId = registry.removeActor(position);
         LOG.info("Actor for Position {} is removed",positionId);
     }
 
     private void onRegiserPosition(RegisterPositionRequest msg) {
         String regPosId = msg.getPositionId();
-        ActorRef positionActor = registerPosition(regPosId);
-        positionActor.forward(msg,getContext());
+        Props props = Position.props(regPosId);
+        registry.registerActorIfAbscent(getContext(),props,regPosId,msg);
     }
 
-    private ActorRef registerPosition(String regPosId) {
-        ActorRef positionActor = idToPosition.get(regPosId);
-        if(null == positionActor ){
-            positionActor = getContext().actorOf(Position.props(regPosId),regPosId);
-            getContext().watch(positionActor);
-            idToPosition.put(regPosId,positionActor);
-            positionToId.put(positionActor,regPosId);
-        }
-
-        return positionActor;
-    }
 
     public static final class RegisterPositionRequest {
 

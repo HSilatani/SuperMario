@@ -7,13 +7,10 @@ import akka.testkit.javadsl.TestKit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import com.dario.agenttrader.TestPositionProvider;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.dario.agenttrader.dto.PositionInfo;
-import com.dario.agenttrader.dto.PositionSnapshot;
-import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -31,7 +28,7 @@ public class  MarketStrategySystemTest{
 
     public static final String POSITION_ID = "DIA111";
     static ActorSystem system;
-static MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInstance();
+    static MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInstance();
 
 
     private final String  OPU_MESSAGE = "{\"stopLevel\":110004,\"trailingStopDistance\":0,\"limitLevel\":null,\"trailingStep\":0,\"guaranteedStop\":false,\"currency\":\"GBP\",\"expiry\":\"DFB\",\"dealIdOrigin\":\"DIAAAABLAADV7A3\",\"dealId\":\"DIAAAABLAADV7A3\",\"dealReference\":\"QC63G1C0266DS3\",\"direction\":\"BUY\",\"epic\":\"UA.D.AMZN.DAILY.IP\",\"dealStatus\":\"ACCEPTED\",\"level\":119255,\"status\":\"UPDATED\",\"size\":2,\"channel\":\"WTP\",\"timestamp\":\"2017-12-30T23:30:00.277\"} ";
