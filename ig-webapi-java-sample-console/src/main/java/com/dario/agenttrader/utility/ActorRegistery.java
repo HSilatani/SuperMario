@@ -51,4 +51,8 @@ public class ActorRegistery {
     public Set<String> getUniqIds() {
         return stringIdToActor.keySet();
     }
+
+    public void removeActorById(String uniqId) {
+        removeActor(getActorForUniqId(uniqId));
+    }
 }

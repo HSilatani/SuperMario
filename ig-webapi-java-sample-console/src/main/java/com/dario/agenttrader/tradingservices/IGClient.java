@@ -193,17 +193,10 @@ public class IGClient {
         }
     }
 
-    public void subscribeToLighstreamerChartUpdates(String tradeableEpic) throws Exception {
-
-
+    public void subscribeToLighstreamerChartUpdates(String tradeableEpic, HandyTableListenerAdapter listener) throws Exception {
         if (tradeableEpic != null) {
             LOG.info("Subscribing to Lightstreamer chart updates for market: {} ", tradeableEpic);
-            listeners.add(streamingAPI.subscribeForChartTicks(tradeableEpic, new HandyTableListenerAdapter() {
-                @Override
-                public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-                    LOG.info("Chart i {} s {} data {}", i, s, updateInfo);
-                }
-            }));
+            listeners.add(streamingAPI.subscribeForChartTicks(tradeableEpic, listener));
         }
     }
 

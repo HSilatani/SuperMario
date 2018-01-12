@@ -49,7 +49,7 @@ public class  MarketStrategySystemTest{
     @Test
     public void testGreeterActorSendingOfGreeting() {
         final TestKit testProbe = new TestKit(system);
-        final ActorRef marketStrategyManager = marketStrategySystem.getMarketStrategyManagerActor();
+        final ActorRef marketStrategyManager = marketStrategySystem.getStrategyManagerActor();
         final ActorRef positionManager = marketStrategySystem.getPositionManagerActor();
 
         assertEquals(MARKET_STRATEGY_MANAGER_URL, marketStrategyManager.path().toString());

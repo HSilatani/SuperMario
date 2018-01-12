@@ -60,14 +60,14 @@ public class StrategyManager extends AbstractActor{
     public static final class CreateStrategyMessage{
         private String uniqId;
         private ActorRef owner;
-        private MarketStrategy marketStrategy;
+        private MarketStrategyInterface marketStrategy;
 
-        public CreateStrategyMessage(String pUniqId, MarketStrategy pMarketStrategy){
+        public CreateStrategyMessage(String pUniqId, MarketStrategyInterface pMarketStrategy){
             this.uniqId = pUniqId;
             this.marketStrategy = pMarketStrategy;
         }
 
-        public CreateStrategyMessage(ActorRef pOwner,String  pUniqId, MarketStrategy pMarketStrategy){
+        public CreateStrategyMessage(ActorRef pOwner,String  pUniqId, MarketStrategyInterface pMarketStrategy){
             this(pUniqId, pMarketStrategy);
             owner = pOwner;
         }
@@ -80,7 +80,7 @@ public class StrategyManager extends AbstractActor{
             return owner;
         }
 
-        public MarketStrategy getMarketStrategy() {
+        public MarketStrategyInterface getMarketStrategy() {
             return marketStrategy;
         }
     }

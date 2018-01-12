@@ -1,8 +1,13 @@
 package com.dario.agenttrader.marketStrategies;
 
-public class TrackerStrategy implements MarketStrategy {
+public class TrackerStrategy extends AbstractMarketStrategy {
+
+    public TrackerStrategy(String[] epics) {
+        super(epics);
+    }
+
     @Override
-    public String[] getListOfObservedMarkets() {
-        return new String[0];
+    public void evaluate(Object marketUpdate) {
+
     }
 }

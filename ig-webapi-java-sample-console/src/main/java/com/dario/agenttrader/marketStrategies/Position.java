@@ -55,13 +55,22 @@ public class Position extends AbstractActor{
     public Receive createReceive() {
         return receiveBuilder()
                 .match(PositionManager.OPU.class, this::onPositionUpdate)
-                .match(PositionManager.RegisterPositionRequest.class, this::onRegisterPositionRequest
-                ).build();
+                .match(PositionManager.RegisterPositionRequest.class, this::onRegisterPositionRequest)
+                .build();
     }
 
     private void onRegisterPositionRequest(PositionManager.RegisterPositionRequest registerPositionRequest) {
         this.positionInfo = IGClientUtility.extractPositionInfo(registerPositionRequest);
+        createDefaultStrategies();
         getSender().tell(new PositionManager.PositionRegistered(positionID),getSelf());
+    }
+
+    private void createDefaultStrategies() {
+        String[] epics = new String[1];
+        epics[0] = positionInfo.getKeyValues().get(PositionInfo.EPIC_KEY);
+        MarketStrategyInterface trackerMarketStrategy = new TrackerStrategy(epics);
+        MarketStrategySystem.getInstance().getStrategyManagerActor().tell(
+                new StrategyManager.CreateStrategyMessage(getSelf(),positionID,trackerMarketStrategy),getSelf());
     }
 
 

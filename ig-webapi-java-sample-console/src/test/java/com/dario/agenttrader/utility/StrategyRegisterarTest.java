@@ -9,6 +9,8 @@ import com.dario.agenttrader.marketStrategies.MarketStrategySystem;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 public class StrategyRegisterarTest {
@@ -19,7 +21,7 @@ public class StrategyRegisterarTest {
 
     @BeforeClass
     public static void setup() {
-        system = marketStrategySystem.getActorSystem();
+        system = ActorSystem.create();
     }
 
     @AfterClass
@@ -30,20 +32,70 @@ public class StrategyRegisterarTest {
 
     @Test
     public void registerNewActorTest(){
+        String dealId = getRandomDealId();
         ActorRegistery registery = new ActorRegistery();
         AbstractActor.ActorContext mockedContext =
                 mock(AbstractActor.ActorContext.class);
         Props props =Props.create(TestActor.class);
-        when(mockedContext.actorOf(props,DEAL_ID))
-                .thenReturn(system.actorOf(props,DEAL_ID));
+        when(mockedContext.actorOf(props,dealId))
+                .thenReturn(system.actorOf(props,dealId));
         Object msg = new Object();
 
         ActorRef expectedActor =
-                registery.registerActorIfAbscent(mockedContext,props,DEAL_ID,msg);
+                registery.registerActorIfAbscent(mockedContext,props,dealId,msg);
 
-        ActorRef actualActor = registery.getActorForUniqId(DEAL_ID);
+        ActorRef actualActor = registery.getActorForUniqId(dealId);
 
         assertNotNull(actualActor==expectedActor);
+
+    }
+
+    public String getRandomDealId() {
+        return DEAL_ID + Math.round(Math.random()*1000);
+    }
+
+    @Test
+    public void removeActor(){
+       String dealId = getRandomDealId();
+       ActorRegistery registery = new ActorRegistery();
+        AbstractActor.ActorContext mockedContext =
+                mock(AbstractActor.ActorContext.class);
+        Props props =Props.create(TestActor.class);
+        when(mockedContext.actorOf(props,dealId))
+                .thenReturn(system.actorOf(props,dealId));
+
+        Object msg = new Object();
+
+        ActorRef actor =
+                registery.registerActorIfAbscent(mockedContext,props,dealId,msg);
+
+        registery.removeActor(actor);
+
+        ActorRef actualActor = registery.getActorForUniqId(dealId);
+        assertTrue(null == actualActor);
+
+    }
+
+    @Test
+    public void removeActorById(){
+        String dealId = getRandomDealId();
+       ActorRegistery registery = new ActorRegistery();
+        AbstractActor.ActorContext mockedContext =
+                mock(AbstractActor.ActorContext.class);
+        Props props =Props.create(TestActor.class);
+        when(mockedContext.actorOf(props,dealId))
+                .thenReturn(system.actorOf(props,dealId));
+
+        Object msg = new Object();
+
+        ActorRef actor =
+                registery.registerActorIfAbscent(mockedContext,props,dealId,msg);
+
+        registery.removeActorById(dealId);
+
+        ActorRef actualActor = registery.getActorForUniqId(dealId);
+
+        assertTrue(null == actualActor);
 
     }
 

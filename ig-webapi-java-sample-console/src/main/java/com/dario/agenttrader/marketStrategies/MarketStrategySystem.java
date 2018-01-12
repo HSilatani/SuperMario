@@ -23,7 +23,7 @@ public class MarketStrategySystem {
 
     private final ActorSystem system;
 
-    private final ActorRef marketStrategyManagerActor;
+    private final ActorRef strategyManagerActor;
 
     private final ActorRef positionManagerActor;
 
@@ -32,7 +32,7 @@ public class MarketStrategySystem {
     private MarketStrategySystem(){
         system = ActorSystem.create("MarketStrategySystem");
 
-             marketStrategyManagerActor =
+             strategyManagerActor =
                     system.actorOf(StrategyManager.props(), MARKET_STRATEGY_MANAGER);
 
              positionManagerActor =
@@ -48,8 +48,8 @@ public class MarketStrategySystem {
         return system;
     }
 
-    public ActorRef getMarketStrategyManagerActor() {
-        return marketStrategyManagerActor;
+    public ActorRef getStrategyManagerActor() {
+        return strategyManagerActor;
     }
 
     public ActorRef getPositionManagerActor(){
