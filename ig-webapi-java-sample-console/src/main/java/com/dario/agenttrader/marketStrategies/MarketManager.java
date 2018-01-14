@@ -8,12 +8,13 @@ import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.dario.agenttrader.tradingservices.IGClient;
-import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
-import com.lightstreamer.ls_client.UpdateInfo;
+import com.dario.agenttrader.utility.ActorRegistery;
 
 public class MarketManager extends AbstractActor{
 
     private final LoggingAdapter LOG = Logging.getLogger(getContext().getSystem(),this);
+
+    private final ActorRegistery marketManagerRegistry = new ActorRegistery();
 
     public static final Props props(){
         return Props.create(MarketManager.class);
@@ -33,33 +34,50 @@ public class MarketManager extends AbstractActor{
     public Receive createReceive() {
         return receiveBuilder()
                 .match(SubscribeToMarketUpdate.class,this::onSubscribeToMarket)
+                .match(Terminated.class,this::onTerminated)
                 .build();
     }
 
-    private void onSubscribeToMarket(SubscribeToMarketUpdate msg) {
-      IGClient igClient =   IGClient.getInstance();
+    private void onTerminated(Terminated t) {
+        ActorRef terminatedActor = t.getActor();
+        String marketId = marketManagerRegistry.removeActor(terminatedActor);
+        LOG.info("Market actor for {} is terminated",marketId);
+    }
 
-      String tradeableEpic = msg.getEpic();
-      if (tradeableEpic != null) {
-          try {
-              igClient.subscribeToLighstreamerChartUpdates(tradeableEpic,
-                        new HandyTableListenerAdapter(){
-                            @Override
-                            public void onUpdate(int i, String s, UpdateInfo updateInfo){
-                                 LOG.info("Chart i {} s {} data {}", i, s, updateInfo);
-                            }
-                        }
-                        );
-          } catch (Exception e) {
-              e.printStackTrace();
-          }
-      }
+    private void onSubscribeToMarket(SubscribeToMarketUpdate msg) {
+
+      IGClient igClient =   IGClient.getInstance();
+      Props props = MarketActor.props(msg.getEpic(),igClient);
+      CreateMarket createMarket = new CreateMarket(msg.getEpic());
+      ActorRef marketActor = marketManagerRegistry.registerActorIfAbscent(
+              getContext(),props,msg.getEpic(),createMarket);
+
+      marketActor.forward(msg,getContext());
+
     }
 
     public static final class SubscribeToMarketUpdate {
         private final String epic;
-        public SubscribeToMarketUpdate(String pepic) {
+        private final ActorRef subscriber;
+        public SubscribeToMarketUpdate(String pepic,ActorRef pobserver) {
+            this.subscriber = pobserver;
             epic = pepic;
+        }
+
+        public ActorRef getSubscriber() {
+            return subscriber;
+        }
+
+        public String getEpic()
+        {
+            return epic;
+        }
+    }
+
+    public static final class CreateMarket{
+        private final String epic;
+        CreateMarket(String pepic){
+            this.epic = pepic;
         }
 
         public String getEpic() {

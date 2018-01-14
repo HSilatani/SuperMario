@@ -15,6 +15,7 @@ import com.dario.agenttrader.marketStrategies.MarketStrategySystem;
 import com.dario.agenttrader.marketStrategies.Position;
 import com.dario.agenttrader.marketStrategies.PositionManager;
 import com.dario.agenttrader.tradingservices.IGClient;
+import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +23,7 @@ import org.slf4j.LoggerFactory;
 public class InterpreterAgent {
 
 
-    private IGClient igClient = null;
+    private TradingAPI tradingAPI = null;
     private MarketStrategySystem marketStrategySystem = null;
 
     private static InterpreterAgent OneAndOnlyInstance = new InterpreterAgent();
@@ -35,8 +36,8 @@ public class InterpreterAgent {
 
     private static final Logger LOG = LoggerFactory.getLogger(InterpreterAgent.class);
 
-    public void setIGClient(IGClient igClient) {
-        this.igClient = igClient;
+    public void setIGClient(TradingAPI ptradingAPI) {
+        this.tradingAPI = ptradingAPI;
     }
 
     public void setMarketStrategySystem(MarketStrategySystem marketStrategySystem) {
@@ -44,7 +45,7 @@ public class InterpreterAgent {
     }
 
     public void startAgent(){
-        marketStrategySystem.getPositionManagerActor().tell(new PositionManager.LoadPositionsRequest(igClient),
+        marketStrategySystem.getPositionManagerActor().tell(new PositionManager.LoadPositionsRequest(),
                 marketStrategySystem.getPositionManagerActor());
     }
 
@@ -52,7 +53,7 @@ public class InterpreterAgent {
         String reply = "Oops 0_0";
 
         try {
-            List<PositionSnapshot> positionSnapshots = igClient.listOpenPositions();
+            List<PositionSnapshot> positionSnapshots = tradingAPI.listOpenPositions();
             reply = formatPositionList(positionSnapshots);
 
         } catch (Exception e) {
@@ -102,7 +103,7 @@ public class InterpreterAgent {
     public String formatMoney(BigDecimal money){
         String strPandL = "NA";
         strPandL = NumberFormat.getCurrencyInstance(
-                igClient.getLocale()).format(money);
+                tradingAPI.getLocale()).format(money);
         return strPandL;
     }
 

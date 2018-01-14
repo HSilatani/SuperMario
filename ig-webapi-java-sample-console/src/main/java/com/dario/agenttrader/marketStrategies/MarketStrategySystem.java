@@ -3,6 +3,8 @@ package com.dario.agenttrader.marketStrategies;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
+import com.dario.agenttrader.tradingservices.IGClient;
+import com.dario.agenttrader.tradingservices.TradingAPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,20 +25,27 @@ public class MarketStrategySystem {
 
     private final ActorSystem system;
 
-    private final ActorRef strategyManagerActor;
+    private ActorRef strategyManagerActor;
 
-    private final ActorRef positionManagerActor;
+    private ActorRef positionManagerActor;
 
-    private final ActorRef marketManagerActor;
+    private ActorRef marketManagerActor;
+
+    private TradingAPI tradingAPI;
 
     private MarketStrategySystem(){
         system = ActorSystem.create("MarketStrategySystem");
+
+    }
+
+    public void startMarketStrategySystem(TradingAPI ptradingAPI){
+        tradingAPI = ptradingAPI;
 
              strategyManagerActor =
                     system.actorOf(StrategyManager.props(), MARKET_STRATEGY_MANAGER);
 
              positionManagerActor =
-                     system.actorOf(PositionManager.props(), POSITION_MANAGER);
+                     system.actorOf(PositionManager.props(tradingAPI), POSITION_MANAGER);
 
              marketManagerActor = system.actorOf(MarketManager.props(),MARKET_MANAGER);
 

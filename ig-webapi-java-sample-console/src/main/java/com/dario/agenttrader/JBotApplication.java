@@ -4,6 +4,7 @@ package com.dario.agenttrader;
 import com.dario.agenttrader.marketStrategies.MarketStrategySystem;
 import com.dario.agenttrader.tradingservices.IGClient;
 import com.dario.agenttrader.tradingservices.IGClientShutDownHook;
+import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.iggroup.webapi.samples.PropertiesUtil;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -55,10 +56,11 @@ public class JBotApplication extends SpringBootServletInitializer {
 //    }
     @Bean
     public InterpreterAgent iAgent() throws Exception {
-        IGClient igClient = IGClient.getInstance();
+        TradingAPI igClient = IGClient.getInstance();
         igClient.connect();
 
         MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInstance();
+        marketStrategySystem.startMarketStrategySystem(igClient);
 
         InterpreterAgent interpreterAgent = InterpreterAgent.getInstance();
         interpreterAgent.setIGClient(igClient);

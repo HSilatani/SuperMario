@@ -1,5 +1,6 @@
 package com.dario.agenttrader.utility;
 
+import com.dario.agenttrader.dto.MarketUpdate;
 import com.dario.agenttrader.dto.PositionInfo;
 import com.dario.agenttrader.marketStrategies.PositionManager;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -7,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Market;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Position;
+import com.lightstreamer.ls_client.UpdateInfo;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -105,5 +107,19 @@ public class IGClientUtility {
 
 
         return new PositionInfo(positionFields,"0",0);
+    }
+
+
+
+
+    
+    public static Map<String,String> extractMarketUpdateKeyValues(UpdateInfo updateInfo, int i, String s) {
+        Map<String,String> marketUpdateKeyValues = new HashMap<>();
+
+
+        MarketUpdate.MARKET_UPDATE_KEYS.forEach((k, v) -> marketUpdateKeyValues.put(k,updateInfo.getNewValue(v.intValue())));
+        marketUpdateKeyValues.put(MarketUpdate.EPIV_KEY,updateInfo.getItemName());
+
+        return marketUpdateKeyValues;
     }
 }

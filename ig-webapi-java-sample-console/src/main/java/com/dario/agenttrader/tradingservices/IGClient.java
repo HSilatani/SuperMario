@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IGClient {
+public class IGClient implements TradingAPI {
     private static IGClient OneAndOnlyIGClient = new IGClient();
 
     public static IGClient getInstance(){
@@ -39,10 +39,6 @@ public class IGClient {
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(IGClient.class);
-    public static final String IDENTIFIER = "identifier";
-    public static final String PASSWORD = "password";
-    public static final String API_KEY = "apiKey";
-    public static final String ACCOUNT_ID="ig.accountID";
 
     private Calculator cal = new Calculator();
 
@@ -78,6 +74,7 @@ public class IGClient {
 
     }
 
+    @Override
     public void connect() throws Exception {
        String identifier = applicationBootStrapper.identifier();
        String password = applicationBootStrapper.password();
@@ -101,11 +98,13 @@ public class IGClient {
         loadAccountPreferences(authenticationContext.getAccountId());
     }
 
+    @Override
     public void disconnect() throws Exception {
         unsubscribeAllLightstreamerListeners();
         streamingAPI.disconnect();
     }
 
+    @Override
     public void unsubscribeAllLightstreamerListeners() throws Exception {
 
         for (HandyTableListenerAdapter listener : listeners) {
@@ -113,6 +112,7 @@ public class IGClient {
         }
     }
 
+    @Override
     public void subscribeToLighstreamerAccountUpdates() throws Exception {
 
         LOG.info("Subscribing to Lightstreamer account updates");
@@ -128,6 +128,7 @@ public class IGClient {
 
     }
     
+    @Override
     public List<PositionSnapshot> listOpenPositions() throws Exception {
 
         ConversationContext conversationContext = authenticationContext.getConversationContext();
@@ -141,7 +142,21 @@ public class IGClient {
       return positionSnapshotList;
    }
 
+   @Override
+   public PositionSnapshot getPositionSnapshot(String positionId) throws Exception{
 
+
+      List<PositionSnapshot> positionSnapshotList = listOpenPositions();
+
+      Optional<PositionSnapshot> positionSnapShot= positionSnapshotList.stream()
+              .filter(psnap -> positionId.equalsIgnoreCase(psnap.getPositionId()))
+              .findFirst();
+
+      return positionSnapShot.get();
+   }
+
+
+   @Override
    public PositionSnapshot createPositionSnapshot(PositionsItem position){
         PositionSnapshot psnap = new PositionSnapshot(position);
 
@@ -163,6 +178,7 @@ public class IGClient {
 
    }
 
+   @Override
    public void listWatchlists() throws Exception {
 
       GetWatchlistsV1Response watchlistsResponse = restAPI.getWatchlistsV1(authenticationContext.getConversationContext());
@@ -179,6 +195,7 @@ public class IGClient {
       }
    }
 
+   @Override
    public void subscribeToLighstreamerPriceUpdates(String tradeableEpic) throws Exception {
 
         if (tradeableEpic != null) {
@@ -193,6 +210,7 @@ public class IGClient {
         }
     }
 
+    @Override
     public void subscribeToLighstreamerChartUpdates(String tradeableEpic, HandyTableListenerAdapter listener) throws Exception {
         if (tradeableEpic != null) {
             LOG.info("Subscribing to Lightstreamer chart updates for market: {} ", tradeableEpic);
@@ -200,15 +218,18 @@ public class IGClient {
         }
     }
 
+    @Override
     public void subscribeToOpenPositionUpdates(HandyTableListenerAdapter listener) throws Exception{
 
         listeners.add(streamingAPI.subscribeForOPUs(authenticationContext.getAccountId(),listener));
 
     }
 
+   @Override
    public AccountsItem accountPreferences(){
        return accountSetting;
    }
+   @Override
    public void loadAccountPreferences(String accID) throws Exception {
         GetAccountsV1Response getAccountsV1Response =
                 restAPI.getAccountsV1(authenticationContext.getConversationContext());
@@ -225,6 +246,7 @@ public class IGClient {
         }
    }
 
+    @Override
     public Locale getLocale() {
         return locale;
     }

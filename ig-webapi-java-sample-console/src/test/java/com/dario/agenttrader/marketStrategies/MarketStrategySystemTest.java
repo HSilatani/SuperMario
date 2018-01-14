@@ -9,11 +9,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import com.dario.agenttrader.TestPositionProvider;
+import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.dario.agenttrader.dto.PositionInfo;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import static org.mockito.Mockito.*;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -80,7 +83,8 @@ public class  MarketStrategySystemTest{
     @Test
     public void testOnPositionUpdate(){
         final TestKit testProbePositionManagerProbe = new TestKit(system);
-        ActorRef positionManager = system.actorOf(PositionManager.props());
+        TradingAPI mockedTradingAPI = mock(TradingAPI.class);
+        ActorRef positionManager = system.actorOf(PositionManager.props(mockedTradingAPI));
 
         ActorRef positionActor = setupPositionActor(testProbePositionManagerProbe,positionManager);
         assertNotNull(positionActor);
@@ -97,7 +101,8 @@ public class  MarketStrategySystemTest{
     @Test
     public void testPositionActorStop(){
         final TestKit testProbe = new TestKit(system);
-        ActorRef positionManager = system.actorOf(PositionManager.props());
+        TradingAPI mockedTradingAPI = mock(TradingAPI.class);
+        ActorRef positionManager = system.actorOf(PositionManager.props(mockedTradingAPI));
 
         ActorRef positionActor = setupPositionActor(testProbe,positionManager);
         assertNotNull(positionActor);
@@ -122,7 +127,8 @@ public class  MarketStrategySystemTest{
     public void testPositionCreate(){
 
         final TestKit testProbe = new TestKit(system);
-        ActorRef positionManager = system.actorOf(PositionManager.props());
+        TradingAPI mockedTradingAPI = mock(TradingAPI.class);
+        ActorRef positionManager = system.actorOf(PositionManager.props(mockedTradingAPI));
 
         ActorRef positionActor = setupPositionActor(testProbe,positionManager);
         assertNotNull(positionActor);

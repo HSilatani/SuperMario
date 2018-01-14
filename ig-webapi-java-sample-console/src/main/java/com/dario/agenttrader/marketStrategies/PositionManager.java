@@ -7,6 +7,7 @@ import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.dario.agenttrader.tradingservices.IGClient;
+import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.utility.ActorRegistery;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.dario.agenttrader.InterpreterAgent;
@@ -24,13 +25,16 @@ public class PositionManager extends AbstractActor{
 
     private final ActorRegistery registry = new ActorRegistery();
 
+    private final TradingAPI tradingAPI;
 
-    public PositionManager(){
+
+    public PositionManager(TradingAPI ptradingAPI){
+        tradingAPI = ptradingAPI;
 
     }
 
-    public static final Props props(){
-        return Props.create(PositionManager.class);
+    public static final Props props(TradingAPI tradingAPI){
+        return Props.create(PositionManager.class,tradingAPI);
     }
 
     @Override
@@ -49,28 +53,26 @@ public class PositionManager extends AbstractActor{
         LOG.info("Registration for position {} is confirmed",positionRegistered.getPositionId());
     }
 
-    private void onLoadPositions(LoadPositionsRequest loadPositionsRequest) {
-        try {
-            List<PositionSnapshot> positionSnapshots =
-                    loadPositionsRequest.igClient.listOpenPositions();
+    private void onLoadPositions(LoadPositionsRequest loadPositionsRequest) throws Exception {
+            List<PositionSnapshot> positionSnapshots = tradingAPI.listOpenPositions();
 
             positionSnapshots.forEach(psnapshot ->{
-                RegisterPositionRequest registerPositionRequest =
-                        new RegisterPositionRequest(psnapshot.getPositionId(),psnapshot);
-                getSelf().forward(registerPositionRequest,getContext());
+                registerNewPosition(psnapshot);
             });
 
-            subscribeToPositionUpdates(loadPositionsRequest.igClient);
-
-        } catch (Exception e) {
-            LOG.error(e, "Filed to load positions!");
-        }
+            subscribeToPositionUpdates();
     }
 
-    private void subscribeToPositionUpdates(IGClient igClient) throws Exception{
+    private void registerNewPosition(PositionSnapshot psnapshot) {
+        RegisterPositionRequest registerPositionRequest =
+                new RegisterPositionRequest(psnapshot.getPositionId(),psnapshot);
+        getSelf().forward(registerPositionRequest,getContext());
+    }
+
+    private void subscribeToPositionUpdates() throws Exception{
         ActorRef positionManagerActor = getSelf();
 
-        igClient.subscribeToOpenPositionUpdates(
+        tradingAPI.subscribeToOpenPositionUpdates(
                 new HandyTableListenerAdapter() {
                     @Override
                     public void onUpdate(int i, String s, UpdateInfo updateInfo) {
@@ -93,7 +95,7 @@ public class PositionManager extends AbstractActor{
         InterpreterAgent.getInstance().sendMessage(positionupdated);
     }
 
-    private void onOPU(OPU opu) {
+    private void onOPU(OPU opu) throws Exception{
         LOG.info("OPU {}-{}",opu.getPostionInfo().getS()
                 , opu.getPostionInfo().getDealId()
         );
@@ -102,7 +104,13 @@ public class PositionManager extends AbstractActor{
 
         ActorRef positionActor = registry.getActorForUniqId(positionId);
 
-        positionActor.forward(opu,getContext());
+        if(positionActor!=null){
+            positionActor.forward(opu,getContext());
+        }else{
+            PositionSnapshot psnap = tradingAPI.getPositionSnapshot(positionId);
+            registerNewPosition(psnap);
+        }
+
     }
 
     private void onListPosition(ListPositions p) {
@@ -195,9 +203,8 @@ public class PositionManager extends AbstractActor{
     }
 
     public static final class LoadPositionsRequest {
-        private final IGClient igClient;
-        public LoadPositionsRequest(IGClient pigClient) {
-            igClient=pigClient;
+        public LoadPositionsRequest() {
+
         }
     }
 }

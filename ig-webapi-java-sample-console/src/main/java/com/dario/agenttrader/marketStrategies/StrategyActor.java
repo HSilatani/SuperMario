@@ -55,7 +55,7 @@ public class StrategyActor extends AbstractActor{
     }
 
     private void onMarketUpdate(MarketActor.MarketUpdated marketUpdated) {
-        marketStrategy.evaluate(marketUpdated.getMarketUpdate());
+        marketStrategy.evaluate(marketUpdated);
     }
 
     private void onCreateStrategy(StrategyManager.CreateStrategyMessage msg) {
@@ -70,7 +70,7 @@ public class StrategyActor extends AbstractActor{
         ActorRef marketManagerActor = MarketStrategySystem.getInstance().getMarketManagerActor();
         Arrays.stream(epics).forEach(epic ->
           marketManagerActor.tell(
-                new MarketManager.SubscribeToMarketUpdate(epic),getSelf())
+                new MarketManager.SubscribeToMarketUpdate(epic,getSelf()),getSelf())
         );
 
     }
