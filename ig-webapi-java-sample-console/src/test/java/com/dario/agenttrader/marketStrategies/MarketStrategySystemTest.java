@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import com.dario.agenttrader.TestPositionProvider;
+import com.dario.agenttrader.dto.UpdateEvent;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.dario.agenttrader.dto.PositionInfo;
@@ -39,6 +40,8 @@ public class  MarketStrategySystemTest{
 
     @BeforeClass
     public static void setup() {
+        TradingAPI mockedTradingAPI = mock(TradingAPI.class);
+        marketStrategySystem.startMarketStrategySystem(mockedTradingAPI);
         system = marketStrategySystem.getActorSystem();
     //    system = ActorSystem.create();
     }
@@ -50,7 +53,7 @@ public class  MarketStrategySystemTest{
     }
 
     @Test
-    public void testGreeterActorSendingOfGreeting() {
+    public void testMarketStrategySystemStartup() {
         final TestKit testProbe = new TestKit(system);
         final ActorRef marketStrategyManager = marketStrategySystem.getStrategyManagerActor();
         final ActorRef positionManager = marketStrategySystem.getPositionManagerActor();
@@ -64,8 +67,9 @@ public class  MarketStrategySystemTest{
 
     public PositionManager.OPU createOPU(){
         Map<String,String> flattenedOPU = IGClientUtility.flatJSontoMap(OPU_MESSAGE);
+        UpdateEvent positionUpdateEvent = new UpdateEvent(flattenedOPU,UpdateEvent.POSITION_UPDATE);
         return new PositionManager.OPU(
-        new PositionInfo(flattenedOPU,"",1));
+        new PositionInfo(positionUpdateEvent,"",1));
     }
 
     private ActorRef setupPositionActor(TestKit testKit,ActorRef positionManager){
@@ -91,7 +95,7 @@ public class  MarketStrategySystemTest{
 
         positionActor.tell(createOPU(), testProbePositionManagerProbe.getRef());
 
-        Position.PositionUpdated response = testProbePositionManagerProbe.expectMsgClass(Position.PositionUpdated.class);
+        Position.PositionUpdatedDelta response = testProbePositionManagerProbe.expectMsgClass(Position.PositionUpdatedDelta.class);
 
         assertNotNull(response);
         assertEquals("Update message positionId does not match",TestPositionProvider.DEAL_ID,response.getPositionId());

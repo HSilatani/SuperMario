@@ -6,57 +6,79 @@ import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import com.dario.agenttrader.dto.MarketUpdate;
+import com.dario.agenttrader.dto.UpdateEvent;
 import com.dario.agenttrader.tradingservices.IGClient;
+import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
 import com.lightstreamer.ls_client.UpdateInfo;
 
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static com.dario.agenttrader.marketStrategies.MarketManager.*;
 
 public class MarketActor extends AbstractActor {
     private final String epic;
-    private final IGClient igClient;
+    private final TradingAPI tradingAPI;
     private final Set<ActorRef> subscribers;
+    private boolean isSubscribing = false;
 
 
 
     private final LoggingAdapter LOG = Logging.getLogger(getContext().getSystem(),this);
 
-    public MarketActor(String pEPIC,IGClient pIGClient){
+    public MarketActor(String pEPIC,TradingAPI ptradingAPI){
         subscribers = new HashSet<>();
         epic = pEPIC;
-        igClient = pIGClient;
+        tradingAPI = ptradingAPI;
     }
 
-    public static Props props(String pEPIC,IGClient pIGClient){
-        return Props.create(MarketActor.class,pEPIC,pIGClient);
+    public static Props props(String pEPIC,TradingAPI pTradingAPI){
+        return Props.create(MarketActor.class,pEPIC,pTradingAPI);
 
     }
     @Override
     public void preStart() throws Exception {
-        subscribeToMarketUpdates();
         LOG.info("Market {} registered", epic);
     }
 
     private void subscribeToMarketUpdates() throws Exception{
-        igClient.subscribeToLighstreamerChartUpdates(
+        subscribeToChartUpdate();
+        subscribeToPriceUpdate();
+        isSubscribing = true;
+    }
+
+    private void subscribeToChartUpdate() throws Exception {
+        tradingAPI.subscribeToLighstreamerChartUpdates(
                     epic,
                     new HandyTableListenerAdapter() {
                         @Override
                         public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-                            MarketUpdate marketUpdate = new MarketUpdate(
-                                    IGClientUtility.extractMarketUpdateKeyValues(updateInfo,i,s)
-                            );
-                            getSelf().tell(new MarketUpdated(epic,marketUpdate),getSelf());
-                            LOG.debug("Chart i {} s {} data {}", i, s, updateInfo);
+                            Map<String,String> updateMap = IGClientUtility.extractMarketUpdateKeyValues(updateInfo,i,s);
+                            UpdateEvent updateEvent = new UpdateEvent(updateMap,UpdateEvent.MARKET_UPDATE);
+                            LOG.info("Chart i {} s {} data {}", i, s, updateInfo);
+                            getSelf().tell(new MarketUpdated(epic, updateEvent),getSelf());
                         }
                     }
                     );
+    }
+    private void subscribeToPriceUpdate() throws Exception {
+        tradingAPI.subscribeToLighstreamerPriceUpdates(
+                epic,
+                new HandyTableListenerAdapter() {
+                    @Override
+                    public void onUpdate(int i, String s, UpdateInfo updateInfo) {
+                        UpdateEvent updateEvent = new UpdateEvent(
+                                IGClientUtility.extractMarketUpdateKeyValues(updateInfo,i,s)
+                                ,UpdateEvent.MARKET_UPDATE);
+                        getSelf().tell(new MarketUpdated(epic, updateEvent),getSelf());
+                        LOG.debug("Chart i {} s {} data {}", i, s, updateInfo);
+                    }
+                }
+        );
     }
 
     @Override
@@ -86,7 +108,10 @@ public class MarketActor extends AbstractActor {
         LOG.info("Ignoring message {}",msg);
     }
 
-    private void onSubscribeToMarket(SubscribeToMarketUpdate msg) throws IllegalArgumentException{
+    private void onSubscribeToMarket(SubscribeToMarketUpdate msg) throws Exception{
+        if(!isSubscribing){
+            subscribeToMarketUpdates();
+        }
         String tradeableEpic = msg.getEpic();
         if(!epic.equalsIgnoreCase(tradeableEpic)){
             throw new IllegalArgumentException(
@@ -101,15 +126,15 @@ public class MarketActor extends AbstractActor {
 
 
     public static final class MarketUpdated{
-        private MarketUpdate marketUpdate;
+        private UpdateEvent updateEvent;
         private String epic;
 
-        public MarketUpdated(String pepic,MarketUpdate mupdate){
+        public MarketUpdated(String pepic,UpdateEvent mupdate){
             this.epic = pepic;
-            this.marketUpdate = mupdate;
+            this.updateEvent = mupdate;
         }
-        public MarketUpdate getMarketUpdate() {
-            return marketUpdate;
+        public UpdateEvent getUpdateEvent() {
+            return updateEvent;
         }
 
         public String getEpic() {

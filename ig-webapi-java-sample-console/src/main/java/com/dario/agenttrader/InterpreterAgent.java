@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 import com.dario.agenttrader.marketStrategies.MarketStrategySystem;
 import com.dario.agenttrader.marketStrategies.Position;
 import com.dario.agenttrader.marketStrategies.PositionManager;
-import com.dario.agenttrader.tradingservices.IGClient;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
 import org.slf4j.Logger;
@@ -108,7 +107,7 @@ public class InterpreterAgent {
     }
 
 
-    public void sendMessage(Position.PositionUpdated positionupdated) {
+    public void sendMessage(Position.PositionUpdatedDelta positionupdated) {
         String message = ":)";
         message = positionupdated.getDelta().keySet().stream()
                 .filter(k -> PositionInfo.STOP_LEVEL_KEY.equals(k)||PositionInfo.LIMIT_LEVEL_KEY.equals(k))

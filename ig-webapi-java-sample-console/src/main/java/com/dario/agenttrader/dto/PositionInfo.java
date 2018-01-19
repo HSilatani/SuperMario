@@ -1,6 +1,9 @@
 package com.dario.agenttrader.dto;
 
 
+import com.dario.agenttrader.utility.Calculator;
+
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +34,9 @@ public class PositionInfo {
     public static final String CHANNEL_KEY = "channel";
     public static final String TIME_STAMP_KEY = "timestamp";
 
+    public static final String DIRECTION_BUY = "BUY";
+    public static final String DIRECTION_SELL = "SELL";
+
 
 
 
@@ -42,8 +48,8 @@ public class PositionInfo {
     private int i;
 
 
-    public PositionInfo(Map<String,String> pupdateInfo, String s, int i) {
-        Optional<Map<String,String>> optPUpdateInfo = Optional.ofNullable(pupdateInfo);
+    public PositionInfo(UpdateEvent updateEvent, String s, int i) {
+        Optional<Map<String,String>> optPUpdateInfo = Optional.ofNullable(updateEvent.updates);
 
         this.updateInfo = Collections.unmodifiableMap(optPUpdateInfo.orElse(new HashMap<>()));
         this.s = s;
@@ -69,6 +75,47 @@ public class PositionInfo {
     public String getStop() {
         return updateInfo.get(STOP_LEVEL_KEY);
     }
+
+    public Optional<Double> getStopLevelDouble(){
+        return Calculator.convertStrToDouble(Optional.ofNullable(getStop()));
+    }
+
+    public String getOpenLevel(){
+        return updateInfo.get(LEVEL_KEY);
+    }
+
+    public Optional<Double> getOpenLevelDouble(){
+        return Calculator.convertStrToDouble(Optional.ofNullable(getOpenLevel()));
+    }
+
+    public String getDirection(){
+        return updateInfo.get(DIRECTION_KEY);
+    }
+
+    public  String getLimit(){
+        return updateInfo.get(LIMIT_LEVEL_KEY);
+    }
+
+    public String getSize(){
+        return updateInfo.get(SIZE_KEY);
+    }
+
+    public String getCreatedDateUTC(){
+        return updateInfo.get(CREATED_DATE_UTC_KEY);
+    }
+
+    public Instant getCreateDateTimeStampUTC(){
+        String timeStpatStr= getCreatedDateUTC();
+
+        Instant instant = Instant.parse(timeStpatStr);
+        return  instant;
+    }
+
+    public String getEpic(){
+        return updateInfo.get(EPIC_KEY);
+    }
+
+
 
     public Map<String,String> getKeyValues(){
         return updateInfo;

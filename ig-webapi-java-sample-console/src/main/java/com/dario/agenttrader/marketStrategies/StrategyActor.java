@@ -7,6 +7,7 @@ import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class StrategyActor extends AbstractActor{
@@ -17,19 +18,21 @@ public class StrategyActor extends AbstractActor{
     private final ActorRef ownerActor;
     private MarketStrategyInterface marketStrategy;
 
-    public StrategyActor(String puniqId,ActorRef pownerActor){
+    public StrategyActor(String puniqId,ActorRef pownerActor, MarketStrategyInterface pmarketStrategy){
         this.uniqId = puniqId;
         ownerActor = pownerActor;
+        marketStrategy = pmarketStrategy;
     }
 
-    public static Props props(String puniqId,ActorRef ownerActor){
-        return Props.create(StrategyActor.class,puniqId,ownerActor);
+    public static Props props(String puniqId,ActorRef ownerActor,MarketStrategyInterface pmarketStrategy){
+        return Props.create(StrategyActor.class,puniqId,ownerActor,pmarketStrategy);
     }
 
     @Override
     public void preStart()
     {
         getContext().watch(ownerActor);
+        marketStrategy.setOwnerStrategyActor(getSelf());
         LOG.info("Strategy {} registered", uniqId);
     }
 
@@ -45,6 +48,8 @@ public class StrategyActor extends AbstractActor{
         return receiveBuilder()
                 .match(StrategyManager.CreateStrategyMessage.class,this::onCreateStrategy)
                 .match(MarketActor.MarketUpdated.class,this::onMarketUpdate)
+                .match(Position.PositionUpdate.class,this::onPositionUpdate)
+                .match(ActOnStrategyInstruction.class,this::onActOnStrategyInstruction)
                 .match(Terminated.class,this::onTerminated)
                 .build();
     }
@@ -54,28 +59,52 @@ public class StrategyActor extends AbstractActor{
         getContext().stop(getSelf());
     }
 
+    private void onPositionUpdate(Position.PositionUpdate positionUpdate){
+        if(positionUpdate!=null
+                && marketStrategy.getListOfObservedPositions().contains(positionUpdate.getPositionId())){
+
+            marketStrategy.evaluate(positionUpdate);
+        }
+    }
+
     private void onMarketUpdate(MarketActor.MarketUpdated marketUpdated) {
         marketStrategy.evaluate(marketUpdated);
     }
 
     private void onCreateStrategy(StrategyManager.CreateStrategyMessage msg) {
-        marketStrategy = msg.getMarketStrategy();
+
         requestMarketUpdateSubscription();
         msg.getOwner().tell(new StrategyActor.StrategyCreated(msg.getUniqId()),getSelf());
         getSender().tell(new StrategyActor.StrategyCreated(msg.getUniqId()),getSelf());
     }
 
     private void requestMarketUpdateSubscription() {
-        String[] epics = marketStrategy.getListOfObservedMarkets();
+        ArrayList<String> epics = marketStrategy.getListOfObservedMarkets();
         ActorRef marketManagerActor = MarketStrategySystem.getInstance().getMarketManagerActor();
-        Arrays.stream(epics).forEach(epic ->
+        epics.forEach(epic ->
           marketManagerActor.tell(
                 new MarketManager.SubscribeToMarketUpdate(epic,getSelf()),getSelf())
         );
 
     }
 
-    private class StrategyCreated {
+    private void onActOnStrategyInstruction(ActOnStrategyInstruction pactOnStrategyInstruction) {
+        LOG.info(pactOnStrategyInstruction.getInstruction());
+
+    }
+
+    public static final class ActOnStrategyInstruction{
+        String instruction ="";
+
+        public ActOnStrategyInstruction(String pinstructionStr){
+            instruction = pinstructionStr;
+        }
+
+        public String getInstruction() {
+            return instruction;
+        }
+    }
+    public static final class StrategyCreated {
         private final String uniqId;
 
         public StrategyCreated(String puniqId) {

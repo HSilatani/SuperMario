@@ -30,7 +30,7 @@ public interface TradingAPI {
 
     void listWatchlists() throws Exception;
 
-    void subscribeToLighstreamerPriceUpdates(String tradeableEpic) throws Exception;
+    void subscribeToLighstreamerPriceUpdates(String tradeableEpic, HandyTableListenerAdapter listener) throws Exception;
 
     void subscribeToLighstreamerChartUpdates(String tradeableEpic, HandyTableListenerAdapter listener) throws Exception;
 

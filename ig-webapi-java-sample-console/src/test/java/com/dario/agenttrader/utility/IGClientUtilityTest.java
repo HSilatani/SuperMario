@@ -3,6 +3,7 @@ package com.dario.agenttrader.utility;
 
 import com.dario.agenttrader.dto.PositionInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
+import com.dario.agenttrader.dto.UpdateEvent;
 import com.dario.agenttrader.marketStrategies.PositionManager;
 import com.dario.agenttrader.TestPositionProvider;
 import org.junit.Test;
@@ -124,7 +125,9 @@ public class IGClientUtilityTest {
         positionFields.put("expiry" , "DFB");
         positionFields.put("direction" , "BUY");
 
-        PositionInfo positionInfoExpected = new PositionInfo(positionFields,"0",0);
+        UpdateEvent positionUpdateEvent = new UpdateEvent(positionFields,UpdateEvent.POSITION_UPDATE);
+
+        PositionInfo positionInfoExpected = new PositionInfo(positionUpdateEvent,"0",0);
 
         boolean isMapEqual = areMapsEqual(positionInfoActual, positionInfoExpected);
 
@@ -159,5 +162,24 @@ public class IGClientUtilityTest {
         assertNotNull(flattenedOPU);
         String dealId = flattenedOPU.get(PositionInfo.DEAL_ID_KEY);
         assertEquals(TestPositionProvider.DEAL_ID, dealId);
+    }
+
+    @Test
+    public void testConvertCommaSeparatedStringToArrayList(){
+        String updateStr = "[ 1016.73, 1028.73, null, 1, 1516227922478, 1051.25, -2.71, 1076.1, 1005.6 ]";
+
+        List<String> updateList = IGClientUtility.convertCommaSeparatedStringToArrayList(updateStr);
+
+        assertEquals(9,updateList.size());
+        assertEquals(updateList.get(0),"1016.73");
+        assertEquals(updateList.get(1),"1028.73");
+        assertEquals(updateList.get(2),"null");
+        assertEquals(updateList.get(3),"1");
+        assertEquals(updateList.get(4),"1516227922478");
+        assertEquals(updateList.get(5),"1051.25");
+        assertEquals(updateList.get(6),"-2.71");
+        assertEquals(updateList.get(7),"1076.1");
+        assertEquals(updateList.get(8),"1005.6");
+
     }
 }

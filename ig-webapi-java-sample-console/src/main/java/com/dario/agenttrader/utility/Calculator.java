@@ -5,11 +5,17 @@ import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Posit
 import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesByNumberOfPointsV2.GetPricesByNumberOfPointsV2Response;
 
 import java.math.BigDecimal;
+import java.util.Optional;
+import java.util.regex.Pattern;
 
 public class Calculator {
 
+    static final Pattern numbericPatternChecker = Pattern.compile("^[-+]?\\d+(\\.\\d+)?$");
 
-
+    public static boolean isStrNumericValue(String str){
+        boolean isStr1Numeric = numbericPatternChecker.matcher(str).matches();
+        return  isStr1Numeric;
+    }
 
     public BigDecimal calPandL(PositionsItem position, GetPricesByNumberOfPointsV2Response prices) throws Exception {
         BigDecimal openlevel = position.getPosition().getLevel();
@@ -54,5 +60,13 @@ public class Calculator {
 
 
         return closePrice.subtract(openPrice);
+    }
+
+    public static Optional<Double> convertStrToDouble(Optional<String> strValue) {
+        Double doubleValue = null;
+        if(strValue.isPresent() && isStrNumericValue(strValue.get())){
+            doubleValue = Double.parseDouble(strValue.get());
+        }
+        return Optional.ofNullable(doubleValue);
     }
 }

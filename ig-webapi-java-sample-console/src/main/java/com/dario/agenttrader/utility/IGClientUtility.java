@@ -1,6 +1,6 @@
 package com.dario.agenttrader.utility;
 
-import com.dario.agenttrader.dto.MarketUpdate;
+import com.dario.agenttrader.dto.UpdateEvent;
 import com.dario.agenttrader.dto.PositionInfo;
 import com.dario.agenttrader.marketStrategies.PositionManager;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -11,10 +11,7 @@ import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Posit
 import com.lightstreamer.ls_client.UpdateInfo;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -22,7 +19,6 @@ public class IGClientUtility {
 
     static final ObjectMapper mapper = new ObjectMapper();
 
-    static final Pattern numbericPatternChecker = Pattern.compile("^[-+]?\\d+(\\.\\d+)?$");
 
     public static Locale findLocalForCurrency(String currency){
         Locale  locale = Locale.getDefault();
@@ -74,8 +70,8 @@ public class IGClientUtility {
         isEqual= (str1==null)?str2==null:str1.equalsIgnoreCase(str2);
 
         if(!isEqual && str1!=null && str2!=null){
-            boolean isStr1Numeric = numbericPatternChecker.matcher(str1).matches();
-            boolean isStr2Numeric = numbericPatternChecker.matcher(str2).matches();
+            boolean isStr1Numeric = Calculator.isStrNumericValue(str1);
+            boolean isStr2Numeric = Calculator.isStrNumericValue(str2);
 
             isEqual = (isStr1Numeric && isStr2Numeric)? Double.parseDouble(str1)==Double.parseDouble(str2):isEqual;
         }
@@ -105,8 +101,9 @@ public class IGClientUtility {
         positionFields.put(PositionInfo.EPIC_KEY,market.getEpic());
         positionFields.put(PositionInfo.EXPIRY_KEY,market.getExpiry());
 
+        UpdateEvent positionUpdateEvent = new UpdateEvent(positionFields,UpdateEvent.POSITION_UPDATE);
 
-        return new PositionInfo(positionFields,"0",0);
+        return new PositionInfo(positionUpdateEvent,"0",0);
     }
 
 
@@ -116,10 +113,21 @@ public class IGClientUtility {
     public static Map<String,String> extractMarketUpdateKeyValues(UpdateInfo updateInfo, int i, String s) {
         Map<String,String> marketUpdateKeyValues = new HashMap<>();
 
+        String updateStr = updateInfo.toString();
+        List<String> updateList = convertCommaSeparatedStringToArrayList(updateStr);
 
-        MarketUpdate.MARKET_UPDATE_KEYS.forEach((k, v) -> marketUpdateKeyValues.put(k,updateInfo.getNewValue(v.intValue())));
-        marketUpdateKeyValues.put(MarketUpdate.EPIV_KEY,updateInfo.getItemName());
+        UpdateEvent.MARKET_UPDATE_KEYS.keySet().stream().forEach(
+                k -> marketUpdateKeyValues.put(
+                        k,updateList.get(UpdateEvent.MARKET_UPDATE_KEYS.get(k).intValue()))
+        );
+        marketUpdateKeyValues.put(UpdateEvent.EPIV_KEY,updateInfo.getItemName());
 
         return marketUpdateKeyValues;
+    }
+
+    public static List<String> convertCommaSeparatedStringToArrayList(String updateStr) {
+        updateStr= updateStr.replaceAll("[\\[\\s\\]]","");
+        List<String> items = Arrays.asList(updateStr.split("\\s*,\\s*"));
+        return items;
     }
 }

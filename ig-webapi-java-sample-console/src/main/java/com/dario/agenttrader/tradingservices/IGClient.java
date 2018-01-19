@@ -196,18 +196,12 @@ public class IGClient implements TradingAPI {
    }
 
    @Override
-   public void subscribeToLighstreamerPriceUpdates(String tradeableEpic) throws Exception {
+   public void subscribeToLighstreamerPriceUpdates(String tradeableEpic, HandyTableListenerAdapter listener) throws Exception {
+       if (tradeableEpic != null) {
+           LOG.info("Subscribing to Lightstreamer chart updates for market: {} ", tradeableEpic);
+           listeners.add(streamingAPI.subscribeForMarket(tradeableEpic, listener));
+       }
 
-        if (tradeableEpic != null) {
-            LOG.info("Subscribing to Lightstreamer price updates for market: {} ", tradeableEpic);
-            listeners.add(streamingAPI.subscribeForMarket(tradeableEpic,
-                    new HandyTableListenerAdapter() {
-                @Override
-                public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-                    LOG.info("Market i {} s {} data {}", i, s, updateInfo);
-                }
-            }));
-        }
     }
 
     @Override

@@ -47,7 +47,7 @@ public class MarketStrategySystem {
              positionManagerActor =
                      system.actorOf(PositionManager.props(tradingAPI), POSITION_MANAGER);
 
-             marketManagerActor = system.actorOf(MarketManager.props(),MARKET_MANAGER);
+             marketManagerActor = system.actorOf(MarketManager.props(tradingAPI),MARKET_MANAGER);
 
             isStrategySystemRunning = true;
     }

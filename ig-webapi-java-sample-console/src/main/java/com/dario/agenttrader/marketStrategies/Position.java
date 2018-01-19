@@ -1,12 +1,17 @@
 package com.dario.agenttrader.marketStrategies;
 
 import akka.actor.AbstractActor;
+import akka.actor.ActorRef;
+import akka.actor.Inbox;
 import akka.actor.Props;
+import akka.dispatch.Mailbox;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import com.dario.agenttrader.dto.UpdateEvent;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.dario.agenttrader.dto.PositionInfo;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 public class Position extends AbstractActor{
@@ -27,7 +32,7 @@ public class Position extends AbstractActor{
 
     @Override
     public void preStart() {
-        LOG.info("Position {} registered", positionID);
+        LOG.info("Position {}registered", positionID);
     }
 
     @Override
@@ -47,8 +52,15 @@ public class Position extends AbstractActor{
 
             positionInfo=newInfo;
             getSender().tell(
-                    new PositionUpdated(positionID,newInfo.getKeyValues().get(PositionInfo.EPIC_KEY),delta)
+                    new PositionUpdatedDelta(positionID,newInfo.getKeyValues().get(PositionInfo.EPIC_KEY),delta)
                     ,getSelf());
+
+            PositionUpdate positionUpdate = new PositionUpdate(
+                    positionID,positionInfo.getEpic()
+                    ,new UpdateEvent(positionInfo.getKeyValues(),UpdateEvent.POSITION_UPDATE));
+
+            ActorRef strategyManager = MarketStrategySystem.getInstance().getStrategyManagerActor();
+            strategyManager.tell(positionUpdate,getSelf());
         }
     }
     @Override
@@ -66,22 +78,25 @@ public class Position extends AbstractActor{
     }
 
     private void createDefaultStrategies() {
-        String[] epics = new String[1];
-        epics[0] = positionInfo.getKeyValues().get(PositionInfo.EPIC_KEY);
-        MarketStrategyInterface trackerMarketStrategy = new TrackerStrategy(epics);
-        MarketStrategySystem.getInstance().getStrategyManagerActor().tell(
-                new StrategyManager.CreateStrategyMessage(getSelf(),positionID,trackerMarketStrategy),getSelf());
+        ArrayList<String> epics = new ArrayList<>();
+        epics.add(positionInfo.getKeyValues().get(PositionInfo.EPIC_KEY));
+        String uniqStrategyID = positionID +"-"+epics.get(0);
+        if(epics.get(0).contains("ETH")) {
+            MarketStrategyInterface trackerMarketStrategy = new TrackerStrategy(epics, positionInfo);
+            MarketStrategySystem.getInstance().getStrategyManagerActor().tell(
+                    new StrategyManager.CreateStrategyMessage(getSelf(), uniqStrategyID, trackerMarketStrategy), getSelf());
+        }
     }
 
 
-    public static final class PositionUpdated{
+    public static final class PositionUpdatedDelta {
         private final String positionId;
         private final String epic;
         private final Map<String,String[]> delta;
 
 
 
-        public PositionUpdated(String ppositionID, String pepic, Map<String, String[]> pdelta) {
+        public PositionUpdatedDelta(String ppositionID, String pepic, Map<String, String[]> pdelta) {
             delta = pdelta;
             positionId = ppositionID;
             epic = pepic;
@@ -100,4 +115,27 @@ public class Position extends AbstractActor{
         }
     }
 
+    public static final class PositionUpdate{
+        private final String positionId;
+        private final String epic;
+        private final UpdateEvent updateEvent;
+
+        public PositionUpdate(String positionId, String epic, UpdateEvent updateEvent) {
+            this.positionId = positionId;
+            this.epic = epic;
+            this.updateEvent = updateEvent;
+        }
+
+        public String getPositionId() {
+            return positionId;
+        }
+
+        public String getEpic() {
+            return epic;
+        }
+
+        public UpdateEvent getUpdateEvent() {
+            return updateEvent;
+        }
+    }
 }

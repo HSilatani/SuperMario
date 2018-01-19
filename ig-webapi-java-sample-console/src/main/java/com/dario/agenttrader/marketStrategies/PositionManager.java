@@ -6,7 +6,7 @@ import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import com.dario.agenttrader.tradingservices.IGClient;
+import com.dario.agenttrader.dto.UpdateEvent;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.utility.ActorRegistery;
 import com.dario.agenttrader.utility.IGClientUtility;
@@ -43,7 +43,7 @@ public class PositionManager extends AbstractActor{
                 .match(ListPositions.class,this::onListPosition)
                 .match(Terminated.class,this::onTerminated)
                 .match(OPU.class,this::onOPU)
-                .match(Position.PositionUpdated.class,this::onPositionUpdated)
+                .match(Position.PositionUpdatedDelta.class,this::onPositionUpdated)
                 .match(LoadPositionsRequest.class,this::onLoadPositions)
                 .match(PositionRegistered.class,this::onPositionRegistered)
                 .build();
@@ -76,8 +76,9 @@ public class PositionManager extends AbstractActor{
                 new HandyTableListenerAdapter() {
                     @Override
                     public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-                        PositionInfo positionInfo = new PositionInfo(
-                                IGClientUtility.flatJSontoMap(updateInfo.getNewValue(1)),s,i);
+                        UpdateEvent positionUpdateEvent =
+                                new UpdateEvent(IGClientUtility.flatJSontoMap(updateInfo.getNewValue(1)),UpdateEvent.POSITION_UPDATE);
+                        PositionInfo positionInfo = new PositionInfo(positionUpdateEvent,s,i);
 
                                 if (updateInfo.getNewValue("OPU") != null)
                                 {
@@ -91,7 +92,7 @@ public class PositionManager extends AbstractActor{
         );
     }
 
-    private void onPositionUpdated(Position.PositionUpdated positionupdated){
+    private void onPositionUpdated(Position.PositionUpdatedDelta positionupdated){
         InterpreterAgent.getInstance().sendMessage(positionupdated);
     }
 

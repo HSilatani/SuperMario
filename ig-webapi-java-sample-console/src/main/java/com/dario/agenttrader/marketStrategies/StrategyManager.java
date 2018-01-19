@@ -1,12 +1,17 @@
 package com.dario.agenttrader.marketStrategies;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.actor.Terminated;
+import akka.actor.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.pf.DeciderBuilder;
 import com.dario.agenttrader.utility.ActorRegistery;
+import scala.concurrent.duration.Duration;
+
+import java.util.StringJoiner;
+import java.util.concurrent.TimeUnit;
+
+import static akka.actor.SupervisorStrategy.escalate;
+import static akka.actor.SupervisorStrategy.resume;
 
 
 public class StrategyManager extends AbstractActor{
@@ -20,6 +25,17 @@ public class StrategyManager extends AbstractActor{
     private final ActorRegistery registry = new ActorRegistery();
 
 
+
+    private static SupervisorStrategy strategy =
+            new OneForOneStrategy(1, Duration.create(1, TimeUnit.MINUTES),
+                    DeciderBuilder
+                            .match(IllegalArgumentException.class,
+                                    e-> resume())
+                            .matchAny(o -> resume()).build());
+
+    public SupervisorStrategy supervisorStrategy() {
+        return strategy;
+    }
 
     @Override
     public void preStart() {
@@ -35,9 +51,14 @@ public class StrategyManager extends AbstractActor{
     @Override
     public Receive createReceive() {
         return receiveBuilder()
+                .match(Position.PositionUpdate.class,this::onPositionUpdate)
                 .match(CreateStrategyMessage.class,this::onCreateStrategy)
                 .match(Terminated.class,this::onTerminated)
                 .build();
+    }
+
+    private void onPositionUpdate(Position.PositionUpdate pupdate){
+        getContext().getChildren().forEach(child -> child.forward(pupdate,getContext()));
     }
 
     public void onTerminated(Terminated t) {
@@ -48,8 +69,10 @@ public class StrategyManager extends AbstractActor{
     }
 
     public void onCreateStrategy(CreateStrategyMessage createStrategyMsg) {
-        Props props = StrategyActor.props(
-                createStrategyMsg.getUniqId(), createStrategyMsg.getOwner());
+        Props props =
+                StrategyActor.props(createStrategyMsg.getUniqId()
+                        , createStrategyMsg.getOwner()
+                        ,createStrategyMsg.getMarketStrategy());
 
         registry.registerActorIfAbscent(getContext()
                 ,props

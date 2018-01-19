@@ -1,16 +1,28 @@
 package com.dario.agenttrader.marketStrategies;
 
+import akka.actor.ActorRef;
+
+import java.util.ArrayList;
+
 public abstract class AbstractMarketStrategy implements MarketStrategyInterface{
 
-    private final String[] observedMarkets;
+    private final ArrayList<String> observedMarkets;
+    private ActorRef ownerStrategyActor;
 
-    AbstractMarketStrategy(String[] epics){
+    AbstractMarketStrategy(ArrayList<String> epics){
         observedMarkets=epics;
+    }
 
+    public void setOwnerStrategyActor(ActorRef actorRef){
+        ownerStrategyActor = actorRef;
+    }
+
+    public ActorRef getOwnerStrategyActor() {
+        return ownerStrategyActor;
     }
 
     @Override
-    public String[] getListOfObservedMarkets(){
+    public ArrayList<String> getListOfObservedMarkets(){
         return observedMarkets;
     }
 
