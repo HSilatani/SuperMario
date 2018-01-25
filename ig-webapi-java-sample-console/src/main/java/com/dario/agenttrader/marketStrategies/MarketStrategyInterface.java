@@ -3,6 +3,7 @@ package com.dario.agenttrader.marketStrategies;
 import akka.actor.ActorRef;
 
 import java.util.ArrayList;
+import java.util.function.Consumer;
 
 public interface MarketStrategyInterface {
 
@@ -14,6 +15,6 @@ public interface MarketStrategyInterface {
 
     public ArrayList<String>  getListOfObservedPositions();
 
-    public void setOwnerStrategyActor(ActorRef actorRef);
+    public void setStrategyInstructionConsumer(Consumer<StrategyActor.ActOnStrategyInstruction> pstrategyInstructionConsumer);
 
 }

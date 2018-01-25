@@ -46,7 +46,15 @@ public class PositionManager extends AbstractActor{
                 .match(Position.PositionUpdatedDelta.class,this::onPositionUpdated)
                 .match(LoadPositionsRequest.class,this::onLoadPositions)
                 .match(PositionRegistered.class,this::onPositionRegistered)
+                .match(SubscribeToPositionUpdate.class,this::onSubscribeToPositionUpdate)
                 .build();
+    }
+
+    private void onSubscribeToPositionUpdate(SubscribeToPositionUpdate subscribeToPositionUpdate) {
+        ActorRef positionActor = registry.getActorForUniqId(subscribeToPositionUpdate.getPositionId());
+        if(positionActor!=null){
+            positionActor.forward(subscribeToPositionUpdate,getContext());
+        }
     }
 
     private void onPositionRegistered(PositionRegistered positionRegistered) {
@@ -206,6 +214,17 @@ public class PositionManager extends AbstractActor{
     public static final class LoadPositionsRequest {
         public LoadPositionsRequest() {
 
+        }
+    }
+
+    public static final class SubscribeToPositionUpdate {
+        private final String positionId;
+        public SubscribeToPositionUpdate(String strPosition) {
+            positionId = strPosition;
+        }
+
+        public String getPositionId() {
+            return positionId;
         }
     }
 }

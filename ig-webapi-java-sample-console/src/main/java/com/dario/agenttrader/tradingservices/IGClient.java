@@ -1,6 +1,7 @@
 package com.dario.agenttrader.tradingservices;
 
 import com.dario.agenttrader.ApplicationBootStrapper;
+import com.dario.agenttrader.dto.MarketInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
 import com.dario.agenttrader.utility.Calculator;
 import com.dario.agenttrader.utility.IGClientUtility;
@@ -11,8 +12,11 @@ import com.iggroup.webapi.samples.client.rest.AuthenticationResponseAndConversat
 import com.iggroup.webapi.samples.client.rest.ConversationContext;
 import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.AccountsItem;
 import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.GetAccountsV1Response;
+import com.iggroup.webapi.samples.client.rest.dto.markets.getMarketDetailsV3.GetMarketDetailsV3Response;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.GetPositionsV2Response;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
+import com.iggroup.webapi.samples.client.rest.dto.positions.otc.updateOTCPositionV2.UpdateOTCPositionV2Request;
+import com.iggroup.webapi.samples.client.rest.dto.positions.otc.updateOTCPositionV2.UpdateOTCPositionV2Response;
 import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesByNumberOfPointsV2.GetPricesByNumberOfPointsV2Response;
 import com.iggroup.webapi.samples.client.rest.dto.session.createSessionV2.CreateSessionV2Request;
 import com.iggroup.webapi.samples.client.rest.dto.watchlists.getWatchlistByWatchlistIdV1.GetWatchlistByWatchlistIdV1Response;
@@ -30,6 +34,8 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.swing.text.html.Option;
 
 public class IGClient implements TradingAPI {
     private static IGClient OneAndOnlyIGClient = new IGClient();
@@ -143,6 +149,26 @@ public class IGClient implements TradingAPI {
    }
 
    @Override
+   public MarketInfo getMarketInfo(String epic) throws Exception{
+        GetMarketDetailsV3Response marketDetails = null;
+        MarketInfo marketInfo = new MarketInfo();
+         try {
+            ConversationContext conversationContext = authenticationContext.getConversationContext();
+
+            marketDetails = restAPI.getMarketDetailsV3(conversationContext,epic);
+            BigDecimal minDealSize = BigDecimal.valueOf(marketDetails.getDealingRules().getMinDealSize().getValue());
+            BigDecimal minStopLimitDistance = BigDecimal.valueOf(marketDetails.getDealingRules().getMinNormalStopOrLimitDistance().getValue());
+            marketInfo.setMinDealSize(minDealSize);
+            marketInfo.setMinNormalStopLimitDistance(minStopLimitDistance);
+            marketInfo.setMarketName(marketDetails.getInstrument().getName());
+        }catch (Exception ex){
+            LOG.warn("Unable to get market details  for: " + epic ,ex);
+            throw ex;
+        }
+        return marketInfo;
+   }
+
+   @Override
    public PositionSnapshot getPositionSnapshot(String positionId) throws Exception{
 
 
@@ -219,6 +245,12 @@ public class IGClient implements TradingAPI {
 
     }
 
+    @Override
+    public void subscribeToLighstreamerHeartbeat(HandyTableListenerAdapter listener) throws Exception {
+      listeners.add(streamingAPI.subscribe(listener,
+              new String[]{"TRADE:HB.U.HEARTBEAT.IP"}, "MERGE", new String[]{"HEARTBEAT"}));
+    }
+
    @Override
    public AccountsItem accountPreferences(){
        return accountSetting;
@@ -238,6 +270,22 @@ public class IGClient implements TradingAPI {
         }else{
             throw new Exception("Account setting not found!");
         }
+   }
+
+     public void editPosition(String dealId,BigDecimal newStop,BigDecimal newLimit) throws Exception {
+        UpdateOTCPositionV2Request updatePositionRequest = new UpdateOTCPositionV2Request();
+        Optional<BigDecimal> optNewStop = Optional.ofNullable(newStop);
+        optNewStop.ifPresent(nstop -> updatePositionRequest.setStopLevel(nstop));
+
+        Optional<BigDecimal> optNewLimit = Optional.ofNullable(newLimit);
+        optNewLimit.ifPresent(nLimit -> updatePositionRequest.setLimitLevel(nLimit));
+        updatePositionRequest.setTrailingStop(Boolean.FALSE);
+        UpdateOTCPositionV2Response updateResponse =
+                restAPI.updateOTCPositionV2(
+                        authenticationContext.getConversationContext()
+                        ,dealId
+                        ,updatePositionRequest);
+
    }
 
     @Override

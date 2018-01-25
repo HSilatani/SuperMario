@@ -2,14 +2,14 @@ package com.dario.agenttrader.marketStrategies;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.Inbox;
 import akka.actor.Props;
-import akka.dispatch.Mailbox;
+import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.dario.agenttrader.dto.UpdateEvent;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.dario.agenttrader.dto.PositionInfo;
+import com.dario.agenttrader.utility.SubscriberActorRegistery;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -21,9 +21,11 @@ public class Position extends AbstractActor{
 
     private final String positionID;
     private PositionInfo positionInfo;
+    private SubscriberActorRegistery<PositionUpdate> subscribers;
 
     public Position(String ppositionId){
         this.positionID = ppositionId;
+        subscribers = new SubscriberActorRegistery<>();
     }
 
     public static Props props(String ppositionId){
@@ -59,8 +61,9 @@ public class Position extends AbstractActor{
                     positionID,positionInfo.getEpic()
                     ,new UpdateEvent(positionInfo.getKeyValues(),UpdateEvent.POSITION_UPDATE));
 
-            ActorRef strategyManager = MarketStrategySystem.getInstance().getStrategyManagerActor();
-            strategyManager.tell(positionUpdate,getSelf());
+            //ActorRef strategyManager = MarketStrategySystem.getInstance().getStrategyManagerActor();
+            //strategyManager.tell(positionUpdate,getSelf());
+            subscribers.informSubscriobers(positionUpdate,getSelf());
         }
     }
     @Override
@@ -68,7 +71,22 @@ public class Position extends AbstractActor{
         return receiveBuilder()
                 .match(PositionManager.OPU.class, this::onPositionUpdate)
                 .match(PositionManager.RegisterPositionRequest.class, this::onRegisterPositionRequest)
+                .match(PositionManager.SubscribeToPositionUpdate.class,this::onSubscribeToPositionUpdate)
+                .match(Terminated.class,this::onTerminated)
                 .build();
+    }
+
+    private void onTerminated(Terminated t) {
+        ActorRef actor = t.getActor();
+        subscribers.removeActor(actor);
+    }
+
+    private void onSubscribeToPositionUpdate(PositionManager.SubscribeToPositionUpdate subscribeToPositionUpdate) {
+        if(positionID.equalsIgnoreCase(subscribeToPositionUpdate.getPositionId())){
+            subscribers.registerSubscriber(getSender(),getContext());
+        }else{
+            LOG.warning("Cant accept for positions update for {} because I don't own the position.",subscribeToPositionUpdate.getPositionId());
+        }
     }
 
     private void onRegisterPositionRequest(PositionManager.RegisterPositionRequest registerPositionRequest) {
@@ -81,11 +99,9 @@ public class Position extends AbstractActor{
         ArrayList<String> epics = new ArrayList<>();
         epics.add(positionInfo.getKeyValues().get(PositionInfo.EPIC_KEY));
         String uniqStrategyID = positionID +"-"+epics.get(0);
-        if(epics.get(0).contains("ETH")) {
-            MarketStrategyInterface trackerMarketStrategy = new TrackerStrategy(epics, positionInfo);
-            MarketStrategySystem.getInstance().getStrategyManagerActor().tell(
+        MarketStrategyInterface trackerMarketStrategy = new TrackerStrategy(epics, positionInfo);
+        MarketStrategySystem.getInstance().getStrategyManagerActor().tell(
                     new StrategyManager.CreateStrategyMessage(getSelf(), uniqStrategyID, trackerMarketStrategy), getSelf());
-        }
     }
 
 

@@ -6,38 +6,38 @@ import com.dario.agenttrader.dto.UpdateEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.StringJoiner;
 
 public class TrackerStrategy extends AbstractMarketStrategy {
-    //TODO use consumer instead of passing Actor Ref
-    //TODO maths and conversion between doubl and String is creating undesired effects , fixed
-
 
     private static final Logger LOG = LoggerFactory.getLogger(TrackerStrategy.class);
 
     private PositionInfo positionInfo;
 
-    private Double trailingStep = new Double(1);
-    private Optional<Double> nextTrigger;
-    private Optional<Double> currentAsk = Optional.empty();
-    private Optional<Double> currentBid = Optional.empty();
-    private Optional<Double> stopDistance = Optional.empty();
-    private Optional<Double> currentStop;
-    private Double openLevel;
-    private double direction;
+    private BigDecimal trailingStep = BigDecimal.ONE;
+    private Optional<BigDecimal> nextTrigger;
+    private Optional<BigDecimal> currentAsk = Optional.empty();
+    private Optional<BigDecimal> currentBid = Optional.empty();
+    private Optional<BigDecimal> stopDistance = Optional.empty();
+    private Optional<BigDecimal> currentStop;
+    private BigDecimal openLevel;
+    private int direction;
+    private MarketInfo staticMarketInfo = null;
+    private BigDecimal profitProtectingThreshold = BigDecimal.TEN;
 
 
     public TrackerStrategy(ArrayList<String> epics,PositionInfo pPositionInfo) {
         super(epics);
         positionInfo = pPositionInfo;
         calculateDirection();
-        openLevel =  positionInfo.getOpenLevelDouble().orElseThrow(
+        openLevel =  positionInfo.getOpenLevelBigDecimal().orElseThrow(
                 ()->new IllegalArgumentException("Position must have open level: " + positionInfo.getDealId()));
 
-        currentStop = positionInfo.getStopLevelDouble();
-        nextTrigger = Optional.of(openLevel+(direction * trailingStep));
+        currentStop = positionInfo.getStopLevelBigDecimal();
+        nextTrigger = Optional.of(openLevel.add(trailingStep.multiply(BigDecimal.valueOf(direction))));
         calculateStopDistantOnlyIfItIsNotSetAlready();
     }
 
@@ -56,15 +56,17 @@ public class TrackerStrategy extends AbstractMarketStrategy {
 
     private void calculateStopDistantOnlyIfItIsNotSetAlready() {
         if(!stopDistance.isPresent() && currentStop.isPresent()){
-            stopDistance = Optional.of(Math.abs(openLevel.doubleValue()-currentStop.get().doubleValue()));
+            stopDistance = Optional.of(openLevel.subtract(currentStop.get()).abs());
         }
     }
 
     @Override
     public void evaluate(MarketActor.MarketUpdated marketUpdate) {
-        LOG.info("Received update for {}",marketUpdate.getEpic());
+        LOG.debug("Received update for {}",marketUpdate.getEpic());
         isMarketUpdateValid(marketUpdate.getEpic());
         updateState(marketUpdate.getUpdateEvent());
+        staticMarketInfo = marketUpdate.getMarketInfo();
+
         boolean isStateValidForEvaluation = validateState();
         if(isStateValidForEvaluation){
             evaluateStrategy();
@@ -96,25 +98,74 @@ public class TrackerStrategy extends AbstractMarketStrategy {
         }
 
         if(!isStateValid){
-            LOG.info("Strategy wont evaluate because state is not valid:" + stateMsg);
+            LOG.info("Strategy {} for market {} wont evaluate because state is not valid:{}"
+                    ,positionInfo.getDealId()
+                    ,positionInfo.getEpic()
+                    , stateMsg);
         }
 
         return isStateValid;
     }
 
     private void evaluateStrategy() {
-        double currentLevel = getCurrentApplicablePrice();
-        if ((currentLevel * direction) >= (nextTrigger.get() * direction)){
-                nextTrigger = Optional.of(currentLevel + (direction * trailingStep));
-                double newStop= currentLevel - (direction * stopDistance.get());
+        BigDecimal currentLevel = getCurrentApplicablePrice();
+        if (isPriceBeyondTriggerPrice(currentLevel)){
+                BigDecimal oldTrigger = nextTrigger.get();
+                nextTrigger = Optional.of(currentLevel.add(trailingStep.multiply(BigDecimal.valueOf(direction))));
+                calculateNewProfitProtectingStopDistance();
+                BigDecimal newStop= currentLevel.subtract(stopDistance.get().multiply(BigDecimal.valueOf(direction)));
                 String instruction = "update stopLevel from " +currentStop.orElse(null) + "  -> : " + newStop;
-                getOwnerStrategyActor().tell(new StrategyActor.ActOnStrategyInstruction(instruction),null);
+                LOG.info("Strategy {}-{} issuing instruction {} : Trigger={}->{},currentLevel={}"
+                        ,positionInfo.getDealId()
+                        ,staticMarketInfo.getMarketName()
+                        ,instruction
+                        ,oldTrigger
+                        ,nextTrigger.get()
+                        ,currentLevel);
+                StrategyActor.ActOnStrategyInstruction strategyInstruction =
+                        new StrategyActor.ActOnStrategyInstruction(
+                                positionInfo.getDealId()
+                                ,newStop
+                                ,null
+                                ,instruction);
+                strategyInstructionConsumer.accept(strategyInstruction);
         }
+    }
+
+    private void calculateNewProfitProtectingStopDistance() {
+        BigDecimal profitProtectingStopDistance = null;
+
+        if(positionInfo.getOpenLevelBigDecimal().isPresent()){
+            BigDecimal openLevel = positionInfo.getOpenLevelBigDecimal().get();
+            BigDecimal applicablePrice = getCurrentApplicablePrice();
+            BigDecimal plFactor = applicablePrice.subtract(openLevel);
+            plFactor = plFactor.multiply(new BigDecimal(direction));
+            int comparePLFactorGreaterToThreashold = plFactor.compareTo(profitProtectingThreshold);
+            if(comparePLFactorGreaterToThreashold>0){
+                profitProtectingStopDistance = staticMarketInfo.getMinNormalStopLimitDistance();
+            }
+
+            if(profitProtectingStopDistance!=null && profitProtectingStopDistance.compareTo(stopDistance.get())!=0){
+                LOG.info("Changing StopDistance for strategy {}-{} from {} to ProfitProtecting Stop {}"
+                        ,positionInfo.getDealId()
+                        ,staticMarketInfo.getMarketName()
+                        ,stopDistance.get()
+                        ,profitProtectingStopDistance);
+                stopDistance = Optional.ofNullable(profitProtectingStopDistance);
+            }
+        }
+    }
+
+    private boolean isPriceBeyondTriggerPrice(BigDecimal currentLevel){
+        BigDecimal directionisedCurrentLevel = currentLevel.multiply(BigDecimal.valueOf(direction));
+        BigDecimal directionisedTriggerLevel = nextTrigger.get().multiply(BigDecimal.valueOf(direction));
+        int comparisonResult = directionisedCurrentLevel.compareTo(directionisedTriggerLevel);
+        return comparisonResult>-1;
     }
 
     @Override
     public void evaluate(Position.PositionUpdate positionUpdate) {
-        LOG.info("Received update for position {}",positionUpdate.getPositionId());
+        LOG.debug("Received update for position {}",positionUpdate.getPositionId());
         if(positionInfo.getDealId().equalsIgnoreCase(positionUpdate.getPositionId())){
             updateState(positionUpdate.getUpdateEvent());
        }else{
@@ -126,7 +177,7 @@ public class TrackerStrategy extends AbstractMarketStrategy {
     @Override
     public ArrayList<String> getListOfObservedPositions() {
         ArrayList<String> positionList = new ArrayList<>();
-        positionList.add(positionInfo.getEpic());
+        positionList.add(positionInfo.getDealId());
         return positionList;
     }
 
@@ -134,12 +185,12 @@ public class TrackerStrategy extends AbstractMarketStrategy {
 
         if(updateEvent.isMarketUpdate()){
             MarketInfo marketInfo =new MarketInfo(updateEvent);
-         currentAsk = marketInfo.getMarketUpdateOfrDouble();
-         currentBid = marketInfo.getMarketUpdateBidDouble();
+         currentAsk = marketInfo.getMarketUpdateOfrBigDecimal();
+         currentBid = marketInfo.getMarketUpdateBidBigDecimal();
         }
         if(updateEvent.isPositionUpdate()) {
             PositionInfo positionInfo = new PositionInfo(updateEvent,"",1);
-            currentStop = positionInfo.getStopLevelDouble();
+            currentStop = positionInfo.getStopLevelBigDecimal();
             calculateStopDistantOnlyIfItIsNotSetAlready();
         }
 
@@ -156,13 +207,13 @@ public class TrackerStrategy extends AbstractMarketStrategy {
     }
 
 
-    public Double getCurrentApplicablePrice() {
-        Double currentApplicablePrice;
+    public BigDecimal getCurrentApplicablePrice() {
+        BigDecimal currentApplicablePrice;
 
         if(direction == 1){
-            currentApplicablePrice = currentAsk.get();
-        }else if (direction == -1){
             currentApplicablePrice = currentBid.get();
+        }else if (direction == -1){
+            currentApplicablePrice = currentAsk.get();
         }else{
             throw new IllegalStateException("Invalid value for position direction :" + direction);
         }

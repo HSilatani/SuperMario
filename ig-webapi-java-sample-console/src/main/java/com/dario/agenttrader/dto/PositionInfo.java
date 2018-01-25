@@ -3,6 +3,7 @@ package com.dario.agenttrader.dto;
 
 import com.dario.agenttrader.utility.Calculator;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
@@ -76,16 +77,16 @@ public class PositionInfo {
         return updateInfo.get(STOP_LEVEL_KEY);
     }
 
-    public Optional<Double> getStopLevelDouble(){
-        return Calculator.convertStrToDouble(Optional.ofNullable(getStop()));
+    public Optional<BigDecimal> getStopLevelBigDecimal(){
+        return Calculator.convertStrToBigDecimal(Optional.ofNullable(getStop()));
     }
 
     public String getOpenLevel(){
         return updateInfo.get(LEVEL_KEY);
     }
 
-    public Optional<Double> getOpenLevelDouble(){
-        return Calculator.convertStrToDouble(Optional.ofNullable(getOpenLevel()));
+    public Optional<BigDecimal> getOpenLevelBigDecimal(){
+        return Calculator.convertStrToBigDecimal(Optional.ofNullable(getOpenLevel()));
     }
 
     public String getDirection(){

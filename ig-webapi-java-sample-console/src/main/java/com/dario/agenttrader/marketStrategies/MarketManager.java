@@ -7,20 +7,28 @@ import akka.event.LoggingAdapter;
 import akka.japi.pf.DeciderBuilder;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.utility.ActorRegistery;
-import scala.concurrent.duration.Duration;
+import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
+import com.lightstreamer.ls_client.UpdateInfo;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static akka.actor.SupervisorStrategy.escalate;
 import static akka.actor.SupervisorStrategy.stop;
 
-public class MarketManager extends AbstractActor{
+public class MarketManager extends AbstractActorWithTimers{
 
     private final LoggingAdapter LOG = Logging.getLogger(getContext().getSystem(),this);
 
     private final ActorRegistery marketManagerRegistry = new ActorRegistery();
 
     private final TradingAPI tradingAPI;
+
+    private Instant lastHeartBeat=null;
+
+    private Duration maxDelayFromLastHeartBeat = Duration.ofMillis(10000);
 
     public MarketManager(TradingAPI pTradingAPI){
         tradingAPI = pTradingAPI;
@@ -30,8 +38,18 @@ public class MarketManager extends AbstractActor{
         return Props.create(MarketManager.class,ptradingAPI);
     }
     @Override
-    public void preStart() {
+    public void preStart() throws Exception{
         LOG.info("MarketManager created");
+        subscribeToLighstreamerHeartbeat();
+        startHeartBeatTimer();
+    }
+
+    private static final class HeartBeatTimer{};
+    public static final class ResetLSSubscriptions{};
+    private void startHeartBeatTimer() {
+        getTimers().startPeriodicTimer(
+                "LIGHTSTREAMERHB",new HeartBeatTimer(),
+                scala.concurrent.duration.Duration.create(15000,TimeUnit.MILLISECONDS));
     }
 
     @Override
@@ -55,7 +73,36 @@ public class MarketManager extends AbstractActor{
         return receiveBuilder()
                 .match(SubscribeToMarketUpdate.class,this::onSubscribeToMarket)
                 .match(Terminated.class,this::onTerminated)
+                .match(HeartBeatTimer.class,this::onHeartbeatTimer)
+                .match(ResetLSSubscriptions.class,this::onResetLSSubscriptions)
                 .build();
+    }
+
+    private void onResetLSSubscriptions(ResetLSSubscriptions resetMsg) {
+        try {
+            tradingAPI.disconnect();
+        }catch(Exception ex){
+            LOG.warning("Subscription failure",ex);
+        }
+        try {
+            tradingAPI.connect();
+            subscribeToLighstreamerHeartbeat();
+            getContext().getChildren().forEach(actor -> actor.tell(resetMsg, getSelf()));
+        }catch(Exception ex){
+            LOG.warning("Subscription failure",ex);
+        }
+    }
+
+    private void onHeartbeatTimer(HeartBeatTimer hb) {
+        Optional<Instant> lastHB = Optional.ofNullable(lastHeartBeat);
+        lastHeartBeat = lastHB.orElse(Instant.now());
+        Duration durationSinceLastHB = Duration.between(lastHeartBeat,Instant.now());
+        int intIsMaxDelayBreached = durationSinceLastHB.compareTo(maxDelayFromLastHeartBeat);
+        if(intIsMaxDelayBreached>-1){
+            LOG.warning("HEARBEAT Abscence - {} since last HEARTBEAT",durationSinceLastHB);
+            getSelf().tell(new ResetLSSubscriptions(),getSelf());
+        }
+
     }
 
     private void onTerminated(Terminated t) {
@@ -73,6 +120,17 @@ public class MarketManager extends AbstractActor{
 
       marketActor.forward(msg,getContext());
 
+    }
+
+    private void subscribeToLighstreamerHeartbeat() throws Exception {
+      LOG.info("Subscribing to Lightstreamer heartbeat");
+      tradingAPI.subscribeToLighstreamerHeartbeat(new HandyTableListenerAdapter() {
+         @Override
+         public void onUpdate(int i, String s, UpdateInfo updateInfo) {
+            lastHeartBeat = Instant.now();
+            LOG.debug("Heartbeat = " + updateInfo);
+         }
+      });
     }
 
     public static final class SubscribeToMarketUpdate {

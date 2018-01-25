@@ -4,6 +4,7 @@ import akka.actor.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.DeciderBuilder;
+import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.utility.ActorRegistery;
 import scala.concurrent.duration.Duration;
 
@@ -18,8 +19,14 @@ public class StrategyManager extends AbstractActor{
 
     private final LoggingAdapter LOG = Logging.getLogger(getContext().getSystem(), this);
 
-    public static Props props() {
-        return Props.create(StrategyManager.class);
+    private TradingAPI tradingAPI;
+
+    public StrategyManager(TradingAPI ptradingApi){
+        tradingAPI = ptradingApi;
+    }
+
+    public static final Props props(TradingAPI tradingAPI){
+        return Props.create(StrategyManager.class,tradingAPI);
     }
 
     private final ActorRegistery registry = new ActorRegistery();
@@ -70,7 +77,9 @@ public class StrategyManager extends AbstractActor{
 
     public void onCreateStrategy(CreateStrategyMessage createStrategyMsg) {
         Props props =
-                StrategyActor.props(createStrategyMsg.getUniqId()
+                StrategyActor.props(
+                        tradingAPI
+                        ,createStrategyMsg.getUniqId()
                         , createStrategyMsg.getOwner()
                         ,createStrategyMsg.getMarketStrategy());
 

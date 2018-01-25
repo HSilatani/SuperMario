@@ -62,10 +62,14 @@ public class Calculator {
         return closePrice.subtract(openPrice);
     }
 
-    public static Optional<Double> convertStrToDouble(Optional<String> strValue) {
-        Double doubleValue = null;
-        if(strValue.isPresent() && isStrNumericValue(strValue.get())){
-            doubleValue = Double.parseDouble(strValue.get());
+    public static Optional<BigDecimal> convertStrToBigDecimal(Optional<String> strValue) {
+        BigDecimal doubleValue = null;
+        if(strValue.isPresent()) {
+            String cleanedStr = strValue.get().replaceAll("\\(", "");
+            cleanedStr = cleanedStr.replaceAll("\\)","");
+            if (isStrNumericValue(cleanedStr)) {
+                doubleValue = new BigDecimal(cleanedStr);
+            }
         }
         return Optional.ofNullable(doubleValue);
     }
