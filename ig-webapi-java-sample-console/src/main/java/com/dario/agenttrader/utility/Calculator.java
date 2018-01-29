@@ -73,4 +73,8 @@ public class Calculator {
         }
         return Optional.ofNullable(doubleValue);
     }
+
+    public static Optional<BigDecimal> convertStrToBigDecimal(String strValue) {
+        return  convertStrToBigDecimal(Optional.ofNullable(strValue));
+    }
 }

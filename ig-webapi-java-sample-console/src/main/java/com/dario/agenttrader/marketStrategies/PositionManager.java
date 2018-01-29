@@ -90,9 +90,12 @@ public class PositionManager extends AbstractActor{
 
                                 if (updateInfo.getNewValue("OPU") != null)
                                 {
+                                    boolean isclosed=
+                                            PositionInfo.STATUS_DELETED.equalsIgnoreCase(positionInfo.getStatus());
+
                                     LOG.info("Position update i {} s {} data {}", i, s, updateInfo);
                                      positionManagerActor.tell(
-                                            new PositionManager.OPU(positionInfo),
+                                            new PositionManager.OPU(positionInfo,isclosed),
                                             positionManagerActor);
                                 }
                     }
@@ -105,8 +108,9 @@ public class PositionManager extends AbstractActor{
     }
 
     private void onOPU(OPU opu) throws Exception{
-        LOG.info("OPU {}-{}",opu.getPostionInfo().getS()
+        LOG.info("OPU {}-{}-{}",opu.getPostionInfo().getS()
                 , opu.getPostionInfo().getDealId()
+                ,opu.getPostionInfo().getStatus()
         );
 
         String positionId = opu.getPostionInfo().getDealId();

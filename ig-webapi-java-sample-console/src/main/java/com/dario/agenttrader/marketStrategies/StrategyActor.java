@@ -68,8 +68,11 @@ public class StrategyActor extends AbstractActor{
     private void onPositionUpdate(Position.PositionUpdate positionUpdate){
         if(positionUpdate!=null
                 && marketStrategy.getListOfObservedPositions().contains(positionUpdate.getPositionId())){
-
-            marketStrategy.evaluate(positionUpdate);
+            if(!positionUpdate.isClosed()) {
+                marketStrategy.evaluate(positionUpdate);
+            }else{
+                getContext().stop(getSelf());
+            }
         }
     }
 

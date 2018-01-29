@@ -3,15 +3,22 @@ package com.dario.agenttrader.utility;
 
 import com.dario.agenttrader.dto.PositionInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
+import com.dario.agenttrader.dto.PriceTick;
 import com.dario.agenttrader.dto.UpdateEvent;
 import com.dario.agenttrader.marketStrategies.PositionManager;
 import com.dario.agenttrader.TestPositionProvider;
+import org.hamcrest.Matchers;
+import org.hamcrest.number.BigDecimalCloseTo;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 import static junit.framework.TestCase.assertNotNull;
+import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.junit.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class IGClientUtilityTest {
@@ -180,6 +187,36 @@ public class IGClientUtilityTest {
         assertEquals(updateList.get(6),"-2.71");
         assertEquals(updateList.get(7),"1076.1");
         assertEquals(updateList.get(8),"1005.6");
+
+    }
+
+    @Test
+    public void testExtractMarketPriceTick(){
+        String updateStr = "[ 1016.73, 1028.73, null, 1, 1516227922478, 1051.25, -2.71, 1076.1, 1005.6 ]";
+        PriceTick expectedPriceTick = new PriceTick(
+                new Double(1016.73)
+                ,new Double(1028.73)
+                ,null
+                ,new Double(1)
+                ,"1516227922478"
+                ,new Double( 1051.25)
+                ,new Double( -2.71)
+                ,new Double( 1076.1)
+                ,new Double( 1005.6)
+        );
+
+        BigDecimal error =  BigDecimal.valueOf(0);
+        PriceTick actualPriceTick = IGClientUtility.extractMarketPriceTick(updateStr);
+        assertThat(expectedPriceTick.getBid(), closeTo(actualPriceTick.getBid(),error));
+        assertThat(expectedPriceTick.getBid(),closeTo(actualPriceTick.getBid(),error));
+        assertThat(expectedPriceTick.getOffer(),closeTo(actualPriceTick.getOffer(),error));
+        assertThat(expectedPriceTick.getDayLow(),closeTo(actualPriceTick.getDayLow(),error));
+        assertThat(expectedPriceTick.getDayHigh(),closeTo(actualPriceTick.getDayHigh(),error));
+        assertThat(expectedPriceTick.getDayOpenMid(),closeTo(actualPriceTick.getDayOpenMid(),error));
+        assertThat(expectedPriceTick.getDayPercentageChangeMid(),closeTo(actualPriceTick.getDayPercentageChangeMid(),error));
+        assertThat(expectedPriceTick.getGetLastTradeVolume(),closeTo(actualPriceTick.getGetLastTradeVolume(),error));
+        assertNull(actualPriceTick.getLastTradePrice());
+        assertEquals(expectedPriceTick.getUtm(),actualPriceTick.getUtm());
 
     }
 }

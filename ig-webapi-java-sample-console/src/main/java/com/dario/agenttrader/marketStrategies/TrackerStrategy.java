@@ -2,6 +2,7 @@ package com.dario.agenttrader.marketStrategies;
 
 import com.dario.agenttrader.dto.MarketInfo;
 import com.dario.agenttrader.dto.PositionInfo;
+import com.dario.agenttrader.dto.PriceTick;
 import com.dario.agenttrader.dto.UpdateEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,8 +65,7 @@ public class TrackerStrategy extends AbstractMarketStrategy {
     public void evaluate(MarketActor.MarketUpdated marketUpdate) {
         LOG.debug("Received update for {}",marketUpdate.getEpic());
         isMarketUpdateValid(marketUpdate.getEpic());
-        updateState(marketUpdate.getUpdateEvent());
-        staticMarketInfo = marketUpdate.getMarketInfo();
+        updateState(marketUpdate);
 
         boolean isStateValidForEvaluation = validateState();
         if(isStateValidForEvaluation){
@@ -167,7 +167,7 @@ public class TrackerStrategy extends AbstractMarketStrategy {
     public void evaluate(Position.PositionUpdate positionUpdate) {
         LOG.debug("Received update for position {}",positionUpdate.getPositionId());
         if(positionInfo.getDealId().equalsIgnoreCase(positionUpdate.getPositionId())){
-            updateState(positionUpdate.getUpdateEvent());
+            updateState(positionUpdate);
        }else{
             LOG.warn("Expecting update for ["+positionInfo.getDealId()+"] but received update for["+positionUpdate.getPositionId()+"]");
 
@@ -181,13 +181,14 @@ public class TrackerStrategy extends AbstractMarketStrategy {
         return positionList;
     }
 
-    private void updateState(UpdateEvent updateEvent) {
-
-        if(updateEvent.isMarketUpdate()){
-            MarketInfo marketInfo =new MarketInfo(updateEvent);
-         currentAsk = marketInfo.getMarketUpdateOfrBigDecimal();
-         currentBid = marketInfo.getMarketUpdateBidBigDecimal();
-        }
+    private void updateState(MarketActor.MarketUpdated<PriceTick> marketUpdated){
+        PriceTick priceTick = marketUpdated.getMarketupdate().getUpdate();
+        currentAsk = Optional.ofNullable(priceTick.getOffer());
+        currentBid = Optional.ofNullable(priceTick.getBid());
+        staticMarketInfo = marketUpdated.getMarketInfo();
+    }
+    private void updateState(Position.PositionUpdate positionUpdate){
+        UpdateEvent updateEvent = positionUpdate.getUpdateEvent();
         if(updateEvent.isPositionUpdate()) {
             PositionInfo positionInfo = new PositionInfo(updateEvent,"",1);
             currentStop = positionInfo.getStopLevelBigDecimal();

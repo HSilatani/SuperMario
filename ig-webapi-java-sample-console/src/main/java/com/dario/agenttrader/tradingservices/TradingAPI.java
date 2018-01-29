@@ -46,6 +46,8 @@ public interface TradingAPI {
 
     void subscribeToOpenPositionUpdates(HandyTableListenerAdapter listener) throws Exception;
 
+    public void unsubscribeLightstreamerForListner(HandyTableListenerAdapter listener) throws Exception;
+
     AccountsItem accountPreferences();
 
     void loadAccountPreferences(String accID) throws Exception;

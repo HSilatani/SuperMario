@@ -7,34 +7,42 @@ import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.dario.agenttrader.dto.MarketInfo;
+import com.dario.agenttrader.dto.MarketUpdate;
+import com.dario.agenttrader.dto.PriceTick;
 import com.dario.agenttrader.dto.UpdateEvent;
-import com.dario.agenttrader.tradingservices.IGClient;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
 import com.lightstreamer.ls_client.PushUserException;
 import com.lightstreamer.ls_client.UpdateInfo;
+import org.ta4j.core.BaseTick;
+import org.ta4j.core.BaseTimeSeries;
+import org.ta4j.core.TimeSeries;
 
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 import static com.dario.agenttrader.marketStrategies.MarketManager.*;
 
 
-//TODO migrate to SubscriberActorRegistery
 public class MarketActor extends AbstractActor {
     private final String epic;
     private final TradingAPI tradingAPI;
     private final Set<ActorRef> subscribers;
     private boolean isSubscribing = false;
+    private HandyTableListenerAdapter lightStreamerListner;
     private MarketInfo staticMarketInfo = null;
+    private PriceTick lastTick = null;
     private Instant staticMarketInfoTimeStamp = null;
     private Duration maxStaticMarketInfoAge = Duration.ofMinutes(120);
+    private TimeSeries priceTimeSeries=null;
 
 
 
@@ -59,46 +67,61 @@ public class MarketActor extends AbstractActor {
         try {
             subscribeToChartUpdate();
             subscribeToPriceUpdate();
+            setupPriceTimeSeries();
             isSubscribing = true;
         }catch(PushUserException pex){
                 LOG.warning("Unable to subscribe to marketupdates",pex);
         }
     }
 
+    private void setupPriceTimeSeries() {
+        if(priceTimeSeries==null){
+            priceTimeSeries=new BaseTimeSeries(epic);
+            priceTimeSeries.setMaximumTickCount((int) Duration.ofDays(1).get(ChronoUnit.SECONDS));
+        }
+    }
+//TODO should send MarketUpdate message
     private void subscribeToChartUpdate() throws Exception {
-        tradingAPI.subscribeToLighstreamerChartUpdates(
-                    epic,
-                    new HandyTableListenerAdapter() {
-                        @Override
-                        public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-                            Map<String,String> updateMap = IGClientUtility.extractMarketUpdateKeyValues(updateInfo,i,s);
-                            UpdateEvent updateEvent = new UpdateEvent(updateMap,UpdateEvent.MARKET_UPDATE);
-                            LOG.info("Chart i {} s {} data {}", i, s, updateInfo);
-                            getSelf().tell(new MarketUpdated(epic, updateEvent),getSelf());
-                        }
-                    }
-                    );
+        HandyTableListenerAdapter subscriptionListner = new HandyTableListenerAdapter() {
+            @Override
+            public void onUpdate(int i, String s, UpdateInfo updateInfo) {
+                PriceTick chartPriceTick = IGClientUtility.extractMarketPriceTick(updateInfo);
+                MarketUpdate<PriceTick> marketUpdate = new MarketUpdate(chartPriceTick,staticMarketInfo);
+                LOG.info("Chart i {} s {} data {}", i, s, updateInfo);
+                getSelf().tell(new MarketUpdated(epic, marketUpdate),getSelf());
+            }
+        };
+        lightStreamerListner = subscriptionListner;
+        tradingAPI.subscribeToLighstreamerChartUpdates(epic,lightStreamerListner);
     }
     private void subscribeToPriceUpdate() throws Exception {
-        tradingAPI.subscribeToLighstreamerPriceUpdates(
-                epic,
-                new HandyTableListenerAdapter() {
-                    @Override
-                    public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-                        UpdateEvent updateEvent = new UpdateEvent(
-                                IGClientUtility.extractMarketUpdateKeyValues(updateInfo,i,s)
-                                ,UpdateEvent.MARKET_UPDATE);
-                        getSelf().tell(new MarketUpdated(epic, updateEvent),getSelf());
-                        LOG.debug("Chart i {} s {} data {}", i, s, updateInfo);
-                    }
-                }
-        );
+//        tradingAPI.subscribeToLighstreamerPriceUpdates(
+//                epic,
+//                new HandyTableListenerAdapter() {
+//                    @Override
+//                    public void onUpdate(int i, String s, UpdateInfo updateInfo) {
+//                        UpdateEvent updateEvent = new UpdateEvent(
+//                                IGClientUtility.extractMarketUpdateKeyValues(updateInfo,i,s)
+//                                ,UpdateEvent.MARKET_UPDATE);
+//                        getSelf().tell(new MarketUpdated(epic, updateEvent),getSelf());
+//                        LOG.debug("Chart i {} s {} data {}", i, s, updateInfo);
+//                    }
+//                }
+//        );
     }
 
     @Override
     public void postStop() {
+        if(lightStreamerListner!=null){
+            try {
+                tradingAPI.unsubscribeLightstreamerForListner(lightStreamerListner);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         LOG.info("Market {} unregistered", epic);
     }
+
     @Override
     public Receive createReceive() {
         return receiveBuilder()
@@ -140,15 +163,47 @@ public class MarketActor extends AbstractActor {
     private void onResetLSSubscription(ResetLSSubscriptions reset) throws Exception{
       subscribeToMarketUpdates();
     }
-
     private void onMarketUpdate(MarketUpdated mupdated) throws Exception{
+        stopMarkeActorIfThereAreNoSubscribers();
         updateStaticMarketInfo();
-        MarketInfo marketInfo = new MarketInfo(mupdated.getUpdateEvent());
+        mupdated =  mergeMarketUpdate(mupdated);
+        MarketUpdate<PriceTick> priceTickMarketUpdate = mupdated.getMarketupdate();
+        MarketInfo marketInfo = getMarketInfo();
+        priceTickMarketUpdate.setMarketInfo(marketInfo);
+        MarketUpdated mupdatedWithStaticInfo = new MarketUpdated(epic,priceTickMarketUpdate);
+        //change price subscription to minute resolution
+        //addATickToPriceTimeSeries(marketInfo);
+        subscribers.forEach(subscriber -> subscriber.tell(mupdatedWithStaticInfo,getSelf()));
+    }
+
+    private MarketInfo getMarketInfo() {
+        MarketInfo marketInfo = new MarketInfo();
         marketInfo.setMarketName(staticMarketInfo.getMarketName());
         marketInfo.setMinNormalStopLimitDistance(staticMarketInfo.getMinNormalStopLimitDistance());
         marketInfo.setMinDealSize(staticMarketInfo.getMinDealSize());
-        MarketUpdated mupdatedWithStaticInfo = new MarketUpdated(epic,marketInfo);
-        subscribers.forEach(subscriber -> subscriber.tell(mupdatedWithStaticInfo,getSelf()));
+        return marketInfo;
+    }
+
+    private void addATickToPriceTimeSeries(PriceTick priceTick) {
+//TODO implement with chartsCandle
+
+        LOG.info("Price Tick Count: {}",priceTimeSeries.getTickCount());
+    }
+
+    private void stopMarkeActorIfThereAreNoSubscribers() {
+        if(subscribers.size()<1){
+            getContext().stop(getSelf());
+        }
+    }
+
+    private MarketUpdated mergeMarketUpdate(MarketUpdated<PriceTick> mupdated) {
+        if(lastTick ==null){
+            lastTick = mupdated.getMarketupdate().getUpdate();
+        }else{
+           PriceTick newPricTick = mupdated.getMarketupdate().getUpdate();
+           newPricTick.mergeWithSnapshot(lastTick);
+        }
+        return  mupdated;
     }
 
     private void onTerminated(Terminated t) {
@@ -178,20 +233,23 @@ public class MarketActor extends AbstractActor {
     }
 
 
-    public static final class MarketUpdated{
+    public static final class MarketUpdated<T>{
         private MarketInfo marketInfo;
         private String epic;
+        private MarketUpdate<T> marketupdate;
 
         public MarketUpdated(String pepic,MarketInfo marketInfo){
             this.epic = pepic;
             this.marketInfo = marketInfo;
         }
 
-        public MarketUpdated(String epic,UpdateEvent updateEvent){
-            this(epic,new MarketInfo(updateEvent));
+        public MarketUpdated(String pEPIC,MarketUpdate mUpdate){
+            marketupdate = mUpdate;
+            this.epic=pEPIC;
         }
-        public UpdateEvent getUpdateEvent() {
-            return marketInfo.getUpdateEvent();
+
+        public MarketUpdate<T> getMarketupdate() {
+            return marketupdate;
         }
 
         public MarketInfo getMarketInfo() {

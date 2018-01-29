@@ -251,6 +251,11 @@ public class IGClient implements TradingAPI {
               new String[]{"TRADE:HB.U.HEARTBEAT.IP"}, "MERGE", new String[]{"HEARTBEAT"}));
     }
 
+    @Override
+    public void unsubscribeLightstreamerForListner(HandyTableListenerAdapter listener) throws Exception {
+            streamingAPI.unsubscribe(listener.getSubscribedTableKey());
+    }
+
    @Override
    public AccountsItem accountPreferences(){
        return accountSetting;

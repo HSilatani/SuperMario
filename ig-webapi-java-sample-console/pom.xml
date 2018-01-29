@@ -52,6 +52,12 @@
             <artifactId>akka-testkit_2.12</artifactId>
             <version>2.5.9</version>
         </dependency>
+<!-- Technical Analysis libs -->
+      <dependency>
+         <groupId>org.ta4j</groupId>
+         <artifactId>ta4j-core</artifactId>
+         <version>0.10</version>
+      </dependency>
 <!-- Logging frameworks -->
       <dependency>
          <groupId>org.slf4j</groupId>
@@ -73,6 +79,13 @@
          <groupId>org.mockito</groupId>
          <artifactId>mockito-core</artifactId>
          <version>2.13.0</version>
+         <scope>test</scope>
+      </dependency>
+      <dependency>
+         <groupId>org.hamcrest</groupId>
+         <artifactId>hamcrest-junit</artifactId>
+         <version>2.0.0.0</version>
+         <scope>test</scope>
       </dependency>
    </dependencies>
 

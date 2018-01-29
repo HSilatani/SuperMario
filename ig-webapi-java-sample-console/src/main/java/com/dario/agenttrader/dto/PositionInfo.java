@@ -37,11 +37,8 @@ public class PositionInfo {
 
     public static final String DIRECTION_BUY = "BUY";
     public static final String DIRECTION_SELL = "SELL";
-
-
-
-
-
+    public static final String STATUS_DELETED = "DELETED";
+    public static final String STATUS_OPEN = "OPEN";
 
 
     private Map<String,String> updateInfo;
@@ -123,5 +120,7 @@ public class PositionInfo {
     }
 
 
-
+    public String getStatus() {
+        return updateInfo.get(STATUS_KEY);
+    }
 }

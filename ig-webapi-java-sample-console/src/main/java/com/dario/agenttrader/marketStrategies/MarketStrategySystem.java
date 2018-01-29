@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 public class MarketStrategySystem {
     public static final String MARKET_STRATEGY_MANAGER = "marketStrategyManager";
     public static final String POSITION_MANAGER = "positionManager";
-    private static final String MARKET_MANAGER = "marketManager";
+    public static final String MARKET_MANAGER = "marketManager";
     private static MarketStrategySystem oneAndOnly = new MarketStrategySystem();
 
     public static MarketStrategySystem getInstance(){

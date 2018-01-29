@@ -39,6 +39,8 @@ public class Position extends AbstractActor{
 
     @Override
     public void postStop() {
+        PositionUpdate positionClosed = new PositionUpdate(positionID,positionInfo.getEpic(),PositionInfo.STATUS_DELETED);
+        subscribers.informSubscriobers(positionClosed,null);
         LOG.info("Position {} unregistered", positionID);
     }
 
@@ -61,8 +63,6 @@ public class Position extends AbstractActor{
                     positionID,positionInfo.getEpic()
                     ,new UpdateEvent(positionInfo.getKeyValues(),UpdateEvent.POSITION_UPDATE));
 
-            //ActorRef strategyManager = MarketStrategySystem.getInstance().getStrategyManagerActor();
-            //strategyManager.tell(positionUpdate,getSelf());
             subscribers.informSubscriobers(positionUpdate,getSelf());
         }
     }
@@ -134,12 +134,19 @@ public class Position extends AbstractActor{
     public static final class PositionUpdate{
         private final String positionId;
         private final String epic;
-        private final UpdateEvent updateEvent;
+        private UpdateEvent updateEvent;
+        private boolean isClosed=false;
 
         public PositionUpdate(String positionId, String epic, UpdateEvent updateEvent) {
+            this(positionId,epic,PositionInfo.STATUS_OPEN);
+            this.updateEvent = updateEvent;
+        }
+
+        public PositionUpdate(String positionId,String epic,String status){
             this.positionId = positionId;
             this.epic = epic;
-            this.updateEvent = updateEvent;
+            isClosed= PositionInfo.STATUS_DELETED.equalsIgnoreCase(status);
+            updateEvent = null;
         }
 
         public String getPositionId() {
@@ -152,6 +159,10 @@ public class Position extends AbstractActor{
 
         public UpdateEvent getUpdateEvent() {
             return updateEvent;
+        }
+
+        public boolean isClosed() {
+            return isClosed;
         }
     }
 }

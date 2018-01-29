@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class  MarketStrategySystemTest{
+public class PositionActorTest {
 
     public static final String AKKA_SYSTEM_USER_URL = "akka://MarketStrategySystem/user/";
     public static final String MARKET_STRATEGY_MANAGER_URL = AKKA_SYSTEM_USER_URL

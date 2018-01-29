@@ -13,6 +13,7 @@ import com.lightstreamer.ls_client.UpdateInfo;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static akka.actor.SupervisorStrategy.escalate;
@@ -75,7 +76,14 @@ public class MarketManager extends AbstractActorWithTimers{
                 .match(Terminated.class,this::onTerminated)
                 .match(HeartBeatTimer.class,this::onHeartbeatTimer)
                 .match(ResetLSSubscriptions.class,this::onResetLSSubscriptions)
+                .match(ListMarkets.class,this::onListMarkets)
                 .build();
+    }
+
+    private void onListMarkets(ListMarkets listMarket) {
+        Set<String> uniqIds = marketManagerRegistry.getUniqIds();
+        ListOfMarkets listOfMArkets = new ListOfMarkets(uniqIds);
+        getSender().tell(listOfMArkets,getSelf());
     }
 
     private void onResetLSSubscriptions(ResetLSSubscriptions resetMsg) {
@@ -131,6 +139,22 @@ public class MarketManager extends AbstractActorWithTimers{
             LOG.debug("Heartbeat = " + updateInfo);
          }
       });
+    }
+
+    public static final class ListMarkets{
+
+    }
+
+    public static final class ListOfMarkets{
+        private Set<String>  markets;
+
+        public ListOfMarkets(Set<String> markets) {
+            this.markets = markets;
+        }
+
+        public Set<String> getMarkets() {
+            return markets;
+        }
     }
 
     public static final class SubscribeToMarketUpdate {

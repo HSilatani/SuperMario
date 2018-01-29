@@ -1,5 +1,6 @@
 package com.dario.agenttrader.utility;
 
+import com.dario.agenttrader.dto.PriceTick;
 import com.dario.agenttrader.dto.UpdateEvent;
 import com.dario.agenttrader.dto.PositionInfo;
 import com.dario.agenttrader.marketStrategies.PositionManager;
@@ -11,8 +12,8 @@ import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Posit
 import com.lightstreamer.ls_client.UpdateInfo;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class IGClientUtility {
@@ -110,24 +111,41 @@ public class IGClientUtility {
 
 
     
-    public static Map<String,String> extractMarketUpdateKeyValues(UpdateInfo updateInfo, int i, String s) {
-        Map<String,String> marketUpdateKeyValues = new HashMap<>();
 
-        String updateStr = updateInfo.toString();
-        List<String> updateList = convertCommaSeparatedStringToArrayList(updateStr);
-
-        UpdateEvent.MARKET_UPDATE_KEYS.keySet().stream().forEach(
-                k -> marketUpdateKeyValues.put(
-                        k,updateList.get(UpdateEvent.MARKET_UPDATE_KEYS.get(k).intValue()))
-        );
-        marketUpdateKeyValues.put(UpdateEvent.EPIV_KEY,updateInfo.getItemName());
-
-        return marketUpdateKeyValues;
-    }
 
     public static List<String> convertCommaSeparatedStringToArrayList(String updateStr) {
         updateStr= updateStr.replaceAll("[\\[\\s\\]]","");
         List<String> items = Arrays.asList(updateStr.split("\\s*,\\s*"));
         return items;
     }
+
+    public static void updateBaseMap(Map<String, String> baseMap, Map<String, String> toMerge) {
+        baseMap.entrySet().stream()
+                .forEach(e->{
+                    if(!Calculator.isStrNumericValue(e.getValue())){
+                        e.setValue(toMerge.get(e.getKey()));
+                    }
+                });
+    }
+
+    public static PriceTick extractMarketPriceTick(UpdateInfo updateInfo) {
+        return extractMarketPriceTick(updateInfo.toString());
+    }
+
+    public static PriceTick extractMarketPriceTick(String strUpdateInfo) {
+        List<String> items = convertCommaSeparatedStringToArrayList(strUpdateInfo);
+        PriceTick priceTick = new PriceTick(
+                Calculator.convertStrToBigDecimal(items.get(0)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(1)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(2)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(3)).orElse(null)
+                ,items.get(4)
+                ,Calculator.convertStrToBigDecimal(items.get(5)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(6)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(7)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(8)).orElse(null)
+        );
+        return priceTick;
+    }
+
 }
