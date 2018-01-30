@@ -23,7 +23,7 @@ public class MarketStrategySystem {
 
     private boolean isStrategySystemRunning = false;
 
-    private final ActorSystem system;
+    private ActorSystem system;
 
     private ActorRef strategyManagerActor;
 
@@ -33,12 +33,18 @@ public class MarketStrategySystem {
 
     private TradingAPI tradingAPI;
 
+    private String actorSystemName;
+
     private MarketStrategySystem(){
-        system = ActorSystem.create("MarketStrategySystem");
 
     }
-
     public void startMarketStrategySystem(TradingAPI ptradingAPI){
+        startMarketStrategySystem(ptradingAPI,"MarketStrategySystem");
+    }
+
+    public void startMarketStrategySystem(TradingAPI ptradingAPI,String strActorSystemName){
+
+        system = ActorSystem.create(strActorSystemName);
         tradingAPI = ptradingAPI;
 
              strategyManagerActor =

@@ -185,7 +185,7 @@ public class TrackerStrategy extends AbstractMarketStrategy {
         PriceTick priceTick = marketUpdated.getMarketupdate().getUpdate();
         currentAsk = Optional.ofNullable(priceTick.getOffer());
         currentBid = Optional.ofNullable(priceTick.getBid());
-        staticMarketInfo = marketUpdated.getMarketInfo();
+        staticMarketInfo = marketUpdated.getMarketupdate().getMarketInfo();
     }
     private void updateState(Position.PositionUpdate positionUpdate){
         UpdateEvent updateEvent = positionUpdate.getUpdateEvent();

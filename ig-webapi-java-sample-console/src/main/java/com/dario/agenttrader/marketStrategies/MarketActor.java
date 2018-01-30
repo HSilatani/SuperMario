@@ -234,14 +234,9 @@ public class MarketActor extends AbstractActor {
 
 
     public static final class MarketUpdated<T>{
-        private MarketInfo marketInfo;
         private String epic;
         private MarketUpdate<T> marketupdate;
 
-        public MarketUpdated(String pepic,MarketInfo marketInfo){
-            this.epic = pepic;
-            this.marketInfo = marketInfo;
-        }
 
         public MarketUpdated(String pEPIC,MarketUpdate mUpdate){
             marketupdate = mUpdate;
@@ -250,10 +245,6 @@ public class MarketActor extends AbstractActor {
 
         public MarketUpdate<T> getMarketupdate() {
             return marketupdate;
-        }
-
-        public MarketInfo getMarketInfo() {
-            return marketInfo;
         }
 
         public String getEpic() {

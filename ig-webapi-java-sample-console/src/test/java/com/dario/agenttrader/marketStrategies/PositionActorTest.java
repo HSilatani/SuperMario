@@ -25,7 +25,8 @@ import java.util.stream.Stream;
 
 public class PositionActorTest {
 
-    public static final String AKKA_SYSTEM_USER_URL = "akka://MarketStrategySystem/user/";
+    public static final String ACTOR_SYSTEM_NAME = "PositionActorTest";
+    public static final String AKKA_SYSTEM_USER_URL = "akka://"+ACTOR_SYSTEM_NAME+"/user/";
     public static final String MARKET_STRATEGY_MANAGER_URL = AKKA_SYSTEM_USER_URL
             +MarketStrategySystem.MARKET_STRATEGY_MANAGER;
     public static final String POSITION_MANAGER_URL =  AKKA_SYSTEM_USER_URL + MarketStrategySystem.POSITION_MANAGER;
@@ -41,7 +42,7 @@ public class PositionActorTest {
     @BeforeClass
     public static void setup() {
         TradingAPI mockedTradingAPI = mock(TradingAPI.class);
-        marketStrategySystem.startMarketStrategySystem(mockedTradingAPI);
+        marketStrategySystem.startMarketStrategySystem(mockedTradingAPI,ACTOR_SYSTEM_NAME);
         system = marketStrategySystem.getActorSystem();
     //    system = ActorSystem.create();
     }

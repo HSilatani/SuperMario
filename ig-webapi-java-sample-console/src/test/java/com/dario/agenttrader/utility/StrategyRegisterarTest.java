@@ -15,6 +15,10 @@ import static org.mockito.Mockito.*;
 
 public class StrategyRegisterarTest {
 
+
+    public static final String ACTOR_SYSTEM_NAME = "PositionActorTest";
+    public static final String AKKA_SYSTEM_USER_URL = "akka://"+ACTOR_SYSTEM_NAME+"/user/";
+
     private final String DEAL_ID = "DIAAAABLAADV7A3";
     static ActorSystem system;
     static MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInstance();
