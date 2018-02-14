@@ -6,9 +6,8 @@ import akka.testkit.javadsl.TestKit;
 import static org.junit.Assert.assertNotNull;
 
 import com.dario.agenttrader.marketStrategies.MarketStrategySystem;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import com.dario.agenttrader.tradingservices.TradingAPI;
+import org.junit.*;
 
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
@@ -23,16 +22,20 @@ public class StrategyRegisterarTest {
     static ActorSystem system;
     static MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInstance();
 
-    @BeforeClass
-    public static void setup() {
-        system = ActorSystem.create();
+    @Before
+    public  void setup() {
+        TradingAPI mockedTradingAPI = mock(TradingAPI.class);
+        marketStrategySystem.startMarketStrategySystem(mockedTradingAPI,ACTOR_SYSTEM_NAME);
+        system = marketStrategySystem.getActorSystem();
+    //    system = ActorSystem.create();
     }
 
-    @AfterClass
-    public static void teardown() {
+    @After
+    public  void teardown() {
         TestKit.shutdownActorSystem(system);
         system = null;
     }
+
 
     @Test
     public void registerNewActorTest(){

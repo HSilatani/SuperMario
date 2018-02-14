@@ -1,5 +1,6 @@
 package com.dario.agenttrader.utility;
 
+import com.dario.agenttrader.dto.PriceCandle;
 import com.dario.agenttrader.dto.PriceTick;
 import com.dario.agenttrader.dto.UpdateEvent;
 import com.dario.agenttrader.dto.PositionInfo;
@@ -147,5 +148,35 @@ public class IGClientUtility {
         );
         return priceTick;
     }
-
+    public static PriceCandle extractMarketPriceCandle(UpdateInfo updateInfo) {
+        return extractMarketPriceCandle(updateInfo.toString());
+    }
+    public static PriceCandle extractMarketPriceCandle(String strUpdateInfo) {
+        List<String> items = convertCommaSeparatedStringToArrayList(strUpdateInfo);
+        PriceCandle priceCandle = new PriceCandle(
+                 Calculator.convertStrToBigDecimal(items.get(0)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(1)).orElse(null)
+                ,items.get(2)
+                ,Calculator.convertStrToBigDecimal(items.get(3)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(4)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(5)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(6)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(7)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(8)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(9)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(10)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(11)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(12)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(13)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(14)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(15)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(16)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(17)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(18)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(19)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(20)).orElse(null)
+                ,Calculator.convertStrToBigDecimal(items.get(21)).orElse(null)
+        );
+        return priceCandle;
+    }
 }

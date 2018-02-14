@@ -237,7 +237,13 @@ public class IGClient implements TradingAPI {
             listeners.add(streamingAPI.subscribeForChartTicks(tradeableEpic, listener));
         }
     }
-
+    @Override
+    public void subscribeToLighstreamerChartCandleUpdates(String tradeableEpic,String scale, HandyTableListenerAdapter listener) throws Exception {
+        if (tradeableEpic != null) {
+            LOG.info("Subscribing to Lightstreamer chart candle updates for market: {}:{} ", tradeableEpic,scale);
+            listeners.add(streamingAPI.subscribeForChartCandles(tradeableEpic,scale,listener));
+        }
+    }
     @Override
     public void subscribeToOpenPositionUpdates(HandyTableListenerAdapter listener) throws Exception{
 

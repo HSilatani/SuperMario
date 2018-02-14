@@ -44,6 +44,8 @@ public interface TradingAPI {
 
     void subscribeToLighstreamerChartUpdates(String tradeableEpic, HandyTableListenerAdapter listener) throws Exception;
 
+    public void subscribeToLighstreamerChartCandleUpdates(String tradeableEpic,String scale, HandyTableListenerAdapter listener) throws Exception;
+
     void subscribeToOpenPositionUpdates(HandyTableListenerAdapter listener) throws Exception;
 
     public void unsubscribeLightstreamerForListner(HandyTableListenerAdapter listener) throws Exception;

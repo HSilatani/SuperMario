@@ -13,9 +13,7 @@ import com.dario.agenttrader.dto.UpdateEvent;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.dario.agenttrader.dto.PositionInfo;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import static org.mockito.Mockito.*;
 
@@ -39,16 +37,16 @@ public class PositionActorTest {
     private final String  OPU_MESSAGE = "{\"stopLevel\":110004,\"trailingStopDistance\":0,\"limitLevel\":null,\"trailingStep\":0,\"guaranteedStop\":false,\"currency\":\"GBP\",\"expiry\":\"DFB\",\"dealIdOrigin\":\"DIAAAABLAADV7A3\",\"dealId\":\"DIAAAABLAADV7A3\",\"dealReference\":\"QC63G1C0266DS3\",\"direction\":\"BUY\",\"epic\":\"UA.D.AMZN.DAILY.IP\",\"dealStatus\":\"ACCEPTED\",\"level\":119255,\"status\":\"UPDATED\",\"size\":2,\"channel\":\"WTP\",\"timestamp\":\"2017-12-30T23:30:00.277\"} ";
     private final String DEAL_ID = "DIAAAABLAADV7A3";
 
-    @BeforeClass
-    public static void setup() {
+    @Before
+    public  void setup() {
         TradingAPI mockedTradingAPI = mock(TradingAPI.class);
         marketStrategySystem.startMarketStrategySystem(mockedTradingAPI,ACTOR_SYSTEM_NAME);
         system = marketStrategySystem.getActorSystem();
     //    system = ActorSystem.create();
     }
 
-    @AfterClass
-    public static void teardown() {
+    @After
+    public  void teardown() {
         TestKit.shutdownActorSystem(system);
         system = null;
     }

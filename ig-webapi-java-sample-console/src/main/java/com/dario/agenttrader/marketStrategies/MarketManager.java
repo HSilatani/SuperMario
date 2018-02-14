@@ -12,6 +12,7 @@ import com.lightstreamer.ls_client.UpdateInfo;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -80,9 +81,10 @@ public class MarketManager extends AbstractActorWithTimers{
                 .build();
     }
 
-    private void onListMarkets(ListMarkets listMarket) {
+    private void onListMarkets(ListMarkets listMarkets) {
         Set<String> uniqIds = marketManagerRegistry.getUniqIds();
-        ListOfMarkets listOfMArkets = new ListOfMarkets(uniqIds);
+        Map<String,ActorRef> idsAndRefs = marketManagerRegistry.getRegistryuniqIdsAndRefs();
+        ListOfMarkets listOfMArkets = new ListOfMarkets(uniqIds,idsAndRefs);
         getSender().tell(listOfMArkets,getSelf());
     }
 
@@ -147,13 +149,24 @@ public class MarketManager extends AbstractActorWithTimers{
 
     public static final class ListOfMarkets{
         private Set<String>  markets;
+        private Map<String,ActorRef> idsAndRefs;
 
         public ListOfMarkets(Set<String> markets) {
             this.markets = markets;
         }
 
-        public Set<String> getMarkets() {
+        public ListOfMarkets(Set<String> markets, Map<String, ActorRef> idsAndRefs) {
+            this.markets = markets;
+            this.idsAndRefs = idsAndRefs;
+        }
+
+        public Set<String> getMarkets()
+        {
             return markets;
+        }
+
+        public Map<String, ActorRef> getIdsAndRefs() {
+            return idsAndRefs;
         }
     }
 

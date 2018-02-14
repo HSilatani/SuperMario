@@ -4,6 +4,7 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -46,6 +47,10 @@ public class ActorRegistery {
         }
 
         return actor;
+    }
+
+    public Map<String,ActorRef> getRegistryuniqIdsAndRefs(){
+        return Collections.unmodifiableMap(stringIdToActor);
     }
 
     public Set<String> getUniqIds() {

@@ -1,9 +1,6 @@
 package com.dario.agenttrader.marketStrategies;
 
-import com.dario.agenttrader.dto.MarketInfo;
-import com.dario.agenttrader.dto.PositionInfo;
-import com.dario.agenttrader.dto.PriceTick;
-import com.dario.agenttrader.dto.UpdateEvent;
+import com.dario.agenttrader.dto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,12 +61,12 @@ public class TrackerStrategy extends AbstractMarketStrategy {
     @Override
     public void evaluate(MarketActor.MarketUpdated marketUpdate) {
         LOG.debug("Received update for {}",marketUpdate.getEpic());
-        isMarketUpdateValid(marketUpdate.getEpic());
-        updateState(marketUpdate);
-
-        boolean isStateValidForEvaluation = validateState();
-        if(isStateValidForEvaluation){
-            evaluateStrategy();
+        if(isMarketUpdateValid(marketUpdate)) {
+            updateState(marketUpdate);
+            boolean isStateValidForEvaluation = validateState();
+            if (isStateValidForEvaluation) {
+                evaluateStrategy();
+            }
         }
     }
 
@@ -198,13 +195,21 @@ public class TrackerStrategy extends AbstractMarketStrategy {
 
     }
 
-    private void isMarketUpdateValid(String epic) throws IllegalArgumentException{
+    private boolean isMarketUpdateValid(MarketActor.MarketUpdated marketUpdated) throws IllegalArgumentException{
+        String epic = marketUpdated.getEpic();
         Optional<String> matchingObservedMarket = getListOfObservedMarkets().stream()
                 .filter(observedEpic-> observedEpic.equalsIgnoreCase(epic))
                 .findFirst();
-        if(!matchingObservedMarket.isPresent())
-            throw new IllegalArgumentException("Expecting updates for one of " +getListOfObservedMarkets()
+        if(!matchingObservedMarket.isPresent()) {
+            throw new IllegalArgumentException("Expecting updates for one of " + getListOfObservedMarkets()
                     + " but received update for " + epic);
+        }
+        boolean isValid = true;
+        if(! (marketUpdated.getMarketupdate().getUpdate() instanceof PriceTick)){
+            isValid=false;
+        }
+
+        return  isValid;
     }
 
 

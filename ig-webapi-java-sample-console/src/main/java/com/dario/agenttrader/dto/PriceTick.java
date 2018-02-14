@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class PriceTick {
+public class PriceTick implements Price<PriceTick>{
 
 
     BigDecimal bid;
@@ -79,6 +79,7 @@ public class PriceTick {
         return dayLow;
     }
 
+    @Override
     public void mergeWithSnapshot(PriceTick lastTick) {
         bid = Optional.ofNullable(this.bid).orElse(lastTick.bid);
         offer= Optional.ofNullable(this.offer).orElse(lastTick.offer);
