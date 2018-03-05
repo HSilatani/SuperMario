@@ -5,15 +5,28 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
 import akka.testkit.javadsl.TestKit;
+import com.dario.agenttrader.dto.MarketInfo;
+import com.dario.agenttrader.dto.PositionSnapshot;
 import com.dario.agenttrader.tradingservices.TradingAPI;
+import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.AccountsItem;
+import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
+import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
+import com.lightstreamer.ls_client.UpdateInfo;
 import org.hamcrest.Matchers;
 import org.junit.*;
-import org.mockito.Mockito;
+import scala.concurrent.duration.FiniteDuration;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.intThat;
+import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.mock;
 
 public class MarketActorTest {
@@ -27,12 +40,14 @@ public class MarketActorTest {
     static ActorSystem system;
     static MarketStrategySystem marketStrategySystem = MarketStrategySystem.getInstance();
 
+    static TradingAPI mockedTradingAPI = new MarketUpdateProducerTradingAPIMock();
     @Before
     public  void setup() {
-        TradingAPI mockedTradingAPI = mock(TradingAPI.class);
+
         marketStrategySystem.startMarketStrategySystem(mockedTradingAPI);
         system = marketStrategySystem.getActorSystem(); 
     }
+
 
     @After
     public  void teardown() {
@@ -116,7 +131,21 @@ public class MarketActorTest {
 
         MarketManager.ListOfMarkets listOfMarkets=testProbe.expectMsgClass(MarketManager.ListOfMarkets.class);
         ActorRef testEpicMarketActor = listOfMarkets.getIdsAndRefs().get(testEpic);
-
+        assertNotNull(testEpicMarketActor);
+        //
+        ActorRef subscriber3 = testProbe.getRef();
+        MarketManager.SubscribeToMarketUpdate subscribeToMarketUpdate3 =
+                new MarketManager.SubscribeToMarketUpdate(testEpic,subscriber3);
+        marketManager.tell(subscribeToMarketUpdate3,subscriber3);
+        //
+        MarketUpdateProducerTradingAPIMock tradingApi = (MarketUpdateProducerTradingAPIMock) mockedTradingAPI;
+        tradingApi.generateChartCandleUpdate();
+        //
+        //
+        MarketActor.MarketUpdated marketUpdateMessage =testProbe.expectMsgClass(
+                FiniteDuration.create(10, TimeUnit.SECONDS)
+                ,MarketActor.MarketUpdated.class);
+        assertThat(marketUpdateMessage,notNullValue());
 
     }
 

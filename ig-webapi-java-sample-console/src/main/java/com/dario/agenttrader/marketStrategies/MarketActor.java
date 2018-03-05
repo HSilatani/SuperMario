@@ -8,6 +8,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.dario.agenttrader.dto.*;
 import com.dario.agenttrader.tradingservices.TradingAPI;
+import com.dario.agenttrader.utility.Calculator;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
 import com.lightstreamer.ls_client.PushUserException;
@@ -79,7 +80,6 @@ public class MarketActor extends AbstractActor {
             priceTimeSeries.setMaximumTickCount((int) Duration.ofDays(1).get(ChronoUnit.SECONDS));
         }
     }
-//TODO should send MarketUpdate message
     private void subscribeToChartTickUpdate() throws Exception {
         HandyTableListenerAdapter subscriptionListner = new HandyTableListenerAdapter() {
             @Override
@@ -105,7 +105,7 @@ public class MarketActor extends AbstractActor {
                     }
                 };
         lightStreamerChartCandleListner = subsrciptionListener;
-        tradingAPI.subscribeToLighstreamerChartCandleUpdates(epic,PriceCandle.ONE_MINUTE,lightStreamerChartCandleListner);
+        tradingAPI.subscribeToLighstreamerChartCandleUpdates(epic,PriceCandle.FIVE_MINUTE,lightStreamerChartCandleListner);
     }
 
     @Override
@@ -198,6 +198,7 @@ public class MarketActor extends AbstractActor {
 
     private MarketUpdated createMArketUpdatedMessage(MarketUpdated mupdated) {
         MarketUpdate priceMarketUpdate = mupdated.getMarketupdate();
+        priceMarketUpdate.setTimeSeries(priceTimeSeries);
         MarketInfo marketInfo = createMarketInfo();
         priceMarketUpdate.setMarketInfo(marketInfo);
         return new MarketUpdated(epic,priceMarketUpdate);
@@ -216,7 +217,10 @@ public class MarketActor extends AbstractActor {
         //BigDecimal hiring = Calculator.convertStrToBigDecimal(priceCandle.getUTM()).get();
         //Instant fromEpochMilli = Instant.ofEpochMilli(Long.valueOf(hiring.longValue()));
         //ZonedDateTime zt = ZonedDateTime.ofInstant(Instant.from(fromEpochMilli), ZoneId.of("Europe/London"));
-        BaseTick tick = new BaseTick(Duration.ofMinutes(1),ZonedDateTime.now()
+        long epochTimeL = Calculator.convertStrToBigDecimal(priceCandle.getUTM()).get().longValue();
+        Instant fromEpochMilli = Instant.ofEpochMilli(Long.valueOf(epochTimeL));
+        ZonedDateTime barOpenTime = fromEpochMilli.atZone(ZoneId.of("Europe/London"));
+        BaseTick tick = new BaseTick(Duration.ofMinutes(1),barOpenTime
                 ,Decimal.valueOf(priceCandle.getBID_OPEN().doubleValue())
                 ,Decimal.valueOf(priceCandle.getBID_HIGH().doubleValue())
                 ,Decimal.valueOf(priceCandle.getBID_LOW().doubleValue())
@@ -239,15 +243,6 @@ public class MarketActor extends AbstractActor {
         }
     }
 
-//    private MarketUpdated mergeMarketTickUpdate(MarketUpdated<PriceTick> mupdated) {
-//        if(lastTick ==null){
-//            lastTick = mupdated.getMarketupdate().getUpdate();
-//        }else{
-//           PriceTick newPricTick = mupdated.getMarketupdate().getUpdate();
-//           newPricTick.mergeWithSnapshot(lastTick);
-//        }
-//        return  mupdated;
-//    }
     private Price mergePriceWithSnapshot(Price price){
         if( price instanceof PriceTick){
             lastTick=Optional.ofNullable(lastTick).orElse((PriceTick)price);
@@ -258,17 +253,6 @@ public class MarketActor extends AbstractActor {
         }
         return price;
     }
-
-//    private MarketUpdated mergeMarketCandleUpdate(MarketUpdated<PriceCandle> mupdated) {
-//        if(lastCandle ==null){
-//            lastCandle = mupdated.getMarketupdate().getUpdate();
-//        }else{
-//            PriceCandle newPricCandle = mupdated.getMarketupdate().getUpdate();
-//            newPricCandle.mergeWithSnapshot(lastCandle);
-//        }
-//        return  mupdated;
-//    }
-
 
     private void onTerminated(Terminated t) {
         ActorRef actor = t.getActor();

@@ -96,12 +96,26 @@ public class Position extends AbstractActor{
     }
 
     private void createDefaultStrategies() {
+        createTrackerStrategy();
+        createRentryStrategy();
+    }
+
+    private void createRentryStrategy(){
+        ArrayList<String> epics = new ArrayList<>();
+        epics.add(positionInfo.getKeyValues().get(PositionInfo.EPIC_KEY));
+        MarketStrategyInterface reEntryStrategy = new ReEntryStrategy(epics,Direction.BUY());
+        String uniqStrategyID= epics.get(0) + "-Reentry" ;
+        MarketStrategySystem.getInstance().getStrategyManagerActor().tell(
+                new StrategyManager.CreateStrategyMessage(getSelf(), uniqStrategyID, reEntryStrategy), getSelf());
+    }
+
+    private void createTrackerStrategy(){
         ArrayList<String> epics = new ArrayList<>();
         epics.add(positionInfo.getKeyValues().get(PositionInfo.EPIC_KEY));
         String uniqStrategyID = positionID +"-"+epics.get(0);
         MarketStrategyInterface trackerMarketStrategy = new TrackerStrategy(epics, positionInfo);
         MarketStrategySystem.getInstance().getStrategyManagerActor().tell(
-                    new StrategyManager.CreateStrategyMessage(getSelf(), uniqStrategyID, trackerMarketStrategy), getSelf());
+                new StrategyManager.CreateStrategyMessage(getSelf(), uniqStrategyID, trackerMarketStrategy), getSelf());
     }
 
 

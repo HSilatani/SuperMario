@@ -47,13 +47,7 @@ public class JBotApplication extends SpringBootServletInitializer {
         }
 
     }
-
-//    @Bean
-//    public IGClient igClient() throws Exception {
-//        IGClient igClient = IGClient.getInstance();
-//        igClient.connect();
-//        return igClient;
-//    }
+    //Story begins here .....
     @Bean
     public InterpreterAgent iAgent() throws Exception {
         TradingAPI igClient = IGClient.getInstance();
