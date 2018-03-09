@@ -10,13 +10,13 @@ import com.dario.agenttrader.dto.*;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.utility.Calculator;
 import com.dario.agenttrader.utility.IGClientUtility;
+import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesV3.PricesItem;
 import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
 import com.lightstreamer.ls_client.PushUserException;
 import com.lightstreamer.ls_client.UpdateInfo;
-import org.ta4j.core.BaseTick;
-import org.ta4j.core.BaseTimeSeries;
-import org.ta4j.core.Decimal;
-import org.ta4j.core.TimeSeries;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.ta4j.core.*;
 
 
 import java.math.BigDecimal;
@@ -43,10 +43,12 @@ public class MarketActor extends AbstractActor {
     private Instant staticMarketInfoTimeStamp = null;
     private Duration maxStaticMarketInfoAge = Duration.ofMinutes(120);
     private TimeSeries priceTimeSeries=null;
+    private BaseBar currentBar=null;
 
 
 
     private final LoggingAdapter LOG = Logging.getLogger(getContext().getSystem(),this);
+    private final Logger PRICE_LOGGER = LoggerFactory.getLogger("PRICE_LOGGER");
 
     public MarketActor(String pEPIC,TradingAPI ptradingAPI){
         subscribers = new HashSet<>();
@@ -68,16 +70,34 @@ public class MarketActor extends AbstractActor {
             subscribeToChartTickUpdate();
             subscribeToChartCandleUpdate();
             setupPriceTimeSeries();
+            retrieveHistoricPrices();
             isSubscribing = true;
         }catch(PushUserException pex){
                 LOG.warning("Unable to subscribe to marketupdates",pex);
         }
     }
 
+    private void retrieveHistoricPrices() {
+        List<PricesItem> historicPrices = new ArrayList<>();
+
+        try {
+            historicPrices = tradingAPI.getHistoricPrices(epic);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if(historicPrices!=null) {
+            historicPrices.forEach(p -> {
+                PriceCandle pCandle = IGClientUtility.extractMarketPriceCandle(p);
+                addATickToPriceTimeSeries(pCandle);
+            });
+        }
+
+    }
+
     private void setupPriceTimeSeries() {
         if(priceTimeSeries==null){
             priceTimeSeries=new BaseTimeSeries(epic);
-            priceTimeSeries.setMaximumTickCount((int) Duration.ofDays(1).get(ChronoUnit.SECONDS));
+            priceTimeSeries.setMaximumBarCount((int) Duration.ofDays(1).get(ChronoUnit.SECONDS));
         }
     }
     private void subscribeToChartTickUpdate() throws Exception {
@@ -220,21 +240,44 @@ public class MarketActor extends AbstractActor {
         long epochTimeL = Calculator.convertStrToBigDecimal(priceCandle.getUTM()).get().longValue();
         Instant fromEpochMilli = Instant.ofEpochMilli(Long.valueOf(epochTimeL));
         ZonedDateTime barOpenTime = fromEpochMilli.atZone(ZoneId.of("Europe/London"));
-        BaseTick tick = new BaseTick(Duration.ofMinutes(1),barOpenTime
+        BaseBar newbar = new BaseBar(
+                Duration.ofMinutes(5)
+                ,barOpenTime
                 ,Decimal.valueOf(priceCandle.getBID_OPEN().doubleValue())
                 ,Decimal.valueOf(priceCandle.getBID_HIGH().doubleValue())
                 ,Decimal.valueOf(priceCandle.getBID_LOW().doubleValue())
                 ,Decimal.valueOf(priceCandle.getBID_CLOSE().doubleValue())
                 ,Decimal.valueOf(Optional.ofNullable(priceCandle.getLastTradeVolume()).orElse(BigDecimal.ZERO).doubleValue()));
 
-        try{
-            priceTimeSeries.addTick(tick);
-        }catch(Exception ex){
-            LOG.warning("Unable to add price tick. lsat tick:{} , new tick:{}",lastCandle,priceCandle);
-            LOG.warning("unable to add price tick to timeseries",ex);
+        if(currentBar!=null){
+            if(newbar.getEndTime().isAfter(currentBar.getEndTime())){
+                registerLastBarInPriceTimeSeries(currentBar);
+                currentBar=newbar;
+            }
+        }else if(currentBar == null){
+            currentBar = newbar;
         }
 
-        LOG.info("Price Tick Count: {}",priceTimeSeries.getTickCount());
+        LOG.info("Price Tick Count: {}",priceTimeSeries.getBarCount());
+    }
+
+    private void registerLastBarInPriceTimeSeries(Bar bar) {
+        try{
+            priceTimeSeries.addBar(bar);
+            PRICE_LOGGER.info("EPIC {}:{}-{},CLOSE {}, OPEN {},Max {} , Min {}"
+                    ,epic,
+                    bar.getBeginTime()
+                    ,bar.getEndTime()
+                    ,bar.getClosePrice()
+                    ,bar.getOpenPrice()
+                    ,bar.getMaxPrice()
+                    ,bar.getMinPrice()
+            );
+        }catch(Exception ex){
+            LOG.warning("Unable to add price tick. lsat tick:{} , new tick:{}",
+                    lastCandle.getBID_CLOSE(),bar.getClosePrice());
+            LOG.warning("unable to add price tick to timeseries",ex);
+        }
     }
 
     private void stopMarkeActorIfThereAreNoSubscribers() {

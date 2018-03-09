@@ -35,8 +35,8 @@ public class StrategyActor extends AbstractActor{
     @Override
     public void preStart()
     {
-        getContext().watch(ownerActor);
-        marketStrategy.setStrategyInstructionConsumer(
+       getContext().watch(ownerActor);
+       marketStrategy.setStrategyInstructionConsumer(
                 instruction -> getSelf().tell(instruction,getSelf())
         );
         LOG.info("Strategy {} registered", uniqId);

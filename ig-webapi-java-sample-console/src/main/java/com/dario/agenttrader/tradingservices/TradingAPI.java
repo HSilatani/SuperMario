@@ -4,6 +4,7 @@ import com.dario.agenttrader.dto.MarketInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
 import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.AccountsItem;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
+import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesV3.PricesItem;
 import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
 
 import java.math.BigDecimal;
@@ -37,6 +38,8 @@ public interface TradingAPI {
     PositionSnapshot createPositionSnapshot(PositionsItem position);
 
     public MarketInfo getMarketInfo(String epic) throws Exception;
+
+    public List<PricesItem> getHistoricPrices(String epic) throws Exception;
 
     void listWatchlists() throws Exception;
 

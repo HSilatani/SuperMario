@@ -22,9 +22,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.mock;
@@ -101,7 +99,7 @@ public class MarketActorTest {
         ActorRef testEpicMarketActor = listOfMarkets.getIdsAndRefs().get(testEpic);
         testEpicMarketActor.tell(new MarketActor.ListSubscribers(testEpic),testProbe.getRef());
         MarketActor.SubscribersList subscribersList = testProbe.expectMsgClass(MarketActor.SubscribersList.class);
-        assertThat(subscribersList.getSubscribersList(),Matchers.contains(testSubscriber));
+        assertThat(subscribersList.getSubscribersList(),Matchers.hasItem(testSubscriber));
 
 
         testSubscriber.tell(PoisonPill.getInstance(),null);
@@ -109,7 +107,7 @@ public class MarketActorTest {
         final TestKit testProbe2 = new TestKit(system);
         testEpicMarketActor.tell(new MarketActor.ListSubscribers(testEpic),testProbe2.getRef());
         MarketActor.SubscribersList listOfSubscribers2 = testProbe2.expectMsgClass(MarketActor.SubscribersList.class);
-        assertThat(listOfSubscribers2.getSubscribersList(),hasSize(0));
+        assertThat(listOfSubscribers2.getSubscribersList(),not(hasItem(testSubscriber)));
     }
 
     @Test

@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Market;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Position;
+import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesV3.PricesItem;
 import com.lightstreamer.ls_client.UpdateInfo;
 
 import java.io.IOException;
@@ -176,6 +177,22 @@ public class IGClientUtility {
                 ,Calculator.convertStrToBigDecimal(items.get(19)).orElse(null)
                 ,Calculator.convertStrToBigDecimal(items.get(20)).orElse(null)
                 ,Calculator.convertStrToBigDecimal(items.get(21)).orElse(null)
+        );
+        return priceCandle;
+    }
+
+    public static PriceCandle extractMarketPriceCandle(PricesItem pricesItem) {
+        PriceCandle priceCandle = new PriceCandle(
+                new BigDecimal(pricesItem.getLastTradedVolume())
+                , pricesItem.getSnapshotTimeUTC()
+                , pricesItem.getOpenPrice().getAsk()
+                , pricesItem.getHighPrice().getAsk()
+                , pricesItem.getLowPrice().getAsk()
+                , pricesItem.getClosePrice().getAsk()
+                , pricesItem.getOpenPrice().getBid()
+                , pricesItem.getHighPrice().getBid()
+                , pricesItem.getLowPrice().getBid()
+                , pricesItem.getClosePrice().getBid()
         );
         return priceCandle;
     }

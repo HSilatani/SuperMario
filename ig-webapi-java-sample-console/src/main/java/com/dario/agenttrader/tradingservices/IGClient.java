@@ -18,6 +18,8 @@ import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Posit
 import com.iggroup.webapi.samples.client.rest.dto.positions.otc.updateOTCPositionV2.UpdateOTCPositionV2Request;
 import com.iggroup.webapi.samples.client.rest.dto.positions.otc.updateOTCPositionV2.UpdateOTCPositionV2Response;
 import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesByNumberOfPointsV2.GetPricesByNumberOfPointsV2Response;
+import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesV3.GetPricesV3Response;
+import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesV3.PricesItem;
 import com.iggroup.webapi.samples.client.rest.dto.session.createSessionV2.CreateSessionV2Request;
 import com.iggroup.webapi.samples.client.rest.dto.watchlists.getWatchlistByWatchlistIdV1.GetWatchlistByWatchlistIdV1Response;
 import com.iggroup.webapi.samples.client.rest.dto.watchlists.getWatchlistByWatchlistIdV1.MarketStatus;
@@ -29,6 +31,8 @@ import com.lightstreamer.ls_client.UpdateInfo;
 
 
 import java.math.BigDecimal;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -181,6 +185,34 @@ public class IGClient implements TradingAPI {
       return positionSnapShot.get();
    }
 
+   @Override
+   public List<PricesItem> getHistoricPrices(String epic) throws Exception{
+        List<PricesItem> listOfPrices = new ArrayList<>();
+       try {
+           ConversationContext conversationContext = authenticationContext.getConversationContext();
+           ZonedDateTime dateTime = ZonedDateTime.now();
+           dateTime.minusMinutes(5*26);
+           //String fromDate = dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-ddTHH:mm:ss"));
+
+           GetPricesV3Response prices = restAPI.getPricesV3(
+                   conversationContext
+                   , null
+                   , null
+                   ,null
+                   ,epic
+                   ,"2018-03-08T16:00:00"
+                   ,null
+                   ,"MINUTE_5"
+           );
+           listOfPrices.addAll(prices.getPrices());
+
+       }catch (Exception ex){
+           LOG.warn("Unable to get historic prices for: " + epic ,ex);
+           throw ex;
+       }
+
+       return listOfPrices;
+   }
 
    @Override
    public PositionSnapshot createPositionSnapshot(PositionsItem position){

@@ -1,6 +1,7 @@
 package com.dario.agenttrader.dto;
 
 import java.math.BigDecimal;
+import java.sql.Struct;
 import java.util.Optional;
 
 
@@ -56,6 +57,18 @@ public class PriceCandle implements Price<PriceCandle>{
         this.LTP_CLOSE = LTP_CLOSE;
         this.CONS_END = CONS_END;
         this.CONS_TICK_COUNT = CONS_TICK_COUNT;
+    }
+    public PriceCandle(BigDecimal lastTradeVolume, String UTM,BigDecimal OFR_OPEN, BigDecimal OFR_HIGH, BigDecimal OFR_LOW, BigDecimal OFR_CLOSE, BigDecimal BID_OPEN, BigDecimal BID_HIGH, BigDecimal BID_LOW, BigDecimal BID_CLOSE){
+        this.LTV = lastTradeVolume;
+        this.UTM = UTM;
+        this.OFR_OPEN = OFR_OPEN;
+        this.OFR_HIGH = OFR_HIGH;
+        this.OFR_LOW = OFR_LOW;
+        this.OFR_CLOSE = OFR_CLOSE;
+        this.BID_OPEN = BID_OPEN;
+        this.BID_HIGH = BID_HIGH;
+        this.BID_LOW = BID_LOW;
+        this.BID_CLOSE = BID_CLOSE;
     }
     public PriceCandle(Double lastTradeVolume, Double TTV, String UTM, Double DAY_OPEN_MID, Double DAY_NET_CHG_MID, Double DAY_PERC_CHG_MID, Double DAY_HIGH, Double DAY_LOW, Double OFR_OPEN, Double OFR_HIGH, Double OFR_LOW, Double OFR_CLOSE, Double BID_OPEN, Double BID_HIGH, Double BID_LOW, Double BID_CLOSE, Double LTP_OPEN, Double LTP_HIGH, Double LTP_LOW, Double LTP_CLOSE, Double CONS_END, Double CONS_TICK_COUNT) {
         Optional.ofNullable(lastTradeVolume).ifPresent(l->this.LTV=BigDecimal.valueOf(l));

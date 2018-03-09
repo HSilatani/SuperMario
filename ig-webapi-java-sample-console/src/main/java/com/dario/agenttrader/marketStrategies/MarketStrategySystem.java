@@ -8,6 +8,8 @@ import com.dario.agenttrader.tradingservices.TradingAPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+
 
 public class MarketStrategySystem {
     public static final String MARKET_STRATEGY_MANAGER = "marketStrategyManager";
@@ -47,15 +49,32 @@ public class MarketStrategySystem {
         system = ActorSystem.create(strActorSystemName);
         tradingAPI = ptradingAPI;
 
-             strategyManagerActor =
+        strategyManagerActor =
                     system.actorOf(StrategyManager.props(tradingAPI), MARKET_STRATEGY_MANAGER);
 
-             positionManagerActor =
+        positionManagerActor =
                      system.actorOf(PositionManager.props(tradingAPI), POSITION_MANAGER);
 
-             marketManagerActor = system.actorOf(MarketManager.props(tradingAPI),MARKET_MANAGER);
 
-            isStrategySystemRunning = true;
+        marketManagerActor = system.actorOf(MarketManager.props(tradingAPI),MARKET_MANAGER);
+
+        triggerDefaultStrategies();
+
+        isStrategySystemRunning = true;
+    }
+
+    private void triggerDefaultStrategies() {
+            ArrayList<String> epics = new ArrayList<>();
+            epics.add("IX.D.HANGSENG.DAILY.IP");//TODO: load from roperties files
+            MarketStrategyInterface reEntryStrategy = new ReEntryStrategy(epics,Direction.BUY());
+            String uniqStrategyID= epics.get(0) + "-Reentry" ;
+            getStrategyManagerActor().tell(
+                    new StrategyManager.CreateStrategyMessage(
+                            getStrategyManagerActor(),
+                            uniqStrategyID,
+                            reEntryStrategy),
+                            getStrategyManagerActor()
+                            );
     }
 
 

@@ -6,12 +6,12 @@
          <pattern>%msg%n</pattern>
       </encoder>
    </appender>
-   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+   <appender name="STRATEGY" class="ch.qos.logback.core.rolling.RollingFileAppender">
       <file>strategy.log</file>
       <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
          <!-- daily rollover. Make sure the path matches the one in the file element or else
           the rollover logs are placed in the working directory. -->
-         <fileNamePattern>/srv/logs/application_%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+         <fileNamePattern>strategy_%d{yyyy-MM-dd}.%i.log</fileNamePattern>
 
          <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
             <maxFileSize>5MB</maxFileSize>
@@ -25,24 +25,68 @@
          <pattern>%d %-4relative [%thread] %-5level %logger{35} - %msg%n</pattern>
       </encoder>
    </appender>
+      <appender name="APPLICATION" class="ch.qos.logback.core.rolling.RollingFileAppender">
+      <file>application.log</file>
+      <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+         <!-- daily rollover. Make sure the path matches the one in the file element or else
+          the rollover logs are placed in the working directory. -->
+         <fileNamePattern>application_%d{yyyy-MM-dd}.%i.log</fileNamePattern>
 
+         <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+            <maxFileSize>5MB</maxFileSize>
+         </timeBasedFileNamingAndTriggeringPolicy>
+         <!-- keep 1 days' worth of history -->
+         <maxHistory>1</maxHistory>
+      </rollingPolicy>
+
+      <encoder>
+         <charset>UTF-8</charset>
+         <pattern>%d %-4relative [%thread] %-5level %logger{35} - %msg%n</pattern>
+      </encoder>
+   </appender>
+   <appender name="PRICE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+      <file>price.log</file>
+      <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+         <!-- daily rollover. Make sure the path matches the one in the file element or else
+          the rollover logs are placed in the working directory. -->
+         <fileNamePattern>price_%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+
+         <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+            <maxFileSize>5MB</maxFileSize>
+         </timeBasedFileNamingAndTriggeringPolicy>
+         <!-- keep 1 days' worth of history -->
+         <maxHistory>1</maxHistory>
+      </rollingPolicy>
+
+      <encoder>
+         <charset>UTF-8</charset>
+         <pattern>%d %-4relative %msg%n</pattern>
+      </encoder>
+   </appender>
    <!-- third party code loggers -->
    <logger name="httpclient.wire" level="warn"/>
    <logger name="org.apache.commons" level="warn"/>
    <logger name="org.apache.http" level="warn"/>
    <logger name="org.springframework" level="warn"/>
+   <logger name="akka" level="DEBUG" />
+   <logger name="com.iggroup.webapi.samples.client.streaming" level="DEBUG"/>
 
-
-
-
-   <logger name="com.dario.agenttrader.marketStrategies" level="INFO">
-      <appender-ref ref="FILE"/>
+   <logger name="com.dario.agenttrader.marketStrategies.TrackerStrategy" level="info">
+      <appender-ref ref="STRATEGY"/>
    </logger>
-   <logger name="com.dario.agenttrader.marketStrategies.ReEntryStrategy" level="INFO">
-      <appender-ref ref="FILE"/>
+   <logger name="com.dario.agenttrader.marketStrategies.ReEntryStrategy" level="info">
+      <appender-ref ref="STRATEGY"/>
    </logger>
+   <logger name="com.dario.agenttrader.marketStrategies.StrategyActor" level="info">
+         <appender-ref ref="STRATEGY"/>
+    </logger>
+
    <root level="info">
-      <appender-ref ref="STDOUT"/>
+      <appender-ref ref="APPLICATION"/>
    </root>
+
+   <logger name="PRICE_LOGGER" level="info">
+      <appender-ref ref="PRICE_FILE"/>
+   </logger>
 
 </configuration>

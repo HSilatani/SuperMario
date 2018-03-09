@@ -5,6 +5,7 @@ import com.dario.agenttrader.dto.PositionSnapshot;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.AccountsItem;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
+import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesV3.PricesItem;
 import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
 import com.lightstreamer.ls_client.UpdateInfo;
 
@@ -67,6 +68,11 @@ public class MarketUpdateProducerTradingAPIMock implements TradingAPI {
         marketInfo.setMarketName(epic);
         marketInfo.setMinNormalStopLimitDistance(new BigDecimal(40));
         return marketInfo;
+    }
+
+    @Override
+    public List<PricesItem> getHistoricPrices(String epic) throws Exception {
+        return null;
     }
 
     @Override
