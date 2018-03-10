@@ -31,6 +31,7 @@ import static com.dario.agenttrader.marketStrategies.MarketManager.*;
 
 
 public class MarketActor extends AbstractActor {
+
     private final String epic;
     private final TradingAPI tradingAPI;
     private final Set<ActorRef> subscribers;
@@ -237,9 +238,7 @@ public class MarketActor extends AbstractActor {
         //BigDecimal hiring = Calculator.convertStrToBigDecimal(priceCandle.getUTM()).get();
         //Instant fromEpochMilli = Instant.ofEpochMilli(Long.valueOf(hiring.longValue()));
         //ZonedDateTime zt = ZonedDateTime.ofInstant(Instant.from(fromEpochMilli), ZoneId.of("Europe/London"));
-        long epochTimeL = Calculator.convertStrToBigDecimal(priceCandle.getUTM()).get().longValue();
-        Instant fromEpochMilli = Instant.ofEpochMilli(Long.valueOf(epochTimeL));
-        ZonedDateTime barOpenTime = fromEpochMilli.atZone(ZoneId.of("Europe/London"));
+        ZonedDateTime barOpenTime = Calculator.zonedDateTimeFromString(priceCandle.getUTM());
         BaseBar newbar = new BaseBar(
                 Duration.ofMinutes(5)
                 ,barOpenTime
@@ -260,6 +259,7 @@ public class MarketActor extends AbstractActor {
 
         LOG.info("Price Tick Count: {}",priceTimeSeries.getBarCount());
     }
+
 
     private void registerLastBarInPriceTimeSeries(Bar bar) {
         try{

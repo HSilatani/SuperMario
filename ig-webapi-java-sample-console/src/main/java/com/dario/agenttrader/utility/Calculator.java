@@ -5,17 +5,39 @@ import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Posit
 import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesByNumberOfPointsV2.GetPricesByNumberOfPointsV2Response;
 
 import java.math.BigDecimal;
+import java.time.*;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
 public class Calculator {
 
     static final Pattern numbericPatternChecker = Pattern.compile("^[-+]?\\d+(\\.\\d+)?$");
+    public static final ZoneId ZONE_ID_LONDON = ZoneId.of("Europe/London");
 
     public static boolean isStrNumericValue(String str){
         boolean isStr1Numeric = numbericPatternChecker.matcher(str).matches();
         return  isStr1Numeric;
     }
+    public static ZonedDateTime zonedDateTimeFromString(String dateTime) {
+        boolean isNumeric = isStrNumericValue(dateTime);
+        Long epochTimeLong = null;
+        ZonedDateTime zonedDateTime = null;
+
+        if(isNumeric){
+            epochTimeLong = Calculator.convertStrToBigDecimal(dateTime).get().longValue();
+            Instant fromEpochMilli = Instant.ofEpochMilli(Long.valueOf(epochTimeLong));
+            zonedDateTime = fromEpochMilli.atZone(Calculator.ZONE_ID_LONDON);
+        }
+
+        if(zonedDateTime == null){
+            OffsetDateTime odt = OffsetDateTime.now ( ZONE_ID_LONDON);
+            LocalDateTime localDateTime = LocalDateTime.parse(dateTime);
+            zonedDateTime = localDateTime.atZone(ZONE_ID_LONDON);
+        }
+
+        return zonedDateTime;
+    }
+
 
     public BigDecimal calPandL(PositionsItem position, GetPricesByNumberOfPointsV2Response prices) throws Exception {
         BigDecimal openlevel = position.getPosition().getLevel();
