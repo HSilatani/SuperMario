@@ -19,18 +19,21 @@ public class Calculator {
         return  isStr1Numeric;
     }
     public static ZonedDateTime zonedDateTimeFromString(String dateTime) {
-        boolean isNumeric = isStrNumericValue(dateTime);
+        boolean isNumeric = false;
+        Optional<BigDecimal> decimalValue = Calculator.convertStrToBigDecimal(dateTime);
+        if(decimalValue.isPresent()){
+            isNumeric = true;
+        }
         Long epochTimeLong = null;
         ZonedDateTime zonedDateTime = null;
 
         if(isNumeric){
-            epochTimeLong = Calculator.convertStrToBigDecimal(dateTime).get().longValue();
+            epochTimeLong = decimalValue.get().longValue();
             Instant fromEpochMilli = Instant.ofEpochMilli(Long.valueOf(epochTimeLong));
             zonedDateTime = fromEpochMilli.atZone(Calculator.ZONE_ID_LONDON);
         }
 
         if(zonedDateTime == null){
-            OffsetDateTime odt = OffsetDateTime.now ( ZONE_ID_LONDON);
             LocalDateTime localDateTime = LocalDateTime.parse(dateTime);
             zonedDateTime = localDateTime.atZone(ZONE_ID_LONDON);
         }
@@ -89,6 +92,7 @@ public class Calculator {
         if(strValue.isPresent()) {
             String cleanedStr = strValue.get().replaceAll("\\(", "");
             cleanedStr = cleanedStr.replaceAll("\\)","");
+            cleanedStr = cleanedStr.replaceAll("'","");
             if (isStrNumericValue(cleanedStr)) {
                 doubleValue = new BigDecimal(cleanedStr);
             }

@@ -31,6 +31,7 @@ import com.lightstreamer.ls_client.UpdateInfo;
 
 
 import java.math.BigDecimal;
+import java.net.URLEncoder;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -190,17 +191,14 @@ public class IGClient implements TradingAPI {
         List<PricesItem> listOfPrices = new ArrayList<>();
        try {
            ConversationContext conversationContext = authenticationContext.getConversationContext();
-           ZonedDateTime dateTime = ZonedDateTime.now();
-           dateTime.minusMinutes(5*26);
-           //String fromDate = dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-ddTHH:mm:ss"));
 
            GetPricesV3Response prices = restAPI.getPricesV3(
                    conversationContext
                    , null
-                   , null
-                   ,null
+                   , "26"
+                   ,"0"
                    ,epic
-                   ,"2018-03-08T16:00:00"
+                   ,null
                    ,null
                    ,"MINUTE_5"
            );

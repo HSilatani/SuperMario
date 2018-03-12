@@ -65,7 +65,7 @@ public class MarketStrategySystem {
 
     private void triggerDefaultStrategies() {
             ArrayList<String> epics = new ArrayList<>();
-            epics.add("IX.D.HANGSENG.DAILY.IP");//TODO: load from roperties files
+            epics.add("IX.D.HANGSENG.DAILY.IP");//TODO: load from properties files
             MarketStrategyInterface reEntryStrategy = new ReEntryStrategy(epics,Direction.BUY());
             String uniqStrategyID= epics.get(0) + "-Reentry" ;
             getStrategyManagerActor().tell(

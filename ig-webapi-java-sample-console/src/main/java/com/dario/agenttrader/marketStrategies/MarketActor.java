@@ -29,7 +29,7 @@ import java.util.*;
 
 import static com.dario.agenttrader.marketStrategies.MarketManager.*;
 
-
+//TODO: Cant recover for bad input or failure
 public class MarketActor extends AbstractActor {
 
     private final String epic;
