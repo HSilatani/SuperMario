@@ -6,13 +6,13 @@ import java.util.function.Consumer;
 public abstract class AbstractMarketStrategy implements MarketStrategyInterface{
 
     private final ArrayList<String> observedMarkets;
-    protected Consumer<StrategyActor.ActOnStrategyInstruction> strategyInstructionConsumer;
+    protected Consumer<StrategyActor.TradingSignal> strategyInstructionConsumer;
 
     AbstractMarketStrategy(ArrayList<String> epics){
         observedMarkets=epics;
     }
 
-    public void setStrategyInstructionConsumer(Consumer<StrategyActor.ActOnStrategyInstruction> pstrategyInstructionConsumer){
+    public void setStrategyInstructionConsumer(Consumer<StrategyActor.TradingSignal> pstrategyInstructionConsumer){
         strategyInstructionConsumer = pstrategyInstructionConsumer;
     }
 

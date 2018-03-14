@@ -10,7 +10,6 @@ import com.dario.agenttrader.tradingservices.TradingAPI;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class StrategyActor extends AbstractActor{
 
@@ -37,7 +36,7 @@ public class StrategyActor extends AbstractActor{
     {
        getContext().watch(ownerActor);
        marketStrategy.setStrategyInstructionConsumer(
-                instruction -> getSelf().tell(instruction,getSelf())
+                signal -> getSelf().tell(signal,getSelf())
         );
         LOG.info("Strategy {} registered", uniqId);
     }
@@ -55,7 +54,7 @@ public class StrategyActor extends AbstractActor{
                 .match(StrategyManager.CreateStrategyMessage.class,this::onCreateStrategy)
                 .match(MarketActor.MarketUpdated.class,this::onMarketUpdate)
                 .match(Position.PositionUpdate.class,this::onPositionUpdate)
-                .match(ActOnStrategyInstruction.class,this::onActOnStrategyInstruction)
+                .match(TradingSignal.class,this::onActOnStrategyInstruction)
                 .match(Terminated.class,this::onTerminated)
                 .build();
     }
@@ -106,24 +105,97 @@ public class StrategyActor extends AbstractActor{
 
     }
 
-    private void onActOnStrategyInstruction(ActOnStrategyInstruction pactOnStrategyInstruction) throws Exception{
-        LOG.info(pactOnStrategyInstruction.getInstruction());
-        tradingAPI.editPosition(pactOnStrategyInstruction.getDealId()
-                                ,pactOnStrategyInstruction.getNewStop()
-                                ,pactOnStrategyInstruction.getNewLimit());
+    private void onActOnStrategyInstruction(TradingSignal tradingSignal ) throws Exception{
+        LOG.info(tradingSignal.getInstruction());
+        ActorRef portfolioManager = MarketStrategySystem.getInstance().getPortfolioManagerActor();
+        portfolioManager.tell(tradingSignal,getSelf());
+
     }
 
-    public static final class ActOnStrategyInstruction{
+    public static final class TradingSignal{
         String instruction ="";
         BigDecimal newStop;
         BigDecimal newLimit;
         String dealId;
+        String epic;
+        Direction direction;
+        BigDecimal size;
 
-        public ActOnStrategyInstruction(String pdealId,BigDecimal pnewStop,BigDecimal pnewLimit, String pinstructionStr){
-            instruction = pinstructionStr;
-            dealId = pdealId;
-            newStop = pnewStop;
-            newLimit = pnewLimit;
+        public static TradingSignal createEnterMarketSignal(
+                String pInstruction
+                ,String pEPIC
+                ,Direction pDirection
+                ,BigDecimal pSize
+                ,BigDecimal pStop){
+
+            TradingSignal newSingal =  new TradingSignal();
+            newSingal.setInstruction(pInstruction);
+            newSingal.setDirection(pDirection);
+            newSingal.setEpic(pEPIC);
+            newSingal.setNewStop(pStop);
+            newSingal.setSize(pSize);
+
+            return newSingal;
+        }
+
+        public static TradingSignal createEditPositionSignal(
+                String pdealId
+                , BigDecimal pnewStop
+                , BigDecimal pnewLimit
+                , String pInstruction
+        ){
+            TradingSignal newSingal =  new TradingSignal();
+            newSingal.setInstruction(pInstruction);
+            newSingal.setDealId(pdealId);
+            newSingal.setNewStop(pnewStop);
+            newSingal.setNewLimit(pnewLimit);
+
+
+            return newSingal;
+        }
+
+        private TradingSignal(){
+
+        }
+
+        public void setInstruction(String instruction) {
+            this.instruction = instruction;
+        }
+
+        public void setNewStop(BigDecimal newStop) {
+            this.newStop = newStop;
+        }
+
+        public void setNewLimit(BigDecimal newLimit) {
+            this.newLimit = newLimit;
+        }
+
+        public void setDealId(String dealId) {
+            this.dealId = dealId;
+        }
+
+        public String getEpic() {
+            return epic;
+        }
+
+        public void setEpic(String epic) {
+            this.epic = epic;
+        }
+
+        public Direction getDirection() {
+            return direction;
+        }
+
+        public void setDirection(Direction direction) {
+            this.direction = direction;
+        }
+
+        public BigDecimal getSize() {
+            return size;
+        }
+
+        public void setSize(BigDecimal size) {
+            this.size = size;
         }
 
         public String getInstruction() {

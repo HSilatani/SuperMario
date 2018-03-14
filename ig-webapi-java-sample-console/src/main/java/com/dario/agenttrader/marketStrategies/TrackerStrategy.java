@@ -119,8 +119,8 @@ public class TrackerStrategy extends AbstractMarketStrategy {
                         ,oldTrigger
                         ,nextTrigger.get()
                         ,currentLevel);
-                StrategyActor.ActOnStrategyInstruction strategyInstruction =
-                        new StrategyActor.ActOnStrategyInstruction(
+                StrategyActor.TradingSignal strategyInstruction =
+                        StrategyActor.TradingSignal.createEditPositionSignal(
                                 positionInfo.getDealId()
                                 ,newStop
                                 ,null

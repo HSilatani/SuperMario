@@ -74,7 +74,8 @@ public class MarketActor extends AbstractActor {
             retrieveHistoricPrices();
             isSubscribing = true;
         }catch(PushUserException pex){
-                LOG.warning("Unable to subscribe to marketupdates",pex);
+                LOG.warning("Unable to subscribe to marketupdates for EPIC={} , Exception={}",epic,pex);
+                pex.printStackTrace();
         }
     }
 
@@ -257,7 +258,7 @@ public class MarketActor extends AbstractActor {
             currentBar = newbar;
         }
 
-        LOG.info("Price Tick Count: {}",priceTimeSeries.getBarCount());
+        LOG.info("EPIC= {} Price Tick Count: {}",epic,priceTimeSeries.getBarCount());
     }
 
 

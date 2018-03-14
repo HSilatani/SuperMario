@@ -1,5 +1,6 @@
 package com.dario.agenttrader.marketStrategies;
 
+import com.dario.agenttrader.dto.MarketInfo;
 import com.dario.agenttrader.dto.PriceTick;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +29,8 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
     private boolean isBuyingRuleTriggered = false;
     private int latestEndIndex = -2;
 
+    private MarketInfo staticMarketInfo = null;
+
 
     public ReEntryStrategy(ArrayList<String> epics,Direction pdirection) {
         super(epics);
@@ -39,6 +42,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         LOG.debug("Received update for {}",marketUpdate.getEpic());
         if(isMarketUpdateValid(marketUpdate)) {
             priceTimeSeries = marketUpdate.getMarketupdate().getTimeSeries();
+            staticMarketInfo = marketUpdate.getMarketupdate().getMarketInfo();
             if(newBarIsAdded()) {
                 evaluateStrategy();
             }
@@ -93,6 +97,16 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         );
         if (strategy.shouldEnter(endIndex) && !isBuyingRuleTriggered) {
             isBuyingRuleTriggered = true;
+            String instruction = "ENTER MARKET";
+            StrategyActor.TradingSignal tradingSignal= StrategyActor.TradingSignal.createEnterMarketSignal(
+                    instruction
+                    ,getListOfObservedPositions().get(0)
+                    ,direction
+                    ,staticMarketInfo.getMinDealSize()
+                    ,staticMarketInfo.getMinNormalStopLimitDistance()
+            );
+
+            strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("ENTER POSITION SIGNAL");
         } else if (strategy.shouldExit(endIndex) && isBuyingRuleTriggered) {
             isBuyingRuleTriggered = false;
