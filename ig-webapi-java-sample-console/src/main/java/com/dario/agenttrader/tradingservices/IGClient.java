@@ -3,6 +3,7 @@ package com.dario.agenttrader.tradingservices;
 import com.dario.agenttrader.ApplicationBootStrapper;
 import com.dario.agenttrader.dto.MarketInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
+import com.dario.agenttrader.marketStrategies.Direction;
 import com.dario.agenttrader.utility.Calculator;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.iggroup.webapi.samples.PropertiesUtil;
@@ -15,6 +16,8 @@ import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.GetAccountsV1Res
 import com.iggroup.webapi.samples.client.rest.dto.markets.getMarketDetailsV3.GetMarketDetailsV3Response;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.GetPositionsV2Response;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
+import com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.CreateOTCPositionV1Request;
+import com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.OrderType;
 import com.iggroup.webapi.samples.client.rest.dto.positions.otc.updateOTCPositionV2.UpdateOTCPositionV2Request;
 import com.iggroup.webapi.samples.client.rest.dto.positions.otc.updateOTCPositionV2.UpdateOTCPositionV2Response;
 import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesByNumberOfPointsV2.GetPricesByNumberOfPointsV2Response;
@@ -166,6 +169,7 @@ public class IGClient implements TradingAPI {
             marketInfo.setMinDealSize(minDealSize);
             marketInfo.setMinNormalStopLimitDistance(minStopLimitDistance);
             marketInfo.setMarketName(marketDetails.getInstrument().getName());
+            marketInfo.setExpiry(marketDetails.getInstrument().getExpiry());
         }catch (Exception ex){
             LOG.warn("Unable to get market details  for: " + epic ,ex);
             throw ex;
@@ -312,8 +316,8 @@ public class IGClient implements TradingAPI {
             throw new Exception("Account setting not found!");
         }
    }
-
-     public void editPosition(String dealId,BigDecimal newStop,BigDecimal newLimit) throws Exception {
+   @Override
+   public void editPosition(String dealId,BigDecimal newStop,BigDecimal newLimit) throws Exception {
         UpdateOTCPositionV2Request updatePositionRequest = new UpdateOTCPositionV2Request();
         Optional<BigDecimal> optNewStop = Optional.ofNullable(newStop);
         optNewStop.ifPresent(nstop -> updatePositionRequest.setStopLevel(nstop));
@@ -328,6 +332,44 @@ public class IGClient implements TradingAPI {
                         ,updatePositionRequest);
 
    }
+
+   @Override
+   public void createPosition(String epic, Direction direction,BigDecimal size,BigDecimal stopDistance) throws Exception{
+
+           com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.Direction igDirection
+                   = convertToIGDirection(direction);
+           MarketInfo marketInfo = this.getMarketInfo(epic);
+
+           CreateOTCPositionV1Request createPositionRequest = new CreateOTCPositionV1Request();
+           createPositionRequest.setEpic(epic);
+           createPositionRequest.setExpiry(marketInfo.getExpiry());
+           createPositionRequest.setDirection(igDirection);
+
+           createPositionRequest.setOrderType(OrderType.MARKET);
+
+           createPositionRequest.setCurrencyCode("GBP");
+           createPositionRequest.setSize(size);
+           createPositionRequest.setStopDistance(stopDistance);
+           createPositionRequest.setGuaranteedStop(false);
+           createPositionRequest.setForceOpen(true);
+
+           LOG.info(">>> Creating long position epic={}, expiry={} size={} orderType={} level={} currency={}", tradeableEpic, createPositionRequest.getExpiry(),
+                   createPositionRequest.getSize(), createPositionRequest.getOrderType(), createPositionRequest.getLevel(), createPositionRequest.getCurrencyCode());
+           restAPI.createOTCPositionV1(authenticationContext.getConversationContext(), createPositionRequest);
+   }
+
+   private com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.Direction convertToIGDirection(Direction pDirection){
+       com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.Direction  direction = null;
+       if(pDirection.isBuy()) {
+           direction = com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.Direction.BUY;
+       } else if(pDirection.isSell()){
+           direction = com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.Direction.SELL;
+       }
+
+       return direction;
+
+   }
+
 
     @Override
     public Locale getLocale() {

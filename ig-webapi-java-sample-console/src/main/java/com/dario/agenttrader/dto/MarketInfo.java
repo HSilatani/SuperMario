@@ -8,6 +8,7 @@ public class MarketInfo {
     private BigDecimal minNormalStopLimitDistance = null;
     private BigDecimal minDealSize = null;
     private String marketName = null;
+    private String expiry = null;
 
     public MarketInfo(){
 
@@ -39,4 +40,11 @@ public class MarketInfo {
     }
 
 
+    public void setExpiry(String expiry) {
+        this.expiry = expiry;
+    }
+
+    public String getExpiry() {
+        return expiry;
+    }
 }

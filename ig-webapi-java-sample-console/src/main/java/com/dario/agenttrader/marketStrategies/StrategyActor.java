@@ -10,6 +10,7 @@ import com.dario.agenttrader.tradingservices.TradingAPI;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.StringJoiner;
 
 public class StrategyActor extends AbstractActor{
 
@@ -113,26 +114,27 @@ public class StrategyActor extends AbstractActor{
     }
 
     public static final class TradingSignal{
+        public static final String ENTER_MARKET_INSTRUCTION="ENTER MARKET";
+        public static final String EDIT_POSITION_INSTRUCTION="EDIT POSITION";
         String instruction ="";
-        BigDecimal newStop;
-        BigDecimal newLimit;
+        BigDecimal newStopLevel;
+        BigDecimal newLimitLevel;
         String dealId;
         String epic;
         Direction direction;
         BigDecimal size;
-
+        BigDecimal stopDistance;
         public static TradingSignal createEnterMarketSignal(
-                String pInstruction
-                ,String pEPIC
+                String pEPIC
                 ,Direction pDirection
                 ,BigDecimal pSize
-                ,BigDecimal pStop){
+                ,BigDecimal pStopDistance){
 
             TradingSignal newSingal =  new TradingSignal();
-            newSingal.setInstruction(pInstruction);
+            newSingal.setInstruction(ENTER_MARKET_INSTRUCTION);
             newSingal.setDirection(pDirection);
             newSingal.setEpic(pEPIC);
-            newSingal.setNewStop(pStop);
+            newSingal.setStopDistance(pStopDistance);
             newSingal.setSize(pSize);
 
             return newSingal;
@@ -140,15 +142,14 @@ public class StrategyActor extends AbstractActor{
 
         public static TradingSignal createEditPositionSignal(
                 String pdealId
-                , BigDecimal pnewStop
-                , BigDecimal pnewLimit
-                , String pInstruction
+                , BigDecimal pnewStopLevel
+                , BigDecimal pnewLimitLevel
         ){
             TradingSignal newSingal =  new TradingSignal();
-            newSingal.setInstruction(pInstruction);
+            newSingal.setInstruction(EDIT_POSITION_INSTRUCTION);
             newSingal.setDealId(pdealId);
-            newSingal.setNewStop(pnewStop);
-            newSingal.setNewLimit(pnewLimit);
+            newSingal.setNewStopLevel(pnewStopLevel);
+            newSingal.setNewLimitLevel(pnewLimitLevel);
 
 
             return newSingal;
@@ -162,12 +163,20 @@ public class StrategyActor extends AbstractActor{
             this.instruction = instruction;
         }
 
-        public void setNewStop(BigDecimal newStop) {
-            this.newStop = newStop;
+        public void setNewStopLevel(BigDecimal newStopLevel) {
+            this.newStopLevel = newStopLevel;
         }
 
-        public void setNewLimit(BigDecimal newLimit) {
-            this.newLimit = newLimit;
+        public void setNewLimitLevel(BigDecimal newLimitLevel) {
+            this.newLimitLevel = newLimitLevel;
+        }
+
+        public BigDecimal getStopDistance() {
+            return stopDistance;
+        }
+
+        public void setStopDistance(BigDecimal stopDistance) {
+            this.stopDistance = stopDistance;
         }
 
         public void setDealId(String dealId) {
@@ -202,16 +211,37 @@ public class StrategyActor extends AbstractActor{
             return instruction;
         }
 
-        public BigDecimal getNewStop() {
-            return newStop;
+        public BigDecimal getNewStopLevel(){
+            return newStopLevel;
         }
 
-        public BigDecimal getNewLimit() {
-            return newLimit;
+        public BigDecimal getNewLimitLevel() {
+            return newLimitLevel;
         }
 
         public String getDealId() {
             return dealId;
+        }
+
+        @Override
+        public String toString() {
+            StringJoiner instruction = new StringJoiner(",");
+            if(EDIT_POSITION_INSTRUCTION.equalsIgnoreCase(this.getInstruction())){
+                instruction.add(this.getInstruction());
+                instruction.add(this.getEpic());
+                instruction.add("DealID="+this.getDealId());
+                instruction.add("STOP="+getNewStopLevel());
+                instruction.add("LIMIT="+getNewLimitLevel());
+
+            }else if(ENTER_MARKET_INSTRUCTION.equalsIgnoreCase(this.getInstruction())){
+                instruction.add(this.getInstruction());
+                instruction.add(this.getEpic());
+                instruction.add("Direction="+this.getDirection().toString());
+                instruction.add("Size="+this.getSize());
+                instruction.add("STOP="+getStopDistance());
+                instruction.add("LIMIT="+getNewLimitLevel());
+            }
+            return instruction.toString();
         }
     }
     public static final class StrategyCreated {

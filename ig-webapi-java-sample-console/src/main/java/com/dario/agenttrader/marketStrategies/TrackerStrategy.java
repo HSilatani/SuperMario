@@ -119,13 +119,13 @@ public class TrackerStrategy extends AbstractMarketStrategy {
                         ,oldTrigger
                         ,nextTrigger.get()
                         ,currentLevel);
-                StrategyActor.TradingSignal strategyInstruction =
+                StrategyActor.TradingSignal strategySignal =
                         StrategyActor.TradingSignal.createEditPositionSignal(
                                 positionInfo.getDealId()
                                 ,newStop
                                 ,null
-                                ,instruction);
-                strategyInstructionConsumer.accept(strategyInstruction);
+                                );
+                strategyInstructionConsumer.accept(strategySignal);
         }
     }
 

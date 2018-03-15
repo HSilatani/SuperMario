@@ -29,4 +29,15 @@ public class Direction {
     public boolean isBuy() {
         return direction==BUY_INT;
     }
+
+    @Override
+    public String toString() {
+        String strDirection="";
+        if(SELL_INT==this.getDirection()){
+            strDirection="SELL";
+        }else if(BUY_INT==this.getDirection()){
+            strDirection="BUY";
+        }
+        return strDirection;
+    }
 }

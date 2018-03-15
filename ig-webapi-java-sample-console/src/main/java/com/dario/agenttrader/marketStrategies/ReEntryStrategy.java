@@ -97,10 +97,8 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         );
         if (strategy.shouldEnter(endIndex) && !isBuyingRuleTriggered) {
             isBuyingRuleTriggered = true;
-            String instruction = "ENTER MARKET";
             StrategyActor.TradingSignal tradingSignal= StrategyActor.TradingSignal.createEnterMarketSignal(
-                    instruction
-                    ,getListOfObservedPositions().get(0)
+                    getListOfObservedPositions().get(0)
                     ,direction
                     ,staticMarketInfo.getMinDealSize()
                     ,staticMarketInfo.getMinNormalStopLimitDistance()

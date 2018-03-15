@@ -2,6 +2,7 @@ package com.dario.agenttrader.tradingservices;
 
 import com.dario.agenttrader.dto.MarketInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
+import com.dario.agenttrader.marketStrategies.Direction;
 import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.AccountsItem;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
 import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesV3.PricesItem;
@@ -32,6 +33,8 @@ public interface TradingAPI {
 
     public void editPosition(String dealId, BigDecimal newStop, BigDecimal newLimit) throws Exception;
 
+
+    public void createPosition(String epic, Direction direction, BigDecimal size,BigDecimal stopDistance) throws Exception;
 
     public void subscribeToLighstreamerHeartbeat(HandyTableListenerAdapter listener) throws Exception;
 
