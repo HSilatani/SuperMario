@@ -23,7 +23,10 @@ public class PortfolioManagerActor extends AbstractActor{
     public static final  Props props(TradingAPI ptradingAPI){
         return Props.create(PortfolioManagerActor.class,ptradingAPI);
     }
-
+    @Override
+    public void preStart() {
+        LOG.info("PorfolioManagerActor started");
+    }
     @Override
     public Receive createReceive() {
         return receiveBuilder()

@@ -62,7 +62,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         ClosePriceIndicator closePrice = new ClosePriceIndicator(priceTimeSeries);
         int endIndex = priceTimeSeries.getEndIndex();
         //
-        EMAIndicator shortEMA = new EMAIndicator(closePrice,12);
+        EMAIndicator shortEMA = new EMAIndicator(closePrice,6);
         EMAIndicator longEMA = new EMAIndicator(closePrice,26);
         MACDIndicator macdIndicator = new MACDIndicator(closePrice);
         EMAIndicator macdSignal = new EMAIndicator(macdIndicator,9);
@@ -96,16 +96,18 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                 ,priceTimeSeries.getLastBar().getSimpleDateName()
         );
         if (strategy.shouldEnter(endIndex) && !isBuyingRuleTriggered) {
-            isBuyingRuleTriggered = true;
+            String epic = getListOfObservedMarkets().get(0);
+            LOG.info("CREATING TRADING SIGNAL FOR {}",epic);
             StrategyActor.TradingSignal tradingSignal= StrategyActor.TradingSignal.createEnterMarketSignal(
-                    getListOfObservedPositions().get(0)
+                    epic
                     ,direction
                     ,staticMarketInfo.getMinDealSize()
                     ,staticMarketInfo.getMinNormalStopLimitDistance()
             );
-
+            LOG.info("TRADING SIGNAL CREATED:{}",tradingSignal);
             strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("ENTER POSITION SIGNAL");
+            isBuyingRuleTriggered = true;
         } else if (strategy.shouldExit(endIndex) && isBuyingRuleTriggered) {
             isBuyingRuleTriggered = false;
             LOG.info("EXIT POSITION SIGNAL");
