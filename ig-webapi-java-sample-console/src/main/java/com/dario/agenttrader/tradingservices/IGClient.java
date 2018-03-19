@@ -17,6 +17,7 @@ import com.iggroup.webapi.samples.client.rest.dto.markets.getMarketDetailsV3.Get
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.GetPositionsV2Response;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
 import com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.CreateOTCPositionV1Request;
+import com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.CreateOTCPositionV1Response;
 import com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.OrderType;
 import com.iggroup.webapi.samples.client.rest.dto.positions.otc.updateOTCPositionV2.UpdateOTCPositionV2Request;
 import com.iggroup.webapi.samples.client.rest.dto.positions.otc.updateOTCPositionV2.UpdateOTCPositionV2Response;
@@ -34,16 +35,11 @@ import com.lightstreamer.ls_client.UpdateInfo;
 
 
 import java.math.BigDecimal;
-import java.net.URLEncoder;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.swing.text.html.Option;
 
 public class IGClient implements TradingAPI {
     private static IGClient OneAndOnlyIGClient = new IGClient();
@@ -334,7 +330,7 @@ public class IGClient implements TradingAPI {
    }
 
    @Override
-   public void createPosition(String epic, Direction direction,BigDecimal size,BigDecimal stopDistance) throws Exception{
+   public String createPosition(String epic, Direction direction, BigDecimal size, BigDecimal stopDistance) throws Exception{
 
            com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.Direction igDirection
                    = convertToIGDirection(direction);
@@ -355,8 +351,9 @@ public class IGClient implements TradingAPI {
 
            LOG.info(">>> Creating long position epic={}, expiry={} size={} orderType={} level={} currency={}", tradeableEpic, createPositionRequest.getExpiry(),
                    createPositionRequest.getSize(), createPositionRequest.getOrderType(), createPositionRequest.getLevel(), createPositionRequest.getCurrencyCode());
-           restAPI.createOTCPositionV1(authenticationContext.getConversationContext(), createPositionRequest);
-   }
+           CreateOTCPositionV1Response response = restAPI.createOTCPositionV1(authenticationContext.getConversationContext(), createPositionRequest);
+           return response.getDealReference();
+    }
 
    private com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.Direction convertToIGDirection(Direction pDirection){
        com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.Direction  direction = null;

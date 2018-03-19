@@ -52,8 +52,8 @@ public class MarketUpdateProducerTradingAPIMock implements TradingAPI {
     }
 
     @Override
-    public void createPosition(String epic, Direction direction, BigDecimal size, BigDecimal stopDistance) throws Exception {
-
+    public String createPosition(String epic, Direction direction, BigDecimal size, BigDecimal stopDistance) throws Exception {
+        return "";
     }
 
     @Override

@@ -62,12 +62,13 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         ClosePriceIndicator closePrice = new ClosePriceIndicator(priceTimeSeries);
         int endIndex = priceTimeSeries.getEndIndex();
         //
-        EMAIndicator shortEMA = new EMAIndicator(closePrice,6);
-        EMAIndicator longEMA = new EMAIndicator(closePrice,26);
-        MACDIndicator macdIndicator = new MACDIndicator(closePrice);
+        int shortPeriod = 6;
+        int longPeriod= 12;
+        EMAIndicator shortEMA = new EMAIndicator(closePrice,shortPeriod);
+        EMAIndicator longEMA = new EMAIndicator(closePrice,longPeriod);
+        MACDIndicator macdIndicator = new MACDIndicator(closePrice,shortPeriod,longPeriod);
         EMAIndicator macdSignal = new EMAIndicator(macdIndicator,9);
         //
-
         Rule buyingRule = new OverIndicatorRule(shortEMA,longEMA)
                 .and(new OverIndicatorRule(macdIndicator,macdSignal));
         //
@@ -82,7 +83,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         Decimal macdSignalValue = macdSignal.getValue(endIndex);
 
         LOG.info("EPIC:{}, EndIndex:{},isBuyingRuleTriggered:{},short EMA:{} Long EMA:{} MACD:{} MACDSIGNAL:{} at price open:{} ,close:{}, high{},low {}, {}"
-                ,getListOfObservedMarkets().get(0)
+                , getEpic()
                 ,endIndex
                 ,isBuyingRuleTriggered
                 ,shortEMAValue
@@ -96,13 +97,14 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                 ,priceTimeSeries.getLastBar().getSimpleDateName()
         );
         if (strategy.shouldEnter(endIndex) && !isBuyingRuleTriggered) {
-            String epic = getListOfObservedMarkets().get(0);
+            String epic = getEpic();
             LOG.info("CREATING TRADING SIGNAL FOR {}",epic);
+            BigDecimal stopDistance = staticMarketInfo.getMinNormalStopLimitDistance().multiply(new BigDecimal(3));
             StrategyActor.TradingSignal tradingSignal= StrategyActor.TradingSignal.createEnterMarketSignal(
                     epic
                     ,direction
                     ,staticMarketInfo.getMinDealSize()
-                    ,staticMarketInfo.getMinNormalStopLimitDistance()
+                    ,stopDistance
             );
             LOG.info("TRADING SIGNAL CREATED:{}",tradingSignal);
             strategyInstructionConsumer.accept(tradingSignal);
@@ -113,6 +115,10 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
             LOG.info("EXIT POSITION SIGNAL");
         }
 
+    }
+
+    private String getEpic() {
+        return getListOfObservedMarkets().get(0);
     }
 
 

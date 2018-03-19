@@ -34,7 +34,7 @@ public interface TradingAPI {
     public void editPosition(String dealId, BigDecimal newStop, BigDecimal newLimit) throws Exception;
 
 
-    public void createPosition(String epic, Direction direction, BigDecimal size,BigDecimal stopDistance) throws Exception;
+    public String createPosition(String epic, Direction direction, BigDecimal size, BigDecimal stopDistance) throws Exception;
 
     public void subscribeToLighstreamerHeartbeat(HandyTableListenerAdapter listener) throws Exception;
 

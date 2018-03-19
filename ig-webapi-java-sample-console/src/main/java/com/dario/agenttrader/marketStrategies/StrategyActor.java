@@ -109,7 +109,7 @@ public class StrategyActor extends AbstractActor{
     private void onActOnStrategyInstruction(TradingSignal tradingSignal ){
         LOG.info("Action on signal:{}",tradingSignal.getInstruction());
         ActorRef portfolioManager = MarketStrategySystem.getInstance().getPortfolioManagerActor();
-        portfolioManager.tell(tradingSignal,getSelf());
+        portfolioManager.forward(tradingSignal,getContext());
     }
 
     public static final class TradingSignal{

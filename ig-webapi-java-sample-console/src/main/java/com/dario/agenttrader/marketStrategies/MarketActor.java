@@ -249,16 +249,16 @@ public class MarketActor extends AbstractActor {
                 ,Decimal.valueOf(priceCandle.getBID_CLOSE().doubleValue())
                 ,Decimal.valueOf(Optional.ofNullable(priceCandle.getLastTradeVolume()).orElse(BigDecimal.ZERO).doubleValue()));
 
-        if(currentBar!=null){
-            if(newbar.getEndTime().isAfter(currentBar.getEndTime())){
-                registerLastBarInPriceTimeSeries(currentBar);
-                currentBar=newbar;
-            }
-        }else if(currentBar == null){
-            currentBar = newbar;
-        }
+        registerTheCurrentBarIfItIsCompleted(newbar);
+        currentBar=newbar;
 
         LOG.info("EPIC= {} Price Tick Count: {}",epic,priceTimeSeries.getBarCount());
+    }
+
+    private void registerTheCurrentBarIfItIsCompleted(BaseBar newbar) {
+        if(currentBar!=null && newbar.getEndTime().isAfter(currentBar.getEndTime())){
+                registerLastBarInPriceTimeSeries(currentBar);
+        }
     }
 
 
