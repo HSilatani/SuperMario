@@ -5,6 +5,7 @@ import akka.actor.ActorSystem;
 
 import com.dario.agenttrader.tradingservices.IGClient;
 import com.dario.agenttrader.tradingservices.TradingAPI;
+import com.dario.agenttrader.tradingservices.TradingDataStreamingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +40,7 @@ public class MarketStrategySystem {
 
     private TradingAPI tradingAPI;
 
-    private String actorSystemName;
+    private TradingDataStreamingService tradingDataStreamingService = TradingDataStreamingService.getInstance();
 
     private MarketStrategySystem(){
 
@@ -52,6 +53,8 @@ public class MarketStrategySystem {
 
         system = ActorSystem.create(strActorSystemName);
         tradingAPI = ptradingAPI;
+
+        tradingDataStreamingService.initializeStreamingService(tradingAPI);
 
         strategyManagerActor =
                     system.actorOf(StrategyManager.props(tradingAPI), MARKET_STRATEGY_MANAGER);

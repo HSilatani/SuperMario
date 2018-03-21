@@ -42,8 +42,8 @@ public class MarketManager extends AbstractActorWithTimers{
     @Override
     public void preStart() throws Exception{
         LOG.info("MarketManager created");
-        subscribeToLighstreamerHeartbeat();
-        startHeartBeatTimer();
+       // subscribeToLighstreamerHeartbeat();
+       // startHeartBeatTimer();
     }
 
     private static final class HeartBeatTimer{};

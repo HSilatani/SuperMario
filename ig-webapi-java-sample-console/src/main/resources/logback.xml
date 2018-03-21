@@ -33,7 +33,7 @@
          <fileNamePattern>application_%d{yyyy-MM-dd}.%i.log</fileNamePattern>
 
          <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-            <maxFileSize>5MB</maxFileSize>
+            <maxFileSize>20MB</maxFileSize>
          </timeBasedFileNamingAndTriggeringPolicy>
          <!-- keep 1 days' worth of history -->
          <maxHistory>1</maxHistory>
@@ -69,7 +69,7 @@
    <logger name="org.apache.http" level="warn"/>
    <logger name="org.springframework" level="warn"/>
    <logger name="akka" level="DEBUG" />
-   <logger name="com.iggroup.webapi.samples.client.streaming" level="DEBUG"/>
+   <logger name="com.iggroup.webapi.samples.client.streaming" level="info"/>
 
    <logger name="com.dario.agenttrader.marketStrategies.TrackerStrategy" level="info">
       <appender-ref ref="STRATEGY"/>

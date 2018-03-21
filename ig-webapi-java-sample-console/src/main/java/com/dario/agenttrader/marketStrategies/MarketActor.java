@@ -8,6 +8,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.dario.agenttrader.dto.*;
 import com.dario.agenttrader.tradingservices.TradingAPI;
+import com.dario.agenttrader.tradingservices.TradingDataStreamingService;
 import com.dario.agenttrader.utility.Calculator;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesV3.PricesItem;
@@ -22,18 +23,20 @@ import org.ta4j.core.*;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.function.Consumer;
 
 import static com.dario.agenttrader.marketStrategies.MarketManager.*;
 
 //TODO: Cant recover for bad input or failure
+//TODO: clear all comments and LS related code
 public class MarketActor extends AbstractActor {
 
     private final String epic;
     private final TradingAPI tradingAPI;
+    private final  TradingDataStreamingService tradingDataStreamingService =TradingDataStreamingService.getInstance();
     private final Set<ActorRef> subscribers;
     private boolean isSubscribing = false;
     private HandyTableListenerAdapter lightStreamerChartTickListner;
@@ -102,33 +105,61 @@ public class MarketActor extends AbstractActor {
             priceTimeSeries.setMaximumBarCount((int) Duration.ofDays(1).get(ChronoUnit.SECONDS));
         }
     }
+//    private void subscribeToChartTickUpdate() throws Exception {
+//        HandyTableListenerAdapter subscriptionListner = new HandyTableListenerAdapter() {
+//            @Override
+//            public void onUpdate(int i, String s, UpdateInfo updateInfo) {
+//                PriceTick chartPriceTick = IGClientUtility.extractMarketPriceTick(updateInfo);
+//                MarketUpdate<PriceTick> marketUpdate = new MarketUpdate(chartPriceTick,staticMarketInfo);
+//                LOG.info("Chart i {} s {} data {}", i, s, updateInfo);
+//                getSelf().tell(new MarketUpdated(epic, marketUpdate),getSelf());
+//            }
+//        };
+//        lightStreamerChartTickListner = subscriptionListner;
+//        tradingAPI.subscribeToLighstreamerChartTickUpdates(epic, lightStreamerChartTickListner);
+//    }
     private void subscribeToChartTickUpdate() throws Exception {
-        HandyTableListenerAdapter subscriptionListner = new HandyTableListenerAdapter() {
-            @Override
-            public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-                PriceTick chartPriceTick = IGClientUtility.extractMarketPriceTick(updateInfo);
-                MarketUpdate<PriceTick> marketUpdate = new MarketUpdate(chartPriceTick,staticMarketInfo);
-                LOG.info("Chart i {} s {} data {}", i, s, updateInfo);
-                getSelf().tell(new MarketUpdated(epic, marketUpdate),getSelf());
-            }
+        Consumer<UpdateInfo> consumer = updateInfo -> {
+            PriceTick chartPriceTick = IGClientUtility.extractMarketPriceTick(updateInfo);
+            MarketUpdate<PriceTick> marketUpdate = new MarketUpdate(chartPriceTick,staticMarketInfo);
+            LOG.info("Chart data {}", updateInfo);
+            getSelf().tell(new MarketUpdated(epic, marketUpdate),getSelf());
         };
-        lightStreamerChartTickListner = subscriptionListner;
-        tradingAPI.subscribeToLighstreamerChartUpdates(epic, lightStreamerChartTickListner);
+        //TODO: TradinsDataStreamingService should be memeber var and passed to the Actor
+        String uniqSubscriberRef = this.toString();
+        tradingDataStreamingService.subscribeToLighstreamerChartTickUpdates(
+                epic,uniqSubscriberRef,consumer);
     }
     private void subscribeToChartCandleUpdate() throws Exception {
-
-        HandyTableListenerAdapter subsrciptionListener = new HandyTableListenerAdapter() {
-                    @Override
-                    public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-                        PriceCandle chartCandle = IGClientUtility.extractMarketPriceCandle(updateInfo);
-                        MarketUpdate<PriceCandle> marketUpdate = new MarketUpdate(chartCandle,staticMarketInfo);
-                        LOG.debug("ChartCandle i {} s {} data {}", i, s, updateInfo);
-                        getSelf().tell(new MarketUpdated(epic, marketUpdate),getSelf());
-                    }
-                };
-        lightStreamerChartCandleListner = subsrciptionListener;
-        tradingAPI.subscribeToLighstreamerChartCandleUpdates(epic,PriceCandle.FIVE_MINUTE,lightStreamerChartCandleListner);
+        Consumer<UpdateInfo> consumer = updateInfo -> {
+            PriceCandle chartCandle = IGClientUtility.extractMarketPriceCandle(updateInfo);
+            MarketUpdate<PriceCandle> marketUpdate = new MarketUpdate(chartCandle,staticMarketInfo);
+            LOG.debug("ChartCandle data {}", updateInfo);
+            getSelf().tell(new MarketUpdated(epic, marketUpdate),getSelf());
+        };
+        String uniqSubscriberRef = this.toString();
+        tradingDataStreamingService.subscribeToLighstreamerChartCandleUpdates(epic
+                ,PriceCandle.FIVE_MINUTE
+                ,uniqSubscriberRef
+                ,consumer);
     }
+
+
+//    private void subscribeToChartCandleUpdate() throws Exception {
+//
+//        HandyTableListenerAdapter subsrciptionListener = new HandyTableListenerAdapter() {
+//            @Override
+//            public void onUpdate(int i, String s, UpdateInfo updateInfo) {
+//                PriceCandle chartCandle = IGClientUtility.extractMarketPriceCandle(updateInfo);
+//                MarketUpdate<PriceCandle> marketUpdate = new MarketUpdate(chartCandle,staticMarketInfo);
+//                LOG.debug("ChartCandle i {} s {} data {}", i, s, updateInfo);
+//                getSelf().tell(new MarketUpdated(epic, marketUpdate),getSelf());
+//            }
+//        };
+//        lightStreamerChartCandleListner = subsrciptionListener;
+//        tradingAPI.subscribeToLighstreamerChartCandleUpdates(epic,PriceCandle.FIVE_MINUTE,lightStreamerChartCandleListner);
+//    }
+
 
     @Override
     public void postStop() {

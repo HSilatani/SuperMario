@@ -7,6 +7,7 @@ public class IGClientShutDownHook extends Thread {
          public void run() {
              try {
                  IGClient.getInstance().disconnect();
+                 TradingDataStreamingService.getInstance().stopStreamingService();
              } catch (Exception e) {
                  e.printStackTrace();
              }
