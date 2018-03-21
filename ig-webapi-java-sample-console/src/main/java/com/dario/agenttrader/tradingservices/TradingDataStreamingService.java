@@ -226,5 +226,13 @@ public class TradingDataStreamingService {
     }
 
 
+    public void removeSubscriber(String subscriberUniqRef) {
+        streamingUpdateSubscriptionRegistry.forEach((streamingKey,subscriptions)->{
+            subscriptions.keySet()
+                    .stream()
+                    .filter(k->k.contains(subscriberUniqRef))
+                    .forEach(subscriptionKey->subscriptions.remove(subscriptionKey));
+        });
 
+    }
 }

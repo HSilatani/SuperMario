@@ -12,7 +12,6 @@ import com.dario.agenttrader.tradingservices.TradingDataStreamingService;
 import com.dario.agenttrader.utility.Calculator;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesV3.PricesItem;
-import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
 import com.lightstreamer.ls_client.PushUserException;
 import com.lightstreamer.ls_client.UpdateInfo;
 import org.slf4j.Logger;
@@ -31,7 +30,6 @@ import java.util.function.Consumer;
 import static com.dario.agenttrader.marketStrategies.MarketManager.*;
 
 //TODO: Cant recover for bad input or failure
-//TODO: clear all comments and LS related code
 public class MarketActor extends AbstractActor {
 
     private final String epic;
@@ -39,8 +37,6 @@ public class MarketActor extends AbstractActor {
     private final  TradingDataStreamingService tradingDataStreamingService =TradingDataStreamingService.getInstance();
     private final Set<ActorRef> subscribers;
     private boolean isSubscribing = false;
-    private HandyTableListenerAdapter lightStreamerChartTickListner;
-    private HandyTableListenerAdapter lightStreamerChartCandleListner;
     private MarketInfo staticMarketInfo = null;
     private PriceTick lastTick = null;
     private PriceCandle lastCandle = null;
@@ -65,7 +61,7 @@ public class MarketActor extends AbstractActor {
 
     }
     @Override
-    public void preStart() throws Exception {
+    public void preStart(){
         LOG.info("Market {} registered", epic);
     }
 
@@ -105,19 +101,6 @@ public class MarketActor extends AbstractActor {
             priceTimeSeries.setMaximumBarCount((int) Duration.ofDays(1).get(ChronoUnit.SECONDS));
         }
     }
-//    private void subscribeToChartTickUpdate() throws Exception {
-//        HandyTableListenerAdapter subscriptionListner = new HandyTableListenerAdapter() {
-//            @Override
-//            public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-//                PriceTick chartPriceTick = IGClientUtility.extractMarketPriceTick(updateInfo);
-//                MarketUpdate<PriceTick> marketUpdate = new MarketUpdate(chartPriceTick,staticMarketInfo);
-//                LOG.info("Chart i {} s {} data {}", i, s, updateInfo);
-//                getSelf().tell(new MarketUpdated(epic, marketUpdate),getSelf());
-//            }
-//        };
-//        lightStreamerChartTickListner = subscriptionListner;
-//        tradingAPI.subscribeToLighstreamerChartTickUpdates(epic, lightStreamerChartTickListner);
-//    }
     private void subscribeToChartTickUpdate() throws Exception {
         Consumer<UpdateInfo> consumer = updateInfo -> {
             PriceTick chartPriceTick = IGClientUtility.extractMarketPriceTick(updateInfo);
@@ -145,39 +128,11 @@ public class MarketActor extends AbstractActor {
     }
 
 
-//    private void subscribeToChartCandleUpdate() throws Exception {
-//
-//        HandyTableListenerAdapter subsrciptionListener = new HandyTableListenerAdapter() {
-//            @Override
-//            public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-//                PriceCandle chartCandle = IGClientUtility.extractMarketPriceCandle(updateInfo);
-//                MarketUpdate<PriceCandle> marketUpdate = new MarketUpdate(chartCandle,staticMarketInfo);
-//                LOG.debug("ChartCandle i {} s {} data {}", i, s, updateInfo);
-//                getSelf().tell(new MarketUpdated(epic, marketUpdate),getSelf());
-//            }
-//        };
-//        lightStreamerChartCandleListner = subsrciptionListener;
-//        tradingAPI.subscribeToLighstreamerChartCandleUpdates(epic,PriceCandle.FIVE_MINUTE,lightStreamerChartCandleListner);
-//    }
 
 
     @Override
     public void postStop() {
-        if(lightStreamerChartTickListner !=null){
-            try {
-                tradingAPI.unsubscribeLightstreamerForListner(lightStreamerChartTickListner);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        if(lightStreamerChartCandleListner !=null){
-            try {
-                tradingAPI.unsubscribeLightstreamerForListner(lightStreamerChartCandleListner);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
+        tradingDataStreamingService.removeSubscriber(this.toString());
         LOG.info("Market {} unregistered", epic);
     }
 
@@ -187,7 +142,6 @@ public class MarketActor extends AbstractActor {
                 .match(SubscribeToMarketUpdate.class,this::onSubscribeToMarket)
                 .match(MarketUpdated.class,this::onMarketUpdate)
                 .match(Terminated.class,this::onTerminated)
-                .match(MarketManager.ResetLSSubscriptions.class,this::onResetLSSubscription)
                 .match(GiveMarketInfo.class,this::onGiveMarketInfo)
                 .match(ListSubscribers.class,this::onListSubscribers)
                 .matchAny(this::onUnHandledMessage)
@@ -231,9 +185,6 @@ public class MarketActor extends AbstractActor {
         return isLastUpdateExpired;
     }
 
-    private void onResetLSSubscription(ResetLSSubscriptions reset) throws Exception{
-      subscribeToMarketUpdates();
-    }
     private void onMarketUpdate(MarketUpdated mupdated) throws Exception{
         stopMarkeActorIfThereAreNoSubscribers();
         updateStaticMarketInfo();
