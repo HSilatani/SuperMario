@@ -1,5 +1,6 @@
 package com.dario.agenttrader.marketStrategies;
 
+import com.dario.agenttrader.domain.Direction;
 import com.dario.agenttrader.dto.MarketInfo;
 import com.dario.agenttrader.dto.PriceTick;
 import org.slf4j.Logger;
@@ -7,10 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.ta4j.core.*;
 import org.ta4j.core.indicators.EMAIndicator;
 import org.ta4j.core.indicators.MACDIndicator;
-import org.ta4j.core.indicators.SMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
-import org.ta4j.core.trading.rules.CrossedDownIndicatorRule;
-import org.ta4j.core.trading.rules.CrossedUpIndicatorRule;
 import org.ta4j.core.trading.rules.OverIndicatorRule;
 import org.ta4j.core.trading.rules.UnderIndicatorRule;
 

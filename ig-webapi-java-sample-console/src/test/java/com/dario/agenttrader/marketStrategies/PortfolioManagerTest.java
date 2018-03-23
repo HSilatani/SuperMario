@@ -3,16 +3,13 @@ package com.dario.agenttrader.marketStrategies;
 
 import static org.mockito.Mockito.*;
 
+import com.dario.agenttrader.domain.Direction;
 import com.dario.agenttrader.dto.PositionSnapshot;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Market;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
-import org.hamcrest.Matchers;
 import org.junit.*;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
 
 import com.dario.agenttrader.tradingservices.TradingAPI;
-import org.mockito.Mock;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

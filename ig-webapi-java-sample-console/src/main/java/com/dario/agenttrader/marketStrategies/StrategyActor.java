@@ -6,6 +6,7 @@ import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import com.dario.agenttrader.domain.Direction;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 
 import java.math.BigDecimal;

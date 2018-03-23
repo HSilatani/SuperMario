@@ -1,9 +1,11 @@
 package com.dario.agenttrader.tradingservices;
 
 import com.dario.agenttrader.ApplicationBootStrapper;
+import com.dario.agenttrader.domain.CandleResolution;
 import com.dario.agenttrader.dto.MarketInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
-import com.dario.agenttrader.marketStrategies.Direction;
+import com.dario.agenttrader.domain.Direction;
+import com.dario.agenttrader.dto.PriceCandle;
 import com.dario.agenttrader.utility.Calculator;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.iggroup.webapi.samples.PropertiesUtil;
@@ -187,7 +189,7 @@ public class IGClient implements TradingAPI {
    }
 
    @Override
-   public List<PricesItem> getHistoricPrices(String epic) throws Exception{
+   public List<PricesItem> getHistoricPrices(String epic,CandleResolution candleResolution) throws Exception{
         List<PricesItem> listOfPrices = new ArrayList<>();
        try {
            ConversationContext conversationContext = authenticationContext.getConversationContext();
@@ -200,7 +202,7 @@ public class IGClient implements TradingAPI {
                    ,epic
                    ,null
                    ,null
-                   ,"MINUTE_5"
+                   ,convertIntervaltoIGClientHistoricPriceInterval(candleResolution)
            );
            listOfPrices.addAll(prices.getPrices());
 
@@ -210,6 +212,28 @@ public class IGClient implements TradingAPI {
        }
 
        return listOfPrices;
+   }
+   private static final Map<String,String> igIntervalMapping = new HashMap<>();
+    static {
+        igIntervalMapping.put(CandleResolution.oneMinuteResolution().getCandleInterval(),"MINUTE");
+        igIntervalMapping.put(CandleResolution.twoMinuteResolution().getCandleInterval(),"MINUTE_2");
+        igIntervalMapping.put(CandleResolution.threeMinuteResolution().getCandleInterval(),"MINUTE_3");
+        igIntervalMapping.put(CandleResolution.fiveMinuteResolution().getCandleInterval(),"MINUTE_5");
+        //igIntervalMapping.put("","MINUTE_10");
+        //igIntervalMapping.put("","MINUTE_15");
+        //igIntervalMapping.put("","MINUTE_30");
+        igIntervalMapping.put(CandleResolution.oneHourResolution().getCandleInterval(),"HOUR");
+        //igIntervalMapping.put("","HOUR_2");
+        //igIntervalMapping.put("","HOUR_3");
+        //igIntervalMapping.put("","HOUR_4");
+        //igIntervalMapping.put("","DAY");
+        //igIntervalMapping.put("","WEEK");
+        //igIntervalMapping.put("","MONTH");
+    }
+   private String convertIntervaltoIGClientHistoricPriceInterval(CandleResolution candleResolution){
+        String igInterva = igIntervalMapping.get(candleResolution.getCandleInterval());
+
+        return igInterva;
    }
 
    @Override

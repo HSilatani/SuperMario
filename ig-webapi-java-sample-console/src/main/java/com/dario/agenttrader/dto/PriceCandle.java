@@ -10,6 +10,8 @@ public class PriceCandle implements Price<PriceCandle>{
     public static final String ONE_MINUTE = "1MINUTE";
     public static final String FIVE_MINUTE="5MINUTE";
     public static final String HOUR = "HOUR ";
+    public static final String TWO_MINUTE = "2MINUTE";
+    public static final String THREE_MINUTE = "3MINUTE";
 
     private BigDecimal LTV;
     private BigDecimal TTV;

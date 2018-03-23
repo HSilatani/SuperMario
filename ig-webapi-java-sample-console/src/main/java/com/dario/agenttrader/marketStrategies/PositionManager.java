@@ -8,6 +8,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.dario.agenttrader.dto.UpdateEvent;
 import com.dario.agenttrader.tradingservices.TradingAPI;
+import com.dario.agenttrader.tradingservices.TradingDataStreamingService;
 import com.dario.agenttrader.utility.ActorRegistery;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.dario.agenttrader.InterpreterAgent;
@@ -18,6 +19,7 @@ import com.lightstreamer.ls_client.UpdateInfo;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class PositionManager extends AbstractActor{
 
@@ -26,6 +28,8 @@ public class PositionManager extends AbstractActor{
     private final ActorRegistery registry = new ActorRegistery();
 
     private final TradingAPI tradingAPI;
+
+    private final TradingDataStreamingService tradingDataStreamingService =TradingDataStreamingService.getInstance();
 
 
     public PositionManager(TradingAPI ptradingAPI){
@@ -77,30 +81,49 @@ public class PositionManager extends AbstractActor{
         getSelf().forward(registerPositionRequest,getContext());
     }
 
+//    private void subscribeToPositionUpdates() throws Exception{
+//        ActorRef positionManagerActor = getSelf();
+//
+//        tradingAPI.subscribeToOpenPositionUpdates(
+//                new HandyTableListenerAdapter() {
+//                    @Override
+//                    public void onUpdate(int i, String s, UpdateInfo updateInfo) {
+//                        UpdateEvent positionUpdateEvent =
+//                                new UpdateEvent(IGClientUtility.flatJSontoMap(updateInfo.getNewValue(1)),UpdateEvent.POSITION_UPDATE);
+//                        PositionInfo positionInfo = new PositionInfo(positionUpdateEvent,s,i);
+//
+//                                if (updateInfo.getNewValue("OPU") != null)
+//                                {
+//                                    boolean isclosed=
+//                                            PositionInfo.STATUS_DELETED.equalsIgnoreCase(positionInfo.getStatus());
+//
+//                                    LOG.info("Position update i {} s {} data {}", i, s, updateInfo);
+//                                     positionManagerActor.tell(
+//                                            new PositionManager.OPU(positionInfo,isclosed),
+//                                            positionManagerActor);
+//                                }
+//                    }
+//                }
+//        );
+//    }
     private void subscribeToPositionUpdates() throws Exception{
-        ActorRef positionManagerActor = getSelf();
+        Consumer<UpdateInfo> consumer = updateInfo -> {
+            UpdateEvent positionUpdateEvent =
+                    new UpdateEvent(IGClientUtility.flatJSontoMap(updateInfo.getNewValue(1)),UpdateEvent.POSITION_UPDATE);
+            PositionInfo positionInfo = new PositionInfo(positionUpdateEvent);
 
-        tradingAPI.subscribeToOpenPositionUpdates(
-                new HandyTableListenerAdapter() {
-                    @Override
-                    public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-                        UpdateEvent positionUpdateEvent =
-                                new UpdateEvent(IGClientUtility.flatJSontoMap(updateInfo.getNewValue(1)),UpdateEvent.POSITION_UPDATE);
-                        PositionInfo positionInfo = new PositionInfo(positionUpdateEvent,s,i);
+            if (updateInfo.getNewValue("OPU") != null)
+            {
+                boolean isclosed=
+                        PositionInfo.STATUS_DELETED.equalsIgnoreCase(positionInfo.getStatus());
 
-                                if (updateInfo.getNewValue("OPU") != null)
-                                {
-                                    boolean isclosed=
-                                            PositionInfo.STATUS_DELETED.equalsIgnoreCase(positionInfo.getStatus());
-
-                                    LOG.info("Position update i {} s {} data {}", i, s, updateInfo);
-                                     positionManagerActor.tell(
-                                            new PositionManager.OPU(positionInfo,isclosed),
-                                            positionManagerActor);
-                                }
-                    }
-                }
-        );
+                LOG.info("Position update data {}",updateInfo);
+                getSelf().tell(
+                        new PositionManager.OPU(positionInfo,isclosed),
+                        getSelf());
+            }
+        };
+        tradingDataStreamingService.subscribeToOpenPositionUpdates(this.toString(),consumer);
     }
 
     private void onPositionUpdated(Position.PositionUpdatedDelta positionupdated){

@@ -1,4 +1,4 @@
-package com.dario.agenttrader.marketStrategies;
+package com.dario.agenttrader.domain;
 
 public class Direction {
     final int direction;

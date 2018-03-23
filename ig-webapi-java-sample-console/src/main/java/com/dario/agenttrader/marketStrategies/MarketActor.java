@@ -6,6 +6,7 @@ import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import com.dario.agenttrader.domain.CandleResolution;
 import com.dario.agenttrader.dto.*;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.tradingservices.TradingDataStreamingService;
@@ -45,6 +46,8 @@ public class MarketActor extends AbstractActor {
     private TimeSeries priceTimeSeries=null;
     private BaseBar currentBar=null;
 
+    private CandleResolution candleResolution = CandleResolution.fiveMinuteResolution();
+
 
 
     private final LoggingAdapter LOG = Logging.getLogger(getContext().getSystem(),this);
@@ -82,9 +85,10 @@ public class MarketActor extends AbstractActor {
         List<PricesItem> historicPrices = new ArrayList<>();
 
         try {
-            historicPrices = tradingAPI.getHistoricPrices(epic);
+            historicPrices = tradingAPI.getHistoricPrices(epic,candleResolution);
         } catch (Exception e) {
             e.printStackTrace();
+            LOG.warning("Unable to download historic prices for {} ",epic,e);
         }
         if(historicPrices!=null) {
             historicPrices.forEach(p -> {
@@ -122,7 +126,7 @@ public class MarketActor extends AbstractActor {
         };
         String uniqSubscriberRef = this.toString();
         tradingDataStreamingService.subscribeToLighstreamerChartCandleUpdates(epic
-                ,PriceCandle.FIVE_MINUTE
+                ,candleResolution
                 ,uniqSubscriberRef
                 ,consumer);
     }
@@ -223,7 +227,7 @@ public class MarketActor extends AbstractActor {
         //ZonedDateTime zt = ZonedDateTime.ofInstant(Instant.from(fromEpochMilli), ZoneId.of("Europe/London"));
         ZonedDateTime barOpenTime = Calculator.zonedDateTimeFromString(priceCandle.getUTM());
         BaseBar newbar = new BaseBar(
-                Duration.ofMinutes(5)
+                candleResolution.getCandleBarDuration()
                 ,barOpenTime
                 ,Decimal.valueOf(priceCandle.getBID_OPEN().doubleValue())
                 ,Decimal.valueOf(priceCandle.getBID_HIGH().doubleValue())

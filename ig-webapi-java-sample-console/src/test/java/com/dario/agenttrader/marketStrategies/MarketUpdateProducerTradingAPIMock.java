@@ -1,5 +1,7 @@
 package com.dario.agenttrader.marketStrategies;
 
+import com.dario.agenttrader.domain.CandleResolution;
+import com.dario.agenttrader.domain.Direction;
 import com.dario.agenttrader.dto.MarketInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
 import com.dario.agenttrader.tradingservices.TradingAPI;
@@ -76,7 +78,7 @@ public class MarketUpdateProducerTradingAPIMock implements TradingAPI {
     }
 
     @Override
-    public List<PricesItem> getHistoricPrices(String epic) throws Exception {
+    public List<PricesItem> getHistoricPrices(String epic, CandleResolution candleResolution) throws Exception {
         return null;
     }
 

@@ -1,10 +1,7 @@
 package com.dario.agenttrader.tradingservices;
 
-import com.dario.agenttrader.dto.MarketUpdate;
+import com.dario.agenttrader.domain.CandleResolution;
 import com.dario.agenttrader.dto.PriceCandle;
-import com.dario.agenttrader.dto.PriceTick;
-import com.dario.agenttrader.marketStrategies.MarketActor;
-import com.dario.agenttrader.utility.IGClientUtility;
 import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
 import com.lightstreamer.ls_client.UpdateInfo;
 import org.slf4j.Logger;
@@ -21,6 +18,7 @@ public class TradingDataStreamingService {
     private static final Logger LOG = LoggerFactory.getLogger(TradingDataStreamingService.class);
     public static final String CHART_TICK = "CHART_TICK";
     public static final String CHART_CANDLE = "CHART_CANDLE";
+    private static final String OPU = "OPU" ;
 
     private static TradingDataStreamingService oneAndOnlyStreamingServiceInstance = new TradingDataStreamingService();
     public static final long HEARTBEAT_CHECK_INTERVAL_MILIS = 1500l;
@@ -125,21 +123,22 @@ public class TradingDataStreamingService {
                     } catch (Exception e) {
                         LOG.warn("Subscription for {}:{} failed",k,subscriptionKey,e);
                     }
+                }else if(subscriptionKey.contains(OPU)){
+                    try {
+                        subscribeToPositionUpdate(consumer);
+                    } catch (Exception e) {
+                        LOG.warn("Subscription for PositionUpdate failed",e);
+                    }
                 }
             });
         });
     }
 
     private String extractResultionFromKey(String subscriptionKey) {
-        String resolution = PriceCandle.FIVE_MINUTE;
-        if(subscriptionKey.contains(PriceCandle.FIVE_MINUTE)){
-            resolution = PriceCandle.FIVE_MINUTE;
-        }else if(subscriptionKey.contains(PriceCandle.ONE_MINUTE)){
-            resolution = PriceCandle.ONE_MINUTE;
-        }else{
-            LOG.warn("Resolution not supported:{}",subscriptionKey);
-        }
-        return resolution;
+        CandleResolution candleResolution =
+                CandleResolution.findMatchingResolutionOrDefaultToFiveMin(subscriptionKey);
+
+        return candleResolution.getCandleInterval();
     }
 
 
@@ -161,6 +160,29 @@ public class TradingDataStreamingService {
         String key= CHART_CANDLE+":"+ resolution +":" +subscriberUniqRef;
         return key;
     }
+    private String generateOpenPositionUpdateSubscriptionKey(String subscriberUniqRef) {
+        String key= OPU+":"+subscriberUniqRef;
+        return key;
+    }
+    public void subscribeToOpenPositionUpdates(
+            String subscriberUniqRef
+            , Consumer<UpdateInfo> consumer) throws  Exception{
+
+        String subscriptionKey =  generateOpenPositionUpdateSubscriptionKey(subscriberUniqRef);
+        String streamingKey = OPU;
+        Consumer exitingSubscriber = findSubscriber(streamingKey,subscriptionKey);
+        if(exitingSubscriber == null && consumer != null){
+            subscribeToPositionUpdate(consumer);
+            registerSubscription(streamingKey,subscriptionKey,consumer);
+        }
+    }
+
+    private void subscribeToPositionUpdate(Consumer<UpdateInfo> consumer) throws Exception{
+        HandyTableListenerAdapter lightStreamerOPUListener = createLSListener(consumer);
+        tradingAPI.subscribeToOpenPositionUpdates(lightStreamerOPUListener);
+        LOG.info("Subscribed to position update");
+    }
+
     public void subscribeToLighstreamerChartTickUpdates(
             String epic
             ,String subscriberUniqRef
@@ -177,13 +199,15 @@ public class TradingDataStreamingService {
     private void subscribeToChartTickUpdates(String epic, Consumer newSubscriberConsumer) throws Exception {
         HandyTableListenerAdapter lightStreamerChartTickListner = createLSListener(newSubscriberConsumer);
         tradingAPI.subscribeToLighstreamerChartUpdates(epic, lightStreamerChartTickListner);
+        LOG.info("Subscribed to Chart Tick update");
     }
 
     public void subscribeToLighstreamerChartCandleUpdates(
             String epic
-            ,String resolution
+            ,CandleResolution candleResolution
             ,String subscriberUniqRef
             ,Consumer<UpdateInfo> newSubscriberConsumer) throws Exception{
+        String resolution = candleResolution.getCandleInterval();
         String streamingKey = epic;
         String subscriptionKey = generateChartCandleSubscriptionKey(subscriberUniqRef,resolution);
         Consumer exitingSubscriber = findSubscriber(streamingKey,subscriptionKey);
@@ -195,6 +219,7 @@ public class TradingDataStreamingService {
     private void subscribeToChartCandleUpdates(String epic,String resolution, Consumer newSubscriberConsumer) throws Exception {
         HandyTableListenerAdapter lightStreamerChartCandleListner = createLSListener(newSubscriberConsumer);
         tradingAPI.subscribeToLighstreamerChartCandleUpdates(epic,resolution, lightStreamerChartCandleListner);
+        LOG.info("Subscribed to Chart Candle update");
     }
     private  HandyTableListenerAdapter createLSListener(Consumer consumer){
         HandyTableListenerAdapter subscriptionListner = new HandyTableListenerAdapter() {
@@ -235,4 +260,6 @@ public class TradingDataStreamingService {
         });
 
     }
+
+
 }

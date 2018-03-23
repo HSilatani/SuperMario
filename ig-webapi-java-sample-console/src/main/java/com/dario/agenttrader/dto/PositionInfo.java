@@ -54,6 +54,10 @@ public class PositionInfo {
         this.i = i;
     }
 
+    public PositionInfo(UpdateEvent updateEvent) {
+        this(updateEvent,"",1);
+    }
+
     public String getValue(String key) {
         return updateInfo.get(key);
     }

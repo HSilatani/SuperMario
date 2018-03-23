@@ -3,7 +3,7 @@ package com.dario.agenttrader.marketStrategies;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
-import com.dario.agenttrader.tradingservices.IGClient;
+import com.dario.agenttrader.domain.Direction;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.tradingservices.TradingDataStreamingService;
 import org.slf4j.Logger;
@@ -74,7 +74,7 @@ public class MarketStrategySystem {
     private void triggerDefaultStrategies() {
             ArrayList<String> epics = new ArrayList<>();
             epics.add("IX.D.HANGSENG.DAILY.IP");//TODO: load from properties files
-            MarketStrategyInterface reEntryStrategy = new ReEntryStrategy(epics,Direction.BUY());
+            MarketStrategyInterface reEntryStrategy = new ReEntryStrategy(epics, Direction.BUY());
             String uniqStrategyID= epics.get(0) + "-Reentry" ;
             getStrategyManagerActor().tell(
                     new StrategyManager.CreateStrategyMessage(
