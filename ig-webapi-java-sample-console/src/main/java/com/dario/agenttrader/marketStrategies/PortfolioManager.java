@@ -53,8 +53,9 @@ public class PortfolioManager {
         updatePositionsList();
         if(isItAllowedToEnterMarket(signal.getEpic())){
             tradingAPI.createPosition(signal.getEpic(),signal.getDirection(),signal.getSize(),signal.getStopDistance());
+            LOG.info("Position created:{}",signal);
         }else{
-            LOG.info("Enter market signal for {} is ignore",signal.getEpic());
+            LOG.info("Enter market signal for {} is ignored",signal.getEpic());
         }
     }
 

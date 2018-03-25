@@ -1,9 +1,12 @@
-package com.dario.agenttrader.marketStrategies;
+package com.dario.agenttrader.strategies;
+
+import com.dario.agenttrader.marketStrategies.MarketStrategyInterface;
+import com.dario.agenttrader.marketStrategies.StrategyActor;
 
 import java.util.ArrayList;
 import java.util.function.Consumer;
 
-public abstract class AbstractMarketStrategy implements MarketStrategyInterface{
+public abstract class AbstractMarketStrategy implements MarketStrategyInterface {
 
     private final ArrayList<String> observedMarkets;
     protected Consumer<StrategyActor.TradingSignal> strategyInstructionConsumer;

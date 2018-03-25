@@ -40,4 +40,13 @@ public class Direction {
         }
         return strDirection;
     }
+
+    public Direction opposite() {
+
+        if(this.isBuy()) {
+            return Direction.SELL();
+        }else{
+            return Direction.BUY();
+        }
+    }
 }

@@ -60,7 +60,7 @@
 
       <encoder>
          <charset>UTF-8</charset>
-         <pattern>%d %-4relative %msg%n</pattern>
+         <pattern>%date{ISO8601}%msg%n</pattern>
       </encoder>
    </appender>
    <!-- third party code loggers -->
@@ -71,15 +71,9 @@
    <logger name="akka" level="DEBUG" />
    <logger name="com.iggroup.webapi.samples.client.streaming" level="info"/>
 
-   <logger name="com.dario.agenttrader.marketStrategies.TrackerStrategy" level="info">
+   <logger name="com.dario.agenttrader.strategies" level="debug">
       <appender-ref ref="STRATEGY"/>
    </logger>
-   <logger name="com.dario.agenttrader.marketStrategies.ReEntryStrategy" level="info">
-      <appender-ref ref="STRATEGY"/>
-   </logger>
-   <logger name="com.dario.agenttrader.marketStrategies.StrategyActor" level="info">
-         <appender-ref ref="STRATEGY"/>
-    </logger>
 
    <root level="info">
       <appender-ref ref="APPLICATION"/>

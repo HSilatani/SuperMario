@@ -373,8 +373,15 @@ public class IGClient implements TradingAPI {
            createPositionRequest.setGuaranteedStop(false);
            createPositionRequest.setForceOpen(true);
 
-           LOG.info(">>> Creating long position epic={}, expiry={} size={} orderType={} level={} currency={}", tradeableEpic, createPositionRequest.getExpiry(),
-                   createPositionRequest.getSize(), createPositionRequest.getOrderType(), createPositionRequest.getLevel(), createPositionRequest.getCurrencyCode());
+           LOG.info(">>> Creating {} position epic={}, expiry={} size={} orderType={} level={} currency={}"
+                   ,createPositionRequest.getDirection()
+                   ,epic
+                   , createPositionRequest.getExpiry()
+                   , createPositionRequest.getSize()
+                   , createPositionRequest.getOrderType()
+                   , createPositionRequest.getLevel()
+                   , createPositionRequest.getCurrencyCode()
+           );
            CreateOTCPositionV1Response response = restAPI.createOTCPositionV1(authenticationContext.getConversationContext(), createPositionRequest);
            return response.getDealReference();
     }

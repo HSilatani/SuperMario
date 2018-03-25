@@ -93,7 +93,7 @@ public class MarketActor extends AbstractActor {
         if(historicPrices!=null) {
             historicPrices.forEach(p -> {
                 PriceCandle pCandle = IGClientUtility.extractMarketPriceCandle(p);
-                addATickToPriceTimeSeries(pCandle);
+                addBarToPriceTimeSeries(pCandle);
             });
         }
 
@@ -199,10 +199,13 @@ public class MarketActor extends AbstractActor {
     }
 
     private void updatePriceTimeSeriese(MarketUpdated mupdated) {
-        if(mupdated.getMarketupdate().getUpdate() instanceof PriceCandle){
-            addATickToPriceTimeSeries((PriceCandle)mupdated.getMarketupdate().getUpdate());
+        Object priceUpdate = mupdated.getMarketupdate().getUpdate();
+        if(priceUpdate instanceof PriceCandle){
+            addBarToPriceTimeSeries((PriceCandle)priceUpdate);
         }
     }
+
+
 
     private MarketUpdated createMArketUpdatedMessage(MarketUpdated mupdated) {
         MarketUpdate priceMarketUpdate = mupdated.getMarketupdate();
@@ -221,10 +224,7 @@ public class MarketActor extends AbstractActor {
         return marketInfo;
     }
 
-    private void addATickToPriceTimeSeries(PriceCandle priceCandle) {
-        //BigDecimal hiring = Calculator.convertStrToBigDecimal(priceCandle.getUTM()).get();
-        //Instant fromEpochMilli = Instant.ofEpochMilli(Long.valueOf(hiring.longValue()));
-        //ZonedDateTime zt = ZonedDateTime.ofInstant(Instant.from(fromEpochMilli), ZoneId.of("Europe/London"));
+    private void addBarToPriceTimeSeries(PriceCandle priceCandle) {
         ZonedDateTime barOpenTime = Calculator.zonedDateTimeFromString(priceCandle.getUTM());
         BaseBar newbar = new BaseBar(
                 candleResolution.getCandleBarDuration()
@@ -252,8 +252,8 @@ public class MarketActor extends AbstractActor {
         try{
             priceTimeSeries.addBar(bar);
             PRICE_LOGGER.info("EPIC {}:{}-{},CLOSE {}, OPEN {},Max {} , Min {}"
-                    ,epic,
-                    bar.getBeginTime()
+                    ,epic
+                    ,bar.getBeginTime()
                     ,bar.getEndTime()
                     ,bar.getClosePrice()
                     ,bar.getOpenPrice()

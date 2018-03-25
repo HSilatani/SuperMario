@@ -7,6 +7,7 @@ import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.dario.agenttrader.dto.UpdateEvent;
+import com.dario.agenttrader.strategies.TrackerStrategy;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.dario.agenttrader.dto.PositionInfo;
 import com.dario.agenttrader.utility.SubscriberActorRegistery;

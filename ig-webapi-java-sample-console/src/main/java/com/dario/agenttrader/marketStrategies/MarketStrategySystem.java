@@ -4,6 +4,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
 import com.dario.agenttrader.domain.Direction;
+import com.dario.agenttrader.strategies.ReEntryStrategy;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.tradingservices.TradingDataStreamingService;
 import org.slf4j.Logger;

@@ -1,8 +1,11 @@
-package com.dario.agenttrader.marketStrategies;
+package com.dario.agenttrader.strategies;
 
 import com.dario.agenttrader.domain.Direction;
 import com.dario.agenttrader.dto.MarketInfo;
 import com.dario.agenttrader.dto.PriceTick;
+import com.dario.agenttrader.marketStrategies.MarketActor;
+import com.dario.agenttrader.marketStrategies.Position;
+import com.dario.agenttrader.marketStrategies.StrategyActor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.ta4j.core.*;
@@ -24,8 +27,12 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
     private Optional<BigDecimal> currentBid = Optional.empty();
     private Direction direction;
     private TimeSeries priceTimeSeries=null;
-    private boolean isBuyingRuleTriggered = false;
     private int latestEndIndex = -2;
+    private Long latesSpread=Long.MAX_VALUE;
+    private long maxAllowedSpread = 11;
+    private BigDecimal dealSize = BigDecimal.ONE;
+    private int shortPeriod = 12;
+    private int longPeriod= 26;
 
     private MarketInfo staticMarketInfo = null;
 
@@ -39,12 +46,27 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
     public void evaluate(MarketActor.MarketUpdated marketUpdate) {
         LOG.debug("Received update for {}",marketUpdate.getEpic());
         if(isMarketUpdateValid(marketUpdate)) {
-            priceTimeSeries = marketUpdate.getMarketupdate().getTimeSeries();
-            staticMarketInfo = marketUpdate.getMarketupdate().getMarketInfo();
+            updateState(marketUpdate);
             if(newBarIsAdded()) {
                 evaluateStrategy();
             }
         }
+    }
+
+    private void updateState(MarketActor.MarketUpdated marketUpdate) {
+        priceTimeSeries = marketUpdate.getMarketupdate().getTimeSeries();
+        staticMarketInfo = marketUpdate.getMarketupdate().getMarketInfo();
+        latesSpread = calculateClosePriceSpread(marketUpdate);
+    }
+
+    private Long calculateClosePriceSpread(MarketActor.MarketUpdated marketUpdate) {
+        Long spread = latesSpread;
+        Object priceUpdate = marketUpdate.getMarketupdate().getUpdate();
+        if (priceUpdate instanceof PriceTick){
+            PriceTick priceTick = (PriceTick)priceUpdate;
+            spread=priceTick.getBid().subtract(priceTick.getOffer()).abs().longValue();
+        }
+        return spread;
     }
 
     private boolean newBarIsAdded() {
@@ -60,8 +82,6 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         ClosePriceIndicator closePrice = new ClosePriceIndicator(priceTimeSeries);
         int endIndex = priceTimeSeries.getEndIndex();
         //
-        int shortPeriod = 6;
-        int longPeriod= 12;
         EMAIndicator shortEMA = new EMAIndicator(closePrice,shortPeriod);
         EMAIndicator longEMA = new EMAIndicator(closePrice,longPeriod);
         MACDIndicator macdIndicator = new MACDIndicator(closePrice,shortPeriod,longPeriod);
@@ -80,10 +100,9 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         Decimal macdValue = macdIndicator.getValue(endIndex);
         Decimal macdSignalValue = macdSignal.getValue(endIndex);
 
-        LOG.info("EPIC:{}, EndIndex:{},isBuyingRuleTriggered:{},short EMA:{} Long EMA:{} MACD:{} MACDSIGNAL:{} at price open:{} ,close:{}, high{},low {}, {}"
+        LOG.info("EPIC:{}, EndIndex:{},short EMA:{} Long EMA:{} MACD:{} MACDSIGNAL:{} at price open:{} ,close:{}, high{},low {}, spread:{},{}"
                 , getEpic()
                 ,endIndex
-                ,isBuyingRuleTriggered
                 ,shortEMAValue
                 ,longEMAValue
                 ,macdValue
@@ -92,27 +111,35 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                 ,priceTimeSeries.getLastBar().getClosePrice()
                 ,priceTimeSeries.getLastBar().getMaxPrice()
                 ,priceTimeSeries.getLastBar().getMinPrice()
+                ,latesSpread
                 ,priceTimeSeries.getLastBar().getSimpleDateName()
         );
-        if (strategy.shouldEnter(endIndex) && !isBuyingRuleTriggered) {
-            String epic = getEpic();
-            LOG.info("CREATING TRADING SIGNAL FOR {}",epic);
-            BigDecimal stopDistance = staticMarketInfo.getMinNormalStopLimitDistance().multiply(new BigDecimal(3));
-            StrategyActor.TradingSignal tradingSignal= StrategyActor.TradingSignal.createEnterMarketSignal(
-                    epic
-                    ,direction
-                    ,staticMarketInfo.getMinDealSize()
-                    ,stopDistance
-            );
-            LOG.info("TRADING SIGNAL CREATED:{}",tradingSignal);
+        boolean isSpreadWithinRange = latesSpread < maxAllowedSpread;
+        if (strategy.shouldEnter(endIndex) && isSpreadWithinRange) {
+            StrategyActor.TradingSignal tradingSignal = createTradingSignal(direction);
             strategyInstructionConsumer.accept(tradingSignal);
-            LOG.info("ENTER POSITION SIGNAL");
-            isBuyingRuleTriggered = true;
-        } else if (strategy.shouldExit(endIndex) && isBuyingRuleTriggered) {
-            isBuyingRuleTriggered = false;
-            LOG.info("EXIT POSITION SIGNAL");
+            LOG.info("ENTER POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
+        } else if (strategy.shouldExit(endIndex) && isSpreadWithinRange) {
+            StrategyActor.TradingSignal tradingSignal = createTradingSignal(direction.opposite());
+            strategyInstructionConsumer.accept(tradingSignal);
+            LOG.info("EXIT POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
         }
 
+    }
+
+    private StrategyActor.TradingSignal createTradingSignal(Direction pDirection) {
+        String epic = getEpic();
+        LOG.debug("CREATING TRADING SIGNAL FOR {}",epic);
+        BigDecimal stopDistance = staticMarketInfo.getMinNormalStopLimitDistance().multiply(new BigDecimal(3));
+        BigDecimal size = Optional.ofNullable(dealSize).orElse(staticMarketInfo.getMinDealSize());
+        StrategyActor.TradingSignal tradingSignal= StrategyActor.TradingSignal.createEnterMarketSignal(
+                epic
+                ,pDirection
+                ,size
+                ,stopDistance
+        );
+        LOG.debug("TRADING SIGNAL CREATED:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
+        return tradingSignal;
     }
 
     private String getEpic() {
