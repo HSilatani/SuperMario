@@ -1,17 +1,20 @@
 package com.dario.agenttrader.marketStrategies;
 
+import com.dario.agenttrader.domain.Direction;
 import com.dario.agenttrader.dto.PositionSnapshot;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import static com.dario.agenttrader.marketStrategies.StrategyActor.TradingSignal.EDIT_POSITION_INSTRUCTION;
 import static com.dario.agenttrader.marketStrategies.StrategyActor.TradingSignal.ENTER_MARKET_INSTRUCTION;
 
 
+import com.dario.agenttrader.utility.IGClientUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class PortfolioManager {
 
@@ -51,15 +54,31 @@ public class PortfolioManager {
     private void executeEnterMarketSignal(StrategyActor.TradingSignal signal) throws Exception{
         LOG.info(signal.toString());
         updatePositionsList();
-        if(isItAllowedToEnterMarket(signal.getEpic())){
+
+        if(thereIsNoOtherPositionOnTheSameEPIC(signal.getEpic())){
             tradingAPI.createPosition(signal.getEpic(),signal.getDirection(),signal.getSize(),signal.getStopDistance());
             LOG.info("Position created:{}",signal);
-        }else{
-            LOG.info("Enter market signal for {} is ignored",signal.getEpic());
+        }else {
+            List<String> oppositPositions =
+                    findOpenPositionsOnOppositeDirectionOnTheSameEPIC(signal.getEpic(), signal.getDirection());
+
+            if (!oppositPositions.isEmpty()) {
+                String dealID = oppositPositions.get(0);
+                tradingAPI.closeOpenPosition(dealID,signal.getEpic(),signal.getDirection(),signal.size);
+            } else {
+                LOG.info("Enter market signal for {} is ignored", signal.getEpic());
+            }
         }
     }
 
-    private boolean isItAllowedToEnterMarket(String epic) {
+
+
+    private boolean thereIsNoOtherPositionOnTheSameEPIC(String epic) {
+        boolean thereIsNoOtherPositionOnThisEPIC = findPositionsOnTheSameEpic(epic).isEmpty();
+        return thereIsNoOtherPositionOnThisEPIC;
+    }
+
+    private List<PositionSnapshot> findPositionsOnTheSameEpic(String epic) {
         Predicate<PositionSnapshot> checkIfMatchesEpic = new Predicate<PositionSnapshot>() {
             @Override
             public boolean test(PositionSnapshot p) {
@@ -67,10 +86,27 @@ public class PortfolioManager {
                 return test;
             }
         };
-        boolean foundPositionOnEPIC =
-                positionSnapshots.stream().anyMatch(checkIfMatchesEpic);
-        return !foundPositionOnEPIC;
+        return positionSnapshots.stream().filter(checkIfMatchesEpic).collect(Collectors.toList());
     }
+
+    private List<String> findOpenPositionsOnOppositeDirectionOnTheSameEPIC(String epic, Direction direction) {
+        List<String> dealIDsOnTheOppositeDirection = new ArrayList<>();
+        List<PositionSnapshot> matchingPositions = findPositionsOnTheSameEpic(epic);
+        if(!matchingPositions.isEmpty()){
+            Direction positionDirection = IGClientUtility.convertFromIGDirection(
+                    matchingPositions.get(0).getPositionsItem().getPosition().getDirection()
+            );
+
+            if(direction.opposite().getDirection()==positionDirection.getDirection()){
+                dealIDsOnTheOppositeDirection.add(
+                        matchingPositions.get(0).getPositionsItem().getPosition().getDealId()
+                );
+            }
+        }
+
+        return dealIDsOnTheOppositeDirection;
+    }
+
 
     private void executeEditPositionSignal(StrategyActor.TradingSignal signal){
         try {

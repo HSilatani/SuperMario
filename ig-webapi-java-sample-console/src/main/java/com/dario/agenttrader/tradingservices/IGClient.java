@@ -15,9 +15,13 @@ import com.iggroup.webapi.samples.client.rest.AuthenticationResponseAndConversat
 import com.iggroup.webapi.samples.client.rest.ConversationContext;
 import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.AccountsItem;
 import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.GetAccountsV1Response;
+import com.iggroup.webapi.samples.client.rest.dto.markets.getMarketDetailsV2.GetMarketDetailsV2Response;
+import com.iggroup.webapi.samples.client.rest.dto.markets.getMarketDetailsV2.MarketOrderPreference;
 import com.iggroup.webapi.samples.client.rest.dto.markets.getMarketDetailsV3.GetMarketDetailsV3Response;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.GetPositionsV2Response;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
+import com.iggroup.webapi.samples.client.rest.dto.positions.otc.closeOTCPositionV1.CloseOTCPositionV1Request;
+import com.iggroup.webapi.samples.client.rest.dto.positions.otc.closeOTCPositionV1.TimeInForce;
 import com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.CreateOTCPositionV1Request;
 import com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.CreateOTCPositionV1Response;
 import com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.OrderType;
@@ -396,6 +400,32 @@ public class IGClient implements TradingAPI {
 
        return direction;
 
+   }
+
+   @Override
+   public void closeOpenPosition(String dealId,String epic,  Direction direction, BigDecimal size) throws Exception {
+       GetMarketDetailsV2Response marketDetails = restAPI.getMarketDetailsV2(
+               authenticationContext.getConversationContext(), epic);
+
+       Direction closeDirection = direction.opposite();
+       CloseOTCPositionV1Request closePositionRequest = new CloseOTCPositionV1Request();
+       closePositionRequest.setDealId(dealId);
+       closePositionRequest.setDirection(
+               com.iggroup.webapi.samples.client.rest.dto.positions.otc.closeOTCPositionV1.Direction.valueOf(closeDirection.toString()));
+       closePositionRequest.setSize(size);
+       closePositionRequest.setTimeInForce(TimeInForce.FILL_OR_KILL);
+
+       if(marketDetails.getDealingRules().getMarketOrderPreference() != MarketOrderPreference.NOT_AVAILABLE) {
+           closePositionRequest.setOrderType(com.iggroup.webapi.samples.client.rest.dto.positions.otc.closeOTCPositionV1.OrderType.MARKET);
+       } else {
+           closePositionRequest.setOrderType(com.iggroup.webapi.samples.client.rest.dto.positions.otc.closeOTCPositionV1.OrderType.LIMIT);
+           closePositionRequest.setLevel(marketDetails.getSnapshot().getBid());
+       }
+       closePositionRequest.setTimeInForce(TimeInForce.FILL_OR_KILL);
+
+       LOG.info("<<< Closing position: dealId={} direction={} size={} orderType={} level={}", dealId, direction, size,
+               closePositionRequest.getOrderType(), closePositionRequest.getLevel());
+       restAPI.closeOTCPositionV1(authenticationContext.getConversationContext(), closePositionRequest);
    }
 
 

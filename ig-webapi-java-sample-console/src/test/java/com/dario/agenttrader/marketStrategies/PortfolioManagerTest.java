@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 import com.dario.agenttrader.domain.Direction;
 import com.dario.agenttrader.dto.PositionSnapshot;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Market;
+import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Position;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
 import org.junit.*;
 
@@ -95,10 +96,20 @@ public class PortfolioManagerTest {
         market.setEpic(testEpic);
         PositionsItem positionItem = new PositionsItem();
         positionItem.setMarket(market);
+        Position position = createDummyPosition();
+        positionItem.setPosition(position);
         PositionSnapshot positionSnapshot = new PositionSnapshot(positionItem);
         List<PositionSnapshot> positionSnapShots = new ArrayList();
         positionSnapShots.add(positionSnapshot);
         return  positionSnapShots;
+    }
+
+    private Position createDummyPosition() {
+        Position position =
+                new Position();
+        position.setDealId("DEAL_ID");
+        position.setDirection(com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Direction.SELL);
+        return position;
     }
 
 }

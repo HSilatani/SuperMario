@@ -41,6 +41,8 @@ public interface TradingAPI {
 
     PositionSnapshot createPositionSnapshot(PositionsItem position);
 
+    public void closeOpenPosition(String dealId,String epic,  Direction direction, BigDecimal size) throws Exception;
+
     public MarketInfo getMarketInfo(String epic) throws Exception;
 
     public List<PricesItem> getHistoricPrices(String epic, CandleResolution candleResolution) throws Exception;

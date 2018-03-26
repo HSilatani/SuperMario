@@ -69,6 +69,11 @@ public class MarketUpdateProducerTradingAPIMock implements TradingAPI {
     }
 
     @Override
+    public void closeOpenPosition(String dealId, String epic, Direction direction, BigDecimal size) throws Exception {
+
+    }
+
+    @Override
     public MarketInfo getMarketInfo(String epic) throws Exception {
         MarketInfo marketInfo = new MarketInfo();
         marketInfo.setMinDealSize(new BigDecimal(1));

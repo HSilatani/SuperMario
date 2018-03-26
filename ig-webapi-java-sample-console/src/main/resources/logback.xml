@@ -19,13 +19,34 @@
          <!-- keep 1 days' worth of history -->
          <maxHistory>1</maxHistory>
       </rollingPolicy>
+      <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+         <level>INFO</level>
+      </filter>
+      <encoder>
+         <charset>UTF-8</charset>
+         <pattern>%d %-4relative [%.10thread] %-5level %logger{2} - %msg%n</pattern>
+      </encoder>
+   </appender>
+   <appender name="STRATEGY_DEBUG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+      <file>strategy_debug.log</file>
+      <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+         <!-- daily rollover. Make sure the path matches the one in the file element or else
+          the rollover logs are placed in the working directory. -->
+         <fileNamePattern>strategy_debug_%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+
+         <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+            <maxFileSize>20MB</maxFileSize>
+         </timeBasedFileNamingAndTriggeringPolicy>
+         <!-- keep 1 days' worth of history -->
+         <maxHistory>2</maxHistory>
+      </rollingPolicy>
 
       <encoder>
          <charset>UTF-8</charset>
-         <pattern>%d %-4relative [%thread] %-5level %logger{35} - %msg%n</pattern>
+         <pattern>%d %-4relative [%.10thread] %-5level %logger{2} - %msg%n</pattern>
       </encoder>
    </appender>
-      <appender name="APPLICATION" class="ch.qos.logback.core.rolling.RollingFileAppender">
+   <appender name="APPLICATION" class="ch.qos.logback.core.rolling.RollingFileAppender">
       <file>application.log</file>
       <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
          <!-- daily rollover. Make sure the path matches the one in the file element or else
@@ -41,7 +62,7 @@
 
       <encoder>
          <charset>UTF-8</charset>
-         <pattern>%d %-4relative [%thread] %-5level %logger{35} - %msg%n</pattern>
+         <pattern>%d %-4relative [%.10thread] %-5level %logger{2} - %msg%n</pattern>
       </encoder>
    </appender>
    <appender name="PRICE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -71,6 +92,9 @@
    <logger name="akka" level="DEBUG" />
    <logger name="com.iggroup.webapi.samples.client.streaming" level="info"/>
 
+   <logger name="com.dario.agenttrader.strategies" level="debug">
+      <appender-ref ref="STRATEGY_DEBUG"/>
+   </logger>
    <logger name="com.dario.agenttrader.strategies" level="debug">
       <appender-ref ref="STRATEGY"/>
    </logger>

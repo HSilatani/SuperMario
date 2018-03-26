@@ -1,5 +1,6 @@
 package com.dario.agenttrader.utility;
 
+import com.dario.agenttrader.domain.Direction;
 import com.dario.agenttrader.dto.PriceCandle;
 import com.dario.agenttrader.dto.PriceTick;
 import com.dario.agenttrader.dto.UpdateEvent;
@@ -195,5 +196,16 @@ public class IGClientUtility {
                 , pricesItem.getClosePrice().getBid()
         );
         return priceCandle;
+    }
+
+    public static Direction convertFromIGDirection(
+            com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Direction igDirection){
+        if(igDirection.name().equalsIgnoreCase("buy")){
+            return Direction.BUY();
+        }else if(igDirection.name().equalsIgnoreCase("sell")){
+            return Direction.SELL();
+        }else{
+            throw new IllegalArgumentException("Invalid Direction ["+igDirection.name()+"]");
+        }
     }
 }

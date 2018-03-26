@@ -12,6 +12,7 @@ import org.ta4j.core.*;
 import org.ta4j.core.indicators.EMAIndicator;
 import org.ta4j.core.indicators.MACDIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
+import org.ta4j.core.indicators.statistics.SimpleLinearRegressionIndicator;
 import org.ta4j.core.trading.rules.OverIndicatorRule;
 import org.ta4j.core.trading.rules.UnderIndicatorRule;
 
@@ -29,12 +30,15 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
     private TimeSeries priceTimeSeries=null;
     private int latestEndIndex = -2;
     private Long latesSpread=Long.MAX_VALUE;
-    private long maxAllowedSpread = 11;
+    private long maxAllowedSpread = 25;
     private BigDecimal dealSize = BigDecimal.ONE;
     private int shortPeriod = 12;
     private int longPeriod= 26;
+    private int emaDifferenceSafeDistance = 20;
+    private int slopeTimeFrame=4;
 
     private MarketInfo staticMarketInfo = null;
+
 
 
     public ReEntryStrategy(ArrayList<String> epics,Direction pdirection) {
@@ -86,6 +90,11 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         EMAIndicator longEMA = new EMAIndicator(closePrice,longPeriod);
         MACDIndicator macdIndicator = new MACDIndicator(closePrice,shortPeriod,longPeriod);
         EMAIndicator macdSignal = new EMAIndicator(macdIndicator,9);
+        SimpleLinearRegressionIndicator slrIndicator =
+                new SimpleLinearRegressionIndicator(
+                        macdSignal
+                        ,slopeTimeFrame
+                        ,SimpleLinearRegressionIndicator.SimpleLinearRegressionType.slope);
         //
         Rule buyingRule = new OverIndicatorRule(shortEMA,longEMA)
                 .and(new OverIndicatorRule(macdIndicator,macdSignal));
@@ -99,8 +108,10 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         Decimal longEMAValue = longEMA.getValue(endIndex);
         Decimal macdValue = macdIndicator.getValue(endIndex);
         Decimal macdSignalValue = macdSignal.getValue(endIndex);
+        long emaDifference = shortEMAValue.minus(longEMAValue).abs().longValue();
+        Decimal slope = slrIndicator.getValue(endIndex);
 
-        LOG.info("EPIC:{}, EndIndex:{},short EMA:{} Long EMA:{} MACD:{} MACDSIGNAL:{} at price open:{} ,close:{}, high{},low {}, spread:{},{}"
+        LOG.info("EPIC:{}, EndIndex:{},short EMA:{} Long EMA:{} MACD:{} MACDSIGNAL:{} at price open:{} ,close:{}, high{},low {}, spread:{},EMA Diff {},slope {}, {}"
                 , getEpic()
                 ,endIndex
                 ,shortEMAValue
@@ -112,14 +123,17 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                 ,priceTimeSeries.getLastBar().getMaxPrice()
                 ,priceTimeSeries.getLastBar().getMinPrice()
                 ,latesSpread
+                ,emaDifference
+                ,slope
                 ,priceTimeSeries.getLastBar().getSimpleDateName()
         );
         boolean isSpreadWithinRange = latesSpread < maxAllowedSpread;
-        if (strategy.shouldEnter(endIndex) && isSpreadWithinRange) {
+        boolean isEMAdifferenceInSafeZone = emaDifference >emaDifferenceSafeDistance;
+        if (strategy.shouldEnter(endIndex) && isSpreadWithinRange && isEMAdifferenceInSafeZone) {
             StrategyActor.TradingSignal tradingSignal = createTradingSignal(direction);
             strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("ENTER POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
-        } else if (strategy.shouldExit(endIndex) && isSpreadWithinRange) {
+        } else if (strategy.shouldExit(endIndex) && isSpreadWithinRange && isEMAdifferenceInSafeZone) {
             StrategyActor.TradingSignal tradingSignal = createTradingSignal(direction.opposite());
             strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("EXIT POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
