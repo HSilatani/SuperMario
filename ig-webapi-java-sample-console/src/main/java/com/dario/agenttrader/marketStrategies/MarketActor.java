@@ -235,20 +235,44 @@ public class MarketActor extends AbstractActor {
                 ,Decimal.valueOf(priceCandle.getBID_CLOSE().doubleValue())
                 ,Decimal.valueOf(Optional.ofNullable(priceCandle.getLastTradeVolume()).orElse(BigDecimal.ZERO).doubleValue()));
 
-        registerTheCurrentBarIfItIsCompleted(newbar);
-        currentBar=newbar;
+        //registerTheCurrentBarIfItIsCompleted(newbar);
+        //currentBar=newbar;
+
+        updateTimeSeries(newbar);
 
         LOG.info("EPIC= {} Price Tick Count: {}",epic,priceTimeSeries.getBarCount());
     }
 
+    private void updateTimeSeries(BaseBar newbar) {
+
+        if(!priceTimeSeries.isEmpty()) {
+            Bar lastBar = priceTimeSeries.getLastBar();
+            if (isLastBarChanged(newbar, lastBar)) {
+                removeLastBar();
+            }
+        }
+        registerNewBarInPriceTimeSeries(newbar);
+    }
+
+    private void removeLastBar() {
+        List<Bar> bars = priceTimeSeries.getBarData();
+        bars.remove(bars.size()-1);
+        BaseTimeSeries newTimeSeries = new BaseTimeSeries(priceTimeSeries.getName(),bars);
+        priceTimeSeries = newTimeSeries;
+    }
+
+    private boolean isLastBarChanged(BaseBar newbar, Bar lastBar) {
+        return !newbar.getEndTime().isAfter(lastBar.getEndTime());
+    }
+
     private void registerTheCurrentBarIfItIsCompleted(BaseBar newbar) {
         if(currentBar!=null && newbar.getEndTime().isAfter(currentBar.getEndTime())){
-                registerLastBarInPriceTimeSeries(currentBar);
+                registerNewBarInPriceTimeSeries(currentBar);
         }
     }
 
 
-    private void registerLastBarInPriceTimeSeries(Bar bar) {
+    private void registerNewBarInPriceTimeSeries(Bar bar) {
         try{
             priceTimeSeries.addBar(bar);
             PRICE_LOGGER.info("EPIC {}:{}-{},CLOSE {}, OPEN {},Max {} , Min {}"

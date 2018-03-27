@@ -35,7 +35,8 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
     private int shortPeriod = 12;
     private int longPeriod= 26;
     private int emaDifferenceSafeDistance = 20;
-    private int slopeTimeFrame=4;
+    private int slopeTimeFrame=3;
+    private BigDecimal absoluteSlopeThreshold = new BigDecimal(1);
 
     private MarketInfo staticMarketInfo = null;
 
@@ -51,9 +52,9 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         LOG.debug("Received update for {}",marketUpdate.getEpic());
         if(isMarketUpdateValid(marketUpdate)) {
             updateState(marketUpdate);
-            if(newBarIsAdded()) {
+            //if(newBarIsAdded()) {
                 evaluateStrategy();
-            }
+            //}
         }
     }
 
@@ -92,7 +93,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         EMAIndicator macdSignal = new EMAIndicator(macdIndicator,9);
         SimpleLinearRegressionIndicator slrIndicator =
                 new SimpleLinearRegressionIndicator(
-                        macdSignal
+                        macdIndicator
                         ,slopeTimeFrame
                         ,SimpleLinearRegressionIndicator.SimpleLinearRegressionType.slope);
         //
@@ -110,8 +111,11 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         Decimal macdSignalValue = macdSignal.getValue(endIndex);
         long emaDifference = shortEMAValue.minus(longEMAValue).abs().longValue();
         Decimal slope = slrIndicator.getValue(endIndex);
-
-        LOG.info("EPIC:{}, EndIndex:{},short EMA:{} Long EMA:{} MACD:{} MACDSIGNAL:{} at price open:{} ,close:{}, high{},low {}, spread:{},EMA Diff {},slope {}, {}"
+        boolean isSpreadWithinRange = latesSpread < maxAllowedSpread;
+        boolean isEMAdifferenceInSafeZone = emaDifference >emaDifferenceSafeDistance;
+        boolean isBuySlopeSatisfied = BigDecimal.valueOf(slope.doubleValue()).compareTo(absoluteSlopeThreshold)>0;
+        boolean isSellSlopeSatisfied = BigDecimal.valueOf(slope.doubleValue()).compareTo(absoluteSlopeThreshold.negate())<0;
+        LOG.info("EPIC:{},EndIndex:{},short_EMA:{},Long_EMA:{},MACD:{},MACDSIGNAL:{},price_open:{},close:{},high:{},low:{},spread:{}-{},EMA_Diff:{},slope:{}-B{}-S{}, {}"
                 , getEpic()
                 ,endIndex
                 ,shortEMAValue
@@ -123,17 +127,19 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                 ,priceTimeSeries.getLastBar().getMaxPrice()
                 ,priceTimeSeries.getLastBar().getMinPrice()
                 ,latesSpread
+                ,isSpreadWithinRange
                 ,emaDifference
                 ,slope
+                ,isBuySlopeSatisfied
+                ,isSellSlopeSatisfied
                 ,priceTimeSeries.getLastBar().getSimpleDateName()
         );
-        boolean isSpreadWithinRange = latesSpread < maxAllowedSpread;
-        boolean isEMAdifferenceInSafeZone = emaDifference >emaDifferenceSafeDistance;
-        if (strategy.shouldEnter(endIndex) && isSpreadWithinRange && isEMAdifferenceInSafeZone) {
+
+        if (strategy.shouldEnter(endIndex) && isSpreadWithinRange && isBuySlopeSatisfied) {
             StrategyActor.TradingSignal tradingSignal = createTradingSignal(direction);
             strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("ENTER POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
-        } else if (strategy.shouldExit(endIndex) && isSpreadWithinRange && isEMAdifferenceInSafeZone) {
+        } else if (strategy.shouldExit(endIndex) && isSpreadWithinRange && isSellSlopeSatisfied) {
             StrategyActor.TradingSignal tradingSignal = createTradingSignal(direction.opposite());
             strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("EXIT POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
