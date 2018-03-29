@@ -64,6 +64,11 @@ public class MarketUpdateProducerTradingAPIMock implements TradingAPI {
     }
 
     @Override
+    public void subscribeToPositionConfirms(HandyTableListenerAdapter listener) throws Exception {
+
+    }
+
+    @Override
     public PositionSnapshot createPositionSnapshot(PositionsItem position) {
         return null;
     }

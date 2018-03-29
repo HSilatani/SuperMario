@@ -18,7 +18,7 @@ public class TrackerStrategy extends AbstractMarketStrategy {
 
     private PositionInfo positionInfo;
 
-    private BigDecimal trailingStep = BigDecimal.ONE;
+    private BigDecimal trailingStep = new BigDecimal(5);
     private Optional<BigDecimal> nextTrigger;
     private Optional<BigDecimal> currentAsk = Optional.empty();
     private Optional<BigDecimal> currentBid = Optional.empty();

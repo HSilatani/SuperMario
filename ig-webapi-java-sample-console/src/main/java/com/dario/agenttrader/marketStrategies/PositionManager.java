@@ -14,10 +14,11 @@ import com.dario.agenttrader.utility.IGClientUtility;
 import com.dario.agenttrader.InterpreterAgent;
 import com.dario.agenttrader.dto.PositionInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
-import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
+import com.dario.agenttrader.utility.SubscriberActorRegistery;
 import com.lightstreamer.ls_client.UpdateInfo;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -25,7 +26,10 @@ public class PositionManager extends AbstractActor{
 
     private final LoggingAdapter LOG = Logging.getLogger(getContext().getSystem(),this);
 
-    private final ActorRegistery registry = new ActorRegistery();
+    private final ActorRegistery opuSubscriberRegistry = new ActorRegistery();
+
+    private final SubscriberActorRegistery<List<PositionSnapshot>>
+            addRemovePositionSubscriberRegistry = new SubscriberActorRegistery();
 
     private final TradingAPI tradingAPI;
 
@@ -34,13 +38,17 @@ public class PositionManager extends AbstractActor{
 
     public PositionManager(TradingAPI ptradingAPI){
         tradingAPI = ptradingAPI;
-
     }
 
     public static final Props props(TradingAPI tradingAPI){
         return Props.create(PositionManager.class,tradingAPI);
     }
 
+    @Override
+    public void preStart(){
+        opuSubscriberRegistry.actorAddRemoveHook(t->getSelf().tell(new PositionAddRemoveEvent(),getSelf()));
+        LOG.info("PositionManager Started");
+    }
     @Override
     public Receive createReceive() {
         return receiveBuilder().match(RegisterPositionRequest.class, this::onRegiserPosition)
@@ -51,11 +59,29 @@ public class PositionManager extends AbstractActor{
                 .match(LoadPositionsRequest.class,this::onLoadPositions)
                 .match(PositionRegistered.class,this::onPositionRegistered)
                 .match(SubscribeToPositionUpdate.class,this::onSubscribeToPositionUpdate)
+                .match(SubscribeToRegisterUnRegisterPosition.class,this::onSubscribeToRegisterUnRegisterPosition)
+                .match(PositionAddRemoveEvent.class,this::onPositionAddRemoveEvent)
                 .build();
     }
 
+    private void onPositionAddRemoveEvent(PositionAddRemoveEvent p){
+        List<PositionSnapshot> positionSnapshots = null;
+        try {
+            positionSnapshots = tradingAPI.listOpenPositions();
+            addRemovePositionSubscriberRegistry.informSubscriobers(positionSnapshots,getSelf());
+        } catch (Exception e) {
+            LOG.warning("unable to update addRemovePositionSubscribers",e);
+        }
+
+    }
+
+    private void onSubscribeToRegisterUnRegisterPosition(
+            SubscribeToRegisterUnRegisterPosition p) {
+        addRemovePositionSubscriberRegistry.registerSubscriber(getSender(),getContext());
+    }
+
     private void onSubscribeToPositionUpdate(SubscribeToPositionUpdate subscribeToPositionUpdate) {
-        ActorRef positionActor = registry.getActorForUniqId(subscribeToPositionUpdate.getPositionId());
+        ActorRef positionActor = opuSubscriberRegistry.getActorForUniqId(subscribeToPositionUpdate.getPositionId());
         if(positionActor!=null){
             positionActor.forward(subscribeToPositionUpdate,getContext());
         }
@@ -80,32 +106,6 @@ public class PositionManager extends AbstractActor{
                 new RegisterPositionRequest(psnapshot.getPositionId(),psnapshot);
         getSelf().forward(registerPositionRequest,getContext());
     }
-
-//    private void subscribeToPositionUpdates() throws Exception{
-//        ActorRef positionManagerActor = getSelf();
-//
-//        tradingAPI.subscribeToOpenPositionUpdates(
-//                new HandyTableListenerAdapter() {
-//                    @Override
-//                    public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-//                        UpdateEvent positionUpdateEvent =
-//                                new UpdateEvent(IGClientUtility.flatJSontoMap(updateInfo.getNewValue(1)),UpdateEvent.POSITION_UPDATE);
-//                        PositionInfo positionInfo = new PositionInfo(positionUpdateEvent,s,i);
-//
-//                                if (updateInfo.getNewValue("OPU") != null)
-//                                {
-//                                    boolean isclosed=
-//                                            PositionInfo.STATUS_DELETED.equalsIgnoreCase(positionInfo.getStatus());
-//
-//                                    LOG.info("Position update i {} s {} data {}", i, s, updateInfo);
-//                                     positionManagerActor.tell(
-//                                            new PositionManager.OPU(positionInfo,isclosed),
-//                                            positionManagerActor);
-//                                }
-//                    }
-//                }
-//        );
-//    }
     private void subscribeToPositionUpdates() throws Exception{
         Consumer<UpdateInfo> consumer = updateInfo -> {
             UpdateEvent positionUpdateEvent =
@@ -138,7 +138,7 @@ public class PositionManager extends AbstractActor{
 
         String positionId = opu.getPostionInfo().getDealId();
 
-        ActorRef positionActor = registry.getActorForUniqId(positionId);
+        ActorRef positionActor = opuSubscriberRegistry.getActorForUniqId(positionId);
 
         if(positionActor!=null){
             positionActor.forward(opu,getContext());
@@ -150,20 +150,22 @@ public class PositionManager extends AbstractActor{
     }
 
     private void onListPosition(ListPositions p) {
-        Set<String> uniqIds = registry.getUniqIds();
+        Set<String> uniqIds = opuSubscriberRegistry.getUniqIds();
         getSender().tell(new ListPositionResponse(uniqIds),getSelf());
     }
 
     public void onTerminated(Terminated t) {
-        ActorRef position = t.getActor();
-        String positionId = registry.removeActor(position);
-        LOG.info("Actor for Position {} is removed",positionId);
+        ActorRef actor = t.getActor();
+        String opuSubscriberActorRef = opuSubscriberRegistry.removeActor(actor);
+        addRemovePositionSubscriberRegistry.removeActor(actor);
+        String message = Optional.ofNullable(opuSubscriberActorRef).orElse("AddRemovePositionSubscriber");
+        LOG.info("Actor {} is removed",message);
     }
 
     private void onRegiserPosition(RegisterPositionRequest msg) {
         String regPosId = msg.getPositionId();
         Props props = Position.props(regPosId);
-        registry.registerActorIfAbscent(getContext(),props,regPosId,msg);
+        opuSubscriberRegistry.registerActorIfAbscent(getContext(),props,regPosId,msg);
     }
 
 
@@ -254,4 +256,9 @@ public class PositionManager extends AbstractActor{
             return positionId;
         }
     }
+
+    public static final class SubscribeToRegisterUnRegisterPosition {
+    }
+
+    public static final class PositionAddRemoveEvent{}
 }

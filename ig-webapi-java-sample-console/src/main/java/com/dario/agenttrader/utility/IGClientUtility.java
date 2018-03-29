@@ -7,8 +7,10 @@ import com.dario.agenttrader.dto.UpdateEvent;
 import com.dario.agenttrader.dto.PositionInfo;
 import com.dario.agenttrader.marketStrategies.PositionManager;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Market;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Position;
 import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesV3.PricesItem;
@@ -39,6 +41,22 @@ public class IGClientUtility {
         Map<String,String> map = null;
         try {
             map = reader.forType(new TypeReference<Map<String, String>>(){}).readValue(json);
+        } catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+
+        return map;
+    }
+    public static Map<String,String> flatConfirmMessageMap(String json){
+        ObjectReader reader = mapper.reader();
+
+        Map<String,String> map = null;
+        try {
+            JsonNode jsonNode = reader.readTree(json);
+            ObjectNode objNode = (ObjectNode)jsonNode.elements().next();
+            objNode.remove("affectedDeals");
+            map = reader.forType(new TypeReference<Map<String, String>>(){}).readValue(objNode);
         } catch (IOException e)
         {
             e.printStackTrace();

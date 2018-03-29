@@ -65,7 +65,8 @@ public class MarketStrategySystem {
 
         marketManagerActor = system.actorOf(MarketManager.props(tradingAPI),MARKET_MANAGER);
 
-        portfolioManagerActor = system.actorOf(PortfolioManagerActor.props(tradingAPI),PORTFOLIO_MANAGER);
+        portfolioManagerActor = system.actorOf(
+                PortfolioManagerActor.props(tradingAPI,positionManagerActor),PORTFOLIO_MANAGER);
 
         triggerDefaultStrategies();
 

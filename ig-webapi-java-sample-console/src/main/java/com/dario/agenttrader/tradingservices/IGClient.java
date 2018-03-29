@@ -316,6 +316,11 @@ public class IGClient implements TradingAPI {
     }
 
     @Override
+    public void subscribeToPositionConfirms(HandyTableListenerAdapter listener) throws Exception {
+        listeners.add(streamingAPI.subscribeForConfirms(authenticationContext.getAccountId(),listener));
+    }
+
+    @Override
     public void unsubscribeLightstreamerForListner(HandyTableListenerAdapter listener) throws Exception {
             streamingAPI.unsubscribe(listener.getSubscribedTableKey());
     }

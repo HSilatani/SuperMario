@@ -235,7 +235,7 @@ public class MarketActor extends AbstractActor {
                 ,Decimal.valueOf(priceCandle.getBID_CLOSE().doubleValue())
                 ,Decimal.valueOf(Optional.ofNullable(priceCandle.getLastTradeVolume()).orElse(BigDecimal.ZERO).doubleValue()));
 
-        //registerTheCurrentBarIfItIsCompleted(newbar);
+       // registerTheCurrentBarIfItIsCompleted(newbar);
         //currentBar=newbar;
 
         updateTimeSeries(newbar);

@@ -19,6 +19,7 @@ public class TradingDataStreamingService {
     public static final String CHART_TICK = "CHART_TICK";
     public static final String CHART_CANDLE = "CHART_CANDLE";
     private static final String OPU = "OPU" ;
+    private static final String CONFIRMS ="CONFIRMS";
 
     private static TradingDataStreamingService oneAndOnlyStreamingServiceInstance = new TradingDataStreamingService();
     public static final long HEARTBEAT_CHECK_INTERVAL_MILIS = 1500l;
@@ -129,6 +130,12 @@ public class TradingDataStreamingService {
                     } catch (Exception e) {
                         LOG.warn("Subscription for PositionUpdate failed",e);
                     }
+                }else if(subscriptionKey.contains(CONFIRMS)){
+                    try {
+                        subscribeToConfirmsUpdate(consumer);
+                    } catch (Exception e) {
+                        LOG.warn("Subscription for Confirms failed",e);
+                    }
                 }
             });
         });
@@ -164,6 +171,29 @@ public class TradingDataStreamingService {
         String key= OPU+":"+subscriberUniqRef;
         return key;
     }
+    private String generateConfirmsSubscriptionKey(String subscriberUniqRef) {
+        String key= CONFIRMS+":"+subscriberUniqRef;
+        return key;
+    }
+
+    public void subscribeToConfirms(
+            String subscriberUniqRef
+            , Consumer<UpdateInfo> consumer) throws  Exception{
+        String subscriptionKey = generateConfirmsSubscriptionKey(subscriberUniqRef);
+        String streamingKey = CONFIRMS;
+        Consumer exitingSubscriber = findSubscriber(streamingKey,subscriptionKey);
+        if(exitingSubscriber == null && consumer != null){
+            subscribeToConfirmsUpdate(consumer);
+            registerSubscription(streamingKey,subscriptionKey,consumer);
+        }
+    }
+
+    private void subscribeToConfirmsUpdate(Consumer<UpdateInfo> consumer) throws Exception{
+        HandyTableListenerAdapter lightStreamerConfirmsListener = createLSListener(consumer);
+        tradingAPI.subscribeToPositionConfirms(lightStreamerConfirmsListener);
+        LOG.info("Subscribed to Confirms update");
+    }
+
     public void subscribeToOpenPositionUpdates(
             String subscriberUniqRef
             , Consumer<UpdateInfo> consumer) throws  Exception{

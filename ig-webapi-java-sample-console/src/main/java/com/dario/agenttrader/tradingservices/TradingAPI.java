@@ -39,6 +39,8 @@ public interface TradingAPI {
 
     public void subscribeToLighstreamerHeartbeat(HandyTableListenerAdapter listener) throws Exception;
 
+    public void subscribeToPositionConfirms(HandyTableListenerAdapter listener) throws Exception;
+
     PositionSnapshot createPositionSnapshot(PositionsItem position);
 
     public void closeOpenPosition(String dealId,String epic,  Direction direction, BigDecimal size) throws Exception;
