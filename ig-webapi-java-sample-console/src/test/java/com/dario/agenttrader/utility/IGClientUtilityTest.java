@@ -16,6 +16,7 @@ import java.util.*;
 
 import static junit.framework.TestCase.assertNotNull;
 import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.junit.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -173,11 +174,25 @@ public class IGClientUtilityTest {
 
     @Test
     public void testJsonConfirmMessageFlatter() {
-        String confirmMessage ="[ {\"direction\":\"SELL\",\"epic\":\"IX.D.HANGSENG.DAILY.IP\",\"stopLevel\":30050.8,\"limitLevel\":null,\"dealReference\":\"J4GFJYSABN644S4\",\"dealId\":\"DIAAAABVYCXSXAL\",\"limitDistance\":null,\"stopDistance\":null,\"expiry\":\"DFB\",\"affectedDeals\":[{\"dealId\":\"DIAAAABVYCXSXAL\",\"status\":\"OPENED\"}],\"dealStatus\":\"ACCEPTED\",\"guaranteedStop\":false,\"trailingStop\":false,\"level\":30010.8,\"reason\":\"SUCCESS\",\"status\":\"OPEN\",\"size\":1,\"profit\":null,\"profitCurrency\":null,\"date\":\"2018-03-28T20:05:03.879\",\"channel\":\"PublicRestOTC\"} ]";
+        String confirmMessage ="{\"direction\":\"SELL\",\"epic\":\"IX.D.HANGSENG.DAILY.IP\",\"stopLevel\":30050.8,\"limitLevel\":null,\"dealReference\":\"J4GFJYSABN644S4\",\"dealId\":\"DIAAAABVYCXSXAL\",\"limitDistance\":null,\"stopDistance\":null,\"expiry\":\"DFB\",\"affectedDeals\":[{\"dealId\":\"DIAAAABVYCXSXAL\",\"status\":\"OPENED\"}],\"dealStatus\":\"ACCEPTED\",\"guaranteedStop\":false,\"trailingStop\":false,\"level\":30010.8,\"reason\":\"SUCCESS\",\"status\":\"OPEN\",\"size\":1,\"profit\":null,\"profitCurrency\":null,\"date\":\"2018-03-28T20:05:03.879\",\"channel\":\"PublicRestOTC\"}";
+        String expectedDealId = "DIAAAABVYCXSXAL";
         Map<String, String> flattenedconfirm = IGClientUtility.flatConfirmMessageMap(confirmMessage);
         assertNotNull(flattenedconfirm);
+
+        String actualDealId = flattenedconfirm.get("dealId");
+        assertThat(actualDealId,equalToIgnoringCase(expectedDealId));
     }
 
+    @Test
+    public void testJsonArrayConfirmMessageFlatter() {
+        String confirmMessage ="[{\"direction\":\"SELL\",\"epic\":\"IX.D.HANGSENG.DAILY.IP\",\"stopLevel\":30050.8,\"limitLevel\":null,\"dealReference\":\"J4GFJYSABN644S4\",\"dealId\":\"DIAAAABVYCXSXAL\",\"limitDistance\":null,\"stopDistance\":null,\"expiry\":\"DFB\",\"affectedDeals\":[{\"dealId\":\"DIAAAABVYCXSXAL\",\"status\":\"OPENED\"}],\"dealStatus\":\"ACCEPTED\",\"guaranteedStop\":false,\"trailingStop\":false,\"level\":30010.8,\"reason\":\"SUCCESS\",\"status\":\"OPEN\",\"size\":1,\"profit\":null,\"profitCurrency\":null,\"date\":\"2018-03-28T20:05:03.879\",\"channel\":\"PublicRestOTC\"}]";
+        String expectedDealId = "DIAAAABVYCXSXAL";
+        Map<String, String> flattenedconfirm = IGClientUtility.flatConfirmMessageMap(confirmMessage);
+        assertNotNull(flattenedconfirm);
+
+        String actualDealId = flattenedconfirm.get("dealId");
+        assertThat(actualDealId,equalToIgnoringCase(expectedDealId));
+    }
     @Test
     public void testConvertCommaSeparatedStringToArrayList(){
         String updateStr = "[ 1016.73, 1028.73, null, 1, 1516227922478, 1051.25, -2.71, 1076.1, 1005.6 ]";

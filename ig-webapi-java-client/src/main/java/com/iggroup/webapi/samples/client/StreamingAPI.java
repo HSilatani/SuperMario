@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 public class StreamingAPI {
 
 	private static final String TRADE_PATTERN = "TRADE:{accountId}";
+	//V2-M-MESSAGE_EVENT_HANDLER|${ac}-ERS
 	private static final String ACCOUNT_BALANCE_INFO_PATTERN = "ACCOUNT:{accountId}";
 	private static final String MARKET_L1_PATTERN = "MARKET:{epic}";
 	private static final String SPRINT_MARKET_PATTERN = "MARKET:{epic}";

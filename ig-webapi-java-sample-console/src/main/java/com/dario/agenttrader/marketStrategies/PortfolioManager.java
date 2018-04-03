@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 public class PortfolioManager {
 
     private final static Logger LOG = LoggerFactory.getLogger(PortfolioManager.class);
+    public static final String DEAL_REFERENCE = "dealReference";
+    public static final String DEAL_ID = "dealId";
     private final TradingAPI tradingAPI;
     private final TradingDataStreamingService tradingDataStreamingService =TradingDataStreamingService.getInstance();
     private volatile boolean isSubscribedtoconfirms = false;
@@ -58,10 +60,18 @@ public class PortfolioManager {
             Consumer<UpdateInfo> consumer = u->
             {
                 String updateStr = u.getNewValue("CONFIRMS");
-                if (updateStr != null) {//TODO: retrieve DealStatus and forward
-                    Map update = IGClientUtility.flatConfirmMessageMap(updateStr);
-                    this.confirmUpdateConsumers.clear();
-                    LOG.info("Trade confirm update data {}", u);
+                if (updateStr != null) {
+                    Map update = new HashMap();
+                    try {
+                        update = IGClientUtility.flatConfirmMessageMap(updateStr);
+                    }catch (Exception e){
+                        LOG.warn("Unable to parse CONFIRM message",e);
+                    }
+                    this.confirmUpdateConsumers.remove(update.get(DEAL_REFERENCE));
+                    LOG.info("Trade confirm update data Ref:{}-ID:{},OutstandingConfirms:{}"
+                            , update.get(DEAL_REFERENCE)
+                            ,update.get(DEAL_ID)
+                            ,this.confirmUpdateConsumers.size());
                 }
             };
             try {
@@ -77,44 +87,57 @@ public class PortfolioManager {
         positionSnapshots=psnapsots;
     }
     private void refreshPositionsList() {
-        Duration durationSinceLastRefresh = Duration.between(Instant.now(),lastPositionListRefresh);
-        boolean isRefreshTimOutExpired =
-                lastPositionListRefresh==null || durationSinceLastRefresh.compareTo(positionRefreshTimeOut)>0;
+        boolean isRefreshTimOutExpired = true;
+        if(lastPositionListRefresh!=null){
+            Duration durationSinceLastRefresh = Duration.between(Instant.now(),lastPositionListRefresh);
+            isRefreshTimOutExpired = durationSinceLastRefresh.compareTo(positionRefreshTimeOut)>0;
+        }
 
         if(isRefreshTimOutExpired) {
-            List<PositionSnapshot> newPositionSnapshots = null;
-            try {
-                newPositionSnapshots = tradingAPI.listOpenPositions();
-                positionSnapshots = newPositionSnapshots;
-                lastPositionListRefresh=Instant.now();
-            } catch (Exception e) {
-                LOG.warn("Unable to refresh list of positions", e);
-                e.printStackTrace();
-            }
+            reloadPositionListFromBroker();
         }
     }
 
-    private void executeEnterMarketSignal(StrategyActor.TradingSignal signal) throws Exception{
-        if(stillWaitingForConfirm()){
-            LOG.info("Cant execute while waiting for confirm. Waiting since{}",lastCreatePositionTimeStamp.toString());
-            return;
+    private void reloadPositionListFromBroker() {
+        List<PositionSnapshot> newPositionSnapshots = null;
+        try {
+            newPositionSnapshots = tradingAPI.listOpenPositions();
+            positionSnapshots = newPositionSnapshots;
+            this.confirmUpdateConsumers.clear();
+            lastPositionListRefresh= Instant.now();
+        } catch (Exception e) {
+            LOG.warn("Unable to refresh list of positions", e);
+            e.printStackTrace();
         }
-        LOG.info(signal.toString());
-        refreshPositionsList();
+    }
 
-        if(thereIsNoOtherPositionOnTheSameEPIC(signal.getEpic())){
-            String dealRef = tradingAPI.createPosition(signal.getEpic(),signal.getDirection(),signal.getSize(),signal.getStopDistance());
-            setWaitForConfirmMechnism(dealRef);
-            LOG.info("Position created:{}",signal);
-        }else {
-            List<String> oppositPositions =
-                    findOpenPositionsOnOppositeDirectionOnTheSameEPIC(signal.getEpic(), signal.getDirection());
+    private Object enterMarketLock = new Object();
 
-            if (!oppositPositions.isEmpty()) {
-                String dealID = oppositPositions.get(0);
-                tradingAPI.closeOpenPosition(dealID,signal.getEpic(),signal.getDirection(),signal.size);
+    private void executeEnterMarketSignal(StrategyActor.TradingSignal signal) throws Exception{
+        synchronized (enterMarketLock) {
+            if (stillWaitingForConfirm()) {
+                LOG.info("Cant execute while waiting for confirm. Waiting since{}", lastCreatePositionTimeStamp.toString());
+                return;
+            }
+            LOG.info(signal.toString());
+            refreshPositionsList();
+
+            if (thereIsNoOtherPositionOnTheSameEPIC(signal.getEpic())) {
+                String dealRef = tradingAPI.createPosition(signal.getEpic(), signal.getDirection(), signal.getSize(), signal.getStopDistance());
+                setWaitForConfirmMechnism(dealRef);
+                LOG.info("Position created:{}", signal);
             } else {
-                LOG.info("Enter market signal for {} is ignored", signal.getEpic());
+                List<String> oppositPositions =
+                        findOpenPositionsOnOppositeDirectionOnTheSameEPIC(signal.getEpic(), signal.getDirection());
+
+                if (!oppositPositions.isEmpty()) {
+                    String dealID = oppositPositions.get(0);
+                    LOG.info("Closing position:{} on EPIC:{}", dealID, signal.getEpic());
+                    tradingAPI.closeOpenPosition(dealID, signal.getEpic(), signal.getDirection(), signal.size);
+
+                } else {
+                    LOG.info("Enter market signal for {} is ignored", signal.getEpic());
+                }
             }
         }
     }
@@ -123,9 +146,14 @@ public class PortfolioManager {
         boolean waitingForConfirm = true;
         waitingForConfirm = confirmUpdateConsumers.size()>0;
 
-        if(waitingForConfirm){
-            Duration durationSinceLastPositionCreation = Duration.between(lastCreatePositionTimeStamp,Instant.now());
-            waitingForConfirm = durationSinceLastPositionCreation.compareTo(confirmTimeOut)<0;
+        if(waitingForConfirm ){
+            if(lastCreatePositionTimeStamp!=null) {
+                Duration durationSinceLastPositionCreation = Duration.between(lastCreatePositionTimeStamp, Instant.now());
+                waitingForConfirm = durationSinceLastPositionCreation.compareTo(confirmTimeOut) < 0;
+            }else{
+                waitingForConfirm=false;
+                reloadPositionListFromBroker();
+            }
         }
 
         return waitingForConfirm;
@@ -140,7 +168,9 @@ public class PortfolioManager {
 
 
     private boolean thereIsNoOtherPositionOnTheSameEPIC(String epic) {
-        boolean thereIsNoOtherPositionOnThisEPIC = findPositionsOnTheSameEpic(epic).isEmpty();
+        List<PositionSnapshot> positionsOnTheSameMarket = findPositionsOnTheSameEpic(epic);
+        LOG.info("Positions opened on {}:{}",epic,positionsOnTheSameMarket);
+        boolean thereIsNoOtherPositionOnThisEPIC = positionsOnTheSameMarket.isEmpty();
         return thereIsNoOtherPositionOnThisEPIC;
     }
 

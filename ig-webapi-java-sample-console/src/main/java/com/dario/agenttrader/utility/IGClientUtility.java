@@ -51,18 +51,26 @@ public class IGClientUtility {
     public static Map<String,String> flatConfirmMessageMap(String json){
         ObjectReader reader = mapper.reader();
 
-        Map<String,String> map = null;
+        Map<String,String> mapToReturn = null;
+        List<Map<String,Object>> list = null;
+        Map<String,Object> tmpMap = null;
+
         try {
-            JsonNode jsonNode = reader.readTree(json);
-            ObjectNode objNode = (ObjectNode)jsonNode.elements().next();
-            objNode.remove("affectedDeals");
-            map = reader.forType(new TypeReference<Map<String, String>>(){}).readValue(objNode);
+            Object obj = reader.forType(new TypeReference<Object>(){}).readValue(json);
+            list = (obj instanceof List)?(List)obj:new ArrayList<>();
+            tmpMap = (obj instanceof Map)?(Map)obj:list.get(0);
+
         } catch (IOException e)
         {
             e.printStackTrace();
         }
 
-        return map;
+        mapToReturn = tmpMap.entrySet()
+                    .stream()
+                    .filter(e->e.getValue() instanceof String)
+                    .collect(Collectors.toMap(e->e.getKey(),e->(String)e.getValue()));
+
+        return mapToReturn;
     }
 
     public static Map<String,String[]> findDelta(PositionInfo newPositionInfo, PositionInfo positionInfo) {
