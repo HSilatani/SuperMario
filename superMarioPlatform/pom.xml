@@ -10,10 +10,10 @@
       <version>2.2.0-SNAPSHOT</version>
    </parent>
    <packaging>war</packaging>
-   <name>IG Web API Java Spring Boot Sample</name>
+   <name>Dario Super MArio Trading Platform</name>
    <description>Spring Boot sample application for accessing the IG REST and Streaming APIs</description>
 
-   <artifactId>ig-webapi-java-sample-console</artifactId>
+   <artifactId>superMarioPlatform</artifactId>
 
    <properties>
       <spring-boot.version>1.5.8.RELEASE</spring-boot.version>

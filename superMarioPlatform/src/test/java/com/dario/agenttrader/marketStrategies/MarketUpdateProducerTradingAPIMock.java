@@ -2,6 +2,7 @@ package com.dario.agenttrader.marketStrategies;
 
 import com.dario.agenttrader.domain.CandleResolution;
 import com.dario.agenttrader.domain.Direction;
+import com.dario.agenttrader.dto.DealConfirmation;
 import com.dario.agenttrader.dto.MarketInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
 import com.dario.agenttrader.tradingservices.TradingAPI;
@@ -76,6 +77,11 @@ public class MarketUpdateProducerTradingAPIMock implements TradingAPI {
     @Override
     public void closeOpenPosition(String dealId, String epic, Direction direction, BigDecimal size) throws Exception {
 
+    }
+
+    @Override
+    public DealConfirmation confirmPosition(String dealRef) {
+        return null;
     }
 
     @Override

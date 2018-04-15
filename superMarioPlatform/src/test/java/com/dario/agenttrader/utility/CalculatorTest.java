@@ -1,18 +1,15 @@
 package com.dario.agenttrader.utility;
 
 
-import com.dario.agenttrader.dto.PriceTick;
-import org.junit.Test;
 
-import java.math.BigDecimal;
+
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.ZonedDateTime;
 
-import static org.hamcrest.Matchers.closeTo;
+import org.junit.Test;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.junit.MatcherAssert.assertThat;
-import static org.junit.Assert.*;
 
 public class CalculatorTest {
 

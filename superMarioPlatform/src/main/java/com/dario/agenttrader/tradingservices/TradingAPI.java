@@ -1,6 +1,7 @@
 package com.dario.agenttrader.tradingservices;
 
 import com.dario.agenttrader.domain.CandleResolution;
+import com.dario.agenttrader.dto.DealConfirmation;
 import com.dario.agenttrader.dto.MarketInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
 import com.dario.agenttrader.domain.Direction;
@@ -44,6 +45,8 @@ public interface TradingAPI {
     PositionSnapshot createPositionSnapshot(PositionsItem position);
 
     public void closeOpenPosition(String dealId,String epic,  Direction direction, BigDecimal size) throws Exception;
+
+    public DealConfirmation confirmPosition(String dealRef);
 
     public MarketInfo getMarketInfo(String epic) throws Exception;
 

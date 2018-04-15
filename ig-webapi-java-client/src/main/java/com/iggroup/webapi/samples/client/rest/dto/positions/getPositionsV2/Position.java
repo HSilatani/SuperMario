@@ -30,6 +30,11 @@ Deal identifier
 private String dealId;
 
 /*
+Deal identifier
+*/
+private String dealReference;
+
+/*
 Deal size
 */
 private BigDecimal size;
@@ -82,6 +87,8 @@ public String getCreatedDateUTC() { return createdDateUTC; }
 public void setCreatedDateUTC(String createdDateUTC) { this.createdDateUTC=createdDateUTC; }
 public String getDealId() { return dealId; }
 public void setDealId(String dealId) { this.dealId=dealId; }
+public String getDealReference() { return dealReference; }
+public void setDealReference(String dealReference) { this.dealReference=dealReference; }
 public BigDecimal getSize() { return size; }
 public void setSize(BigDecimal size) { this.size=size; }
 public Direction getDirection() { return direction; }

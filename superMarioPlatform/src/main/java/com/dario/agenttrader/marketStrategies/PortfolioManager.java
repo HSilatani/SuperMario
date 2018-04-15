@@ -111,10 +111,7 @@ public class PortfolioManager {
         }
     }
 
-    private Object enterMarketLock = new Object();
-
     private void executeEnterMarketSignal(StrategyActor.TradingSignal signal) throws Exception{
-        synchronized (enterMarketLock) {
             if (stillWaitingForConfirm()) {
                 LOG.info("Cant execute while waiting for confirm. Waiting since{}", lastCreatePositionTimeStamp.toString());
                 return;
@@ -139,7 +136,6 @@ public class PortfolioManager {
                     LOG.info("Enter market signal for {} is ignored", signal.getEpic());
                 }
             }
-        }
     }
 
     private boolean stillWaitingForConfirm() {

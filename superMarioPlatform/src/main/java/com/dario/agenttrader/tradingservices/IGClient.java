@@ -2,6 +2,7 @@ package com.dario.agenttrader.tradingservices;
 
 import com.dario.agenttrader.ApplicationBootStrapper;
 import com.dario.agenttrader.domain.CandleResolution;
+import com.dario.agenttrader.dto.DealConfirmation;
 import com.dario.agenttrader.dto.MarketInfo;
 import com.dario.agenttrader.dto.PositionSnapshot;
 import com.dario.agenttrader.domain.Direction;
@@ -15,6 +16,7 @@ import com.iggroup.webapi.samples.client.rest.AuthenticationResponseAndConversat
 import com.iggroup.webapi.samples.client.rest.ConversationContext;
 import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.AccountsItem;
 import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.GetAccountsV1Response;
+import com.iggroup.webapi.samples.client.rest.dto.getDealConfirmationV1.GetDealConfirmationV1Response;
 import com.iggroup.webapi.samples.client.rest.dto.markets.getMarketDetailsV2.GetMarketDetailsV2Response;
 import com.iggroup.webapi.samples.client.rest.dto.markets.getMarketDetailsV2.MarketOrderPreference;
 import com.iggroup.webapi.samples.client.rest.dto.markets.getMarketDetailsV3.GetMarketDetailsV3Response;
@@ -432,6 +434,25 @@ public class IGClient implements TradingAPI {
                closePositionRequest.getOrderType(), closePositionRequest.getLevel());
        restAPI.closeOTCPositionV1(authenticationContext.getConversationContext(), closePositionRequest);
    }
+
+   @Override
+   public DealConfirmation confirmPosition(String dealRef){
+       GetDealConfirmationV1Response igDealConf =
+               null;
+       DealConfirmation dealConf = null;
+       try {
+           igDealConf = restAPI.getDealConfirmationV1(authenticationContext.getConversationContext(),dealRef);
+           dealConf =new  DealConfirmation(
+               igDealConf.getDealReference()
+               ,igDealConf.getDealId()
+               ,igDealConf.getDealStatus().name());
+
+       } catch (Exception e) {
+           LOG.warn("Unable to retrieve DealConfirmation",e);
+       }
+
+       return dealConf;
+    }
 
 
     @Override
