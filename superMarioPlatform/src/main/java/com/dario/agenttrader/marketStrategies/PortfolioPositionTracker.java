@@ -38,11 +38,11 @@ public class PortfolioPositionTracker{
         registerPosition(position, positionsOnEpic);
     }
 
-    private void registerPosition(Position position, Map<String, Position> positionsOnEpic) {
+    private  void registerPosition(Position position, Map<String, Position> positionsOnEpic) {
         epicToPositions.put(position.getEpic(),positionsOnEpic);
         dealRefToPosition.put(position.getDealRef(),position);
     }
-    private void unRegisterPosition(String dealRef) {
+    private  void unRegisterPosition(String dealRef) {
         Position position = dealRefToPosition.remove(dealRef);
         epicToPositions.get(position.getEpic()).remove(dealRef);
 
@@ -64,7 +64,7 @@ public class PortfolioPositionTracker{
         confirmPosition(position.getEpic(),position.getDealRef(),position.dealId,accepted);
 
     }
-    public List<Position> getPositionsOnEpic(String epic){
+    public  List<Position> getPositionsOnEpic(String epic){
         reconcilePositionsIfReconciliationIsDue();
         Map<String,Position> positionsOnEpic
                 = Optional.ofNullable(epicToPositions.get(epic)).orElse(new ConcurrentHashMap<String, Position>());
@@ -136,6 +136,14 @@ public class PortfolioPositionTracker{
 
     public void setPositionReloadSupplier(Supplier<List<PositionSnapshot>> positionReloadSupplier) {
         this.positionReloadSupplier = positionReloadSupplier;
+    }
+
+    public Supplier<List<PositionSnapshot>> getPositionReloadSupplier() {
+        return positionReloadSupplier;
+    }
+
+    public Function<String, DealConfirmation> getDealConfirmationFunction() {
+        return dealConfirmationFunction;
     }
 
     public void setDealConfirmationFunction(Function<String, DealConfirmation> dealConfirmationFunction) {

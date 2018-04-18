@@ -5,6 +5,7 @@ package com.dario.agenttrader.utility;
 
 import java.time.LocalDateTime;
 import java.time.Month;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 import org.junit.Test;
@@ -22,7 +23,7 @@ public class CalculatorTest {
 
 
         LocalDateTime expectedLocalDateTime = LocalDateTime.of(2018, Month.MARCH, 8, 19, 0,0);
-        ZonedDateTime expectedZonedDateTime = expectedLocalDateTime.atZone(Calculator.ZONE_ID_LONDON);
+        ZonedDateTime expectedZonedDateTime = expectedLocalDateTime.atZone(ZoneId.of("UTC"));
         //
         ZonedDateTime zonedLocalDateActual = Calculator.zonedDateTimeFromString(localDatTimeToParse);
         assertThat(zonedLocalDateActual,equalTo(expectedZonedDateTime));

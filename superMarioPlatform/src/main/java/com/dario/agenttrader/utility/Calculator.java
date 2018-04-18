@@ -30,12 +30,12 @@ public class Calculator {
         if(isNumeric){
             epochTimeLong = decimalValue.get().longValue();
             Instant fromEpochMilli = Instant.ofEpochMilli(Long.valueOf(epochTimeLong));
-            zonedDateTime = fromEpochMilli.atZone(Calculator.ZONE_ID_LONDON);
+            zonedDateTime = fromEpochMilli.atZone(ZoneId.of("UTC"));
         }
 
         if(zonedDateTime == null){
             LocalDateTime localDateTime = LocalDateTime.parse(dateTime);
-            zonedDateTime = localDateTime.atZone(ZONE_ID_LONDON);
+            zonedDateTime = localDateTime.atZone(ZoneId.of("UTC"));
         }
 
         return zonedDateTime;
