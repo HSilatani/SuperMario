@@ -1,47 +1,42 @@
 package com.dario.agenttrader.marketStrategies;
 
-import com.dario.agenttrader.domain.Direction;
+import com.dario.agenttrader.dto.Position;
 import com.dario.agenttrader.dto.PositionSnapshot;
+import com.dario.agenttrader.dto.TradingSignal;
 import com.dario.agenttrader.tradingservices.TradingAPI;
-import static com.dario.agenttrader.marketStrategies.StrategyActor.TradingSignal.EDIT_POSITION_INSTRUCTION;
-import static com.dario.agenttrader.marketStrategies.StrategyActor.TradingSignal.ENTER_MARKET_INSTRUCTION;
+import static com.dario.agenttrader.dto.TradingSignal.EDIT_POSITION_INSTRUCTION;
+import static com.dario.agenttrader.dto.TradingSignal.ENTER_MARKET_INSTRUCTION;
 
 
 import com.dario.agenttrader.tradingservices.TradingDataStreamingService;
-import com.dario.agenttrader.utility.IGClientUtility;
-import com.lightstreamer.ls_client.UpdateInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
+import java.util.List;
 
 public class PortfolioManager {
 
     private final static Logger LOG = LoggerFactory.getLogger(PortfolioManager.class);
-    public static final String DEAL_REFERENCE = "dealReference";
-    public static final String DEAL_ID = "dealId";
+
     private final TradingAPI tradingAPI;
     private final TradingDataStreamingService tradingDataStreamingService =TradingDataStreamingService.getInstance();
     private volatile boolean isSubscribedtoconfirms = false;
-    private List<PositionSnapshot> positionSnapshots = new ArrayList<>();
-    private Instant lastPositionListRefresh = null;
-    private Duration positionRefreshTimeOut = Duration.ofSeconds(180);
-    private volatile Set<String> confirmUpdateConsumers = new ConcurrentSkipListSet();
-    private volatile Instant lastCreatePositionTimeStamp = null;
-    private Duration confirmTimeOut = Duration.ofSeconds(2);
+
+    private long confirmExpiryTimeOutMillis = Duration.ofSeconds(4).toMillis();
+    private long positionReconciliationTimoutMillis = Duration.ofSeconds(10).toMillis();
+
+    private PortfolioPositionTracker positionTracker = new PortfolioPositionTracker();
 
     public PortfolioManager(TradingAPI ptradingAPI){
         tradingAPI=ptradingAPI;
+        positionTracker.setDealConfirmationFunction(dealRef-> tradingAPI.confirmPosition(dealRef));
+        positionTracker.setPositionReloadSupplier(()->tradingAPI.listOpenPositions());
+        positionTracker.setConfirmExpiryTimeOutMili(confirmExpiryTimeOutMillis);
+        positionTracker.setPositionReconciliationTimeOutMili(positionReconciliationTimoutMillis);
     }
 
-    public void processTradingSignal(StrategyActor.TradingSignal signal){
+    public void processTradingSignal(TradingSignal signal){
         subscribeToConfirms();
         try {
             if (EDIT_POSITION_INSTRUCTION.equalsIgnoreCase(signal.getInstruction())) {
@@ -50,32 +45,17 @@ public class PortfolioManager {
                 executeEnterMarketSignal(signal);
             }
         }catch (Exception ex){
-            ex.printStackTrace();
             LOG.warn("Unable to execute signal",ex);
         }
     }
 
     private void subscribeToConfirms() {
         if(!isSubscribedtoconfirms){
-            Consumer<UpdateInfo> consumer = u->
-            {
-                String updateStr = u.getNewValue("CONFIRMS");
-                if (updateStr != null) {
-                    Map update = new HashMap();
-                    try {
-                        update = IGClientUtility.flatConfirmMessageMap(updateStr);
-                    }catch (Exception e){
-                        LOG.warn("Unable to parse CONFIRM message",e);
-                    }
-                    this.confirmUpdateConsumers.remove(update.get(DEAL_REFERENCE));
-                    LOG.info("Trade confirm update data Ref:{}-ID:{},OutstandingConfirms:{}"
-                            , update.get(DEAL_REFERENCE)
-                            ,update.get(DEAL_ID)
-                            ,this.confirmUpdateConsumers.size());
-                }
-            };
             try {
-                tradingDataStreamingService.subscribeToConfirms(this.toString(),consumer);
+                tradingDataStreamingService.subscribeToDealConfirmStream(
+                        this.toString()
+                        ,dealConf->positionTracker.confirmPosition(dealConf)
+                );
                 isSubscribedtoconfirms=true;
             } catch (Exception e) {
                 LOG.warn("Unable to subscribe to CONFIRMS",e);
@@ -83,124 +63,27 @@ public class PortfolioManager {
         }
     }
 
-    public void updatePositionList(List<PositionSnapshot> psnapsots) {
-        positionSnapshots=psnapsots;
-    }
-    private void refreshPositionsList() {
-        boolean isRefreshTimOutExpired = true;
-        if(lastPositionListRefresh!=null){
-            Duration durationSinceLastRefresh = Duration.between(Instant.now(),lastPositionListRefresh);
-            isRefreshTimOutExpired = durationSinceLastRefresh.compareTo(positionRefreshTimeOut)>0;
-        }
-
-        if(isRefreshTimOutExpired) {
-            reloadPositionListFromBroker();
-        }
-    }
-
-    private void reloadPositionListFromBroker() {
-        List<PositionSnapshot> newPositionSnapshots = null;
-        try {
-            newPositionSnapshots = tradingAPI.listOpenPositions();
-            positionSnapshots = newPositionSnapshots;
-            this.confirmUpdateConsumers.clear();
-            lastPositionListRefresh= Instant.now();
-        } catch (Exception e) {
-            LOG.warn("Unable to refresh list of positions", e);
-            e.printStackTrace();
-        }
-    }
-
-    private void executeEnterMarketSignal(StrategyActor.TradingSignal signal) throws Exception{
-            if (stillWaitingForConfirm()) {
-                LOG.info("Cant execute while waiting for confirm. Waiting since{}", lastCreatePositionTimeStamp.toString());
-                return;
-            }
+    private void executeEnterMarketSignal(TradingSignal signal) throws Exception{
             LOG.info(signal.toString());
-            refreshPositionsList();
+            boolean noOtherPositionsOnEpic = positionTracker.epicHasNoPosition(signal.getEpic());
 
-            if (thereIsNoOtherPositionOnTheSameEPIC(signal.getEpic())) {
-                String dealRef = tradingAPI.createPosition(signal.getEpic(), signal.getDirection(), signal.getSize(), signal.getStopDistance());
-                setWaitForConfirmMechnism(dealRef);
+            if (noOtherPositionsOnEpic) {
+                Position position = tradingAPI.createPosition(signal);
+                positionTracker.trackNewPosition(position);
                 LOG.info("Position created:{}", signal);
             } else {
-                List<String> oppositPositions =
-                        findOpenPositionsOnOppositeDirectionOnTheSameEPIC(signal.getEpic(), signal.getDirection());
+                Position oppositePosition = positionTracker.getOppositePosition(signal);
 
-                if (!oppositPositions.isEmpty()) {
-                    String dealID = oppositPositions.get(0);
-                    LOG.info("Closing position:{} on EPIC:{}", dealID, signal.getEpic());
-                    tradingAPI.closeOpenPosition(dealID, signal.getEpic(), signal.getDirection(), signal.size);
-
+                if (oppositePosition!=null){
+                    LOG.info("Closing position:{} on EPIC:{}", oppositePosition.getDealId(),oppositePosition.getEpic());
+                    tradingAPI.closeOpenPosition(oppositePosition);
                 } else {
                     LOG.info("Enter market signal for {} is ignored", signal.getEpic());
                 }
             }
     }
 
-    private boolean stillWaitingForConfirm() {
-        boolean waitingForConfirm = true;
-        waitingForConfirm = confirmUpdateConsumers.size()>0;
-
-        if(waitingForConfirm ){
-            if(lastCreatePositionTimeStamp!=null) {
-                Duration durationSinceLastPositionCreation = Duration.between(lastCreatePositionTimeStamp, Instant.now());
-                waitingForConfirm = durationSinceLastPositionCreation.compareTo(confirmTimeOut) < 0;
-            }else{
-                waitingForConfirm=false;
-                reloadPositionListFromBroker();
-            }
-        }
-
-        return waitingForConfirm;
-    }
-
-    private void setWaitForConfirmMechnism(String dealRef) {
-        if(dealRef!=null) {
-            confirmUpdateConsumers.add(dealRef);
-            lastCreatePositionTimeStamp = Instant.now();
-        }
-    }
-
-
-    private boolean thereIsNoOtherPositionOnTheSameEPIC(String epic) {
-        List<PositionSnapshot> positionsOnTheSameMarket = findPositionsOnTheSameEpic(epic);
-        LOG.info("Positions opened on {}:{}",epic,positionsOnTheSameMarket);
-        boolean thereIsNoOtherPositionOnThisEPIC = positionsOnTheSameMarket.isEmpty();
-        return thereIsNoOtherPositionOnThisEPIC;
-    }
-
-    private List<PositionSnapshot> findPositionsOnTheSameEpic(String epic) {
-        Predicate<PositionSnapshot> checkIfMatchesEpic = new Predicate<PositionSnapshot>() {
-            @Override
-            public boolean test(PositionSnapshot p) {
-                boolean test = epic.equalsIgnoreCase(p.getPositionsItem().getMarket().getEpic());
-                return test;
-            }
-        };
-        return positionSnapshots.stream().filter(checkIfMatchesEpic).collect(Collectors.toList());
-    }
-
-    private List<String> findOpenPositionsOnOppositeDirectionOnTheSameEPIC(String epic, Direction direction) {
-        List<String> dealIDsOnTheOppositeDirection = new ArrayList<>();
-        List<PositionSnapshot> matchingPositions = findPositionsOnTheSameEpic(epic);
-        if(!matchingPositions.isEmpty()){
-            Direction positionDirection = IGClientUtility.convertFromIGDirection(
-                    matchingPositions.get(0).getPositionsItem().getPosition().getDirection()
-            );
-
-            if(direction.opposite().getDirection()==positionDirection.getDirection()){
-                dealIDsOnTheOppositeDirection.add(
-                        matchingPositions.get(0).getPositionsItem().getPosition().getDealId()
-                );
-            }
-        }
-
-        return dealIDsOnTheOppositeDirection;
-    }
-
-
-    private void executeEditPositionSignal(StrategyActor.TradingSignal signal){
+    private void executeEditPositionSignal(TradingSignal signal){
         try {
             tradingAPI.editPosition(signal.getDealId()
                     ,signal.getNewStopLevel()
@@ -211,8 +94,13 @@ public class PortfolioManager {
         }
     }
 
+    public void updatePositionList(List<PositionSnapshot> psnapsots){
+        positionTracker.reconcilePositions(psnapsots);
+    }
 
     public void initialize() {
         subscribeToConfirms();
     }
+
+
 }

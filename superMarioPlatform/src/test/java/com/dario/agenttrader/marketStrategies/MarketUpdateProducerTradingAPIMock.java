@@ -2,9 +2,8 @@ package com.dario.agenttrader.marketStrategies;
 
 import com.dario.agenttrader.domain.CandleResolution;
 import com.dario.agenttrader.domain.Direction;
-import com.dario.agenttrader.dto.DealConfirmation;
-import com.dario.agenttrader.dto.MarketInfo;
-import com.dario.agenttrader.dto.PositionSnapshot;
+import com.dario.agenttrader.dto.*;
+import com.dario.agenttrader.dto.Position;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.AccountsItem;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
@@ -40,7 +39,7 @@ public class MarketUpdateProducerTradingAPIMock implements TradingAPI {
     }
 
     @Override
-    public List<PositionSnapshot> listOpenPositions() throws Exception {
+    public List<PositionSnapshot> listOpenPositions() throws RuntimeException {
         return null;
     }
 
@@ -55,8 +54,8 @@ public class MarketUpdateProducerTradingAPIMock implements TradingAPI {
     }
 
     @Override
-    public String createPosition(String epic, Direction direction, BigDecimal size, BigDecimal stopDistance) throws Exception {
-        return "";
+    public Position createPosition(TradingSignal signal) throws Exception {
+        return null;
     }
 
     @Override
@@ -75,7 +74,7 @@ public class MarketUpdateProducerTradingAPIMock implements TradingAPI {
     }
 
     @Override
-    public void closeOpenPosition(String dealId, String epic, Direction direction, BigDecimal size) throws Exception {
+    public void closeOpenPosition(Position positionx) throws Exception {
 
     }
 

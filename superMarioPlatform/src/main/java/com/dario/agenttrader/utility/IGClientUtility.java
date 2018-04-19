@@ -1,10 +1,7 @@
 package com.dario.agenttrader.utility;
 
 import com.dario.agenttrader.domain.Direction;
-import com.dario.agenttrader.dto.PriceCandle;
-import com.dario.agenttrader.dto.PriceTick;
-import com.dario.agenttrader.dto.UpdateEvent;
-import com.dario.agenttrader.dto.PositionInfo;
+import com.dario.agenttrader.dto.*;
 import com.dario.agenttrader.marketStrategies.PositionManager;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -71,6 +68,17 @@ public class IGClientUtility {
                     .collect(Collectors.toMap(e->e.getKey(),e->(String)e.getValue()));
 
         return mapToReturn;
+    }
+
+    public static DealConfirmation convertConfirmMessageToDealConfirm(String json){
+        Map<String,String> confirmKeyValue = flatConfirmMessageMap(json);
+        String dealRef = confirmKeyValue.get(DealConfirmation.DEAL_REFERENCE);
+        String dealId = confirmKeyValue.get(DealConfirmation.DEAL_ID);
+        String dealStatus = confirmKeyValue.get(DealConfirmation.DEAL_STATUS);
+        String dealEpic = confirmKeyValue.get(DealConfirmation.DEAL_EPIC);
+        DealConfirmation dealConf = new DealConfirmation(dealEpic,dealRef,dealId,dealStatus);
+
+        return dealConf;
     }
 
     public static Map<String,String[]> findDelta(PositionInfo newPositionInfo, PositionInfo positionInfo) {

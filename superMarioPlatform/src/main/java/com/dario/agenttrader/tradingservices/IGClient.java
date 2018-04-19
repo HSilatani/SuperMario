@@ -2,11 +2,8 @@ package com.dario.agenttrader.tradingservices;
 
 import com.dario.agenttrader.ApplicationBootStrapper;
 import com.dario.agenttrader.domain.CandleResolution;
-import com.dario.agenttrader.dto.DealConfirmation;
-import com.dario.agenttrader.dto.MarketInfo;
-import com.dario.agenttrader.dto.PositionSnapshot;
+import com.dario.agenttrader.dto.*;
 import com.dario.agenttrader.domain.Direction;
-import com.dario.agenttrader.dto.PriceCandle;
 import com.dario.agenttrader.utility.Calculator;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.iggroup.webapi.samples.PropertiesUtil;
@@ -147,11 +144,17 @@ public class IGClient implements TradingAPI {
     }
     
     @Override
-    public List<PositionSnapshot> listOpenPositions() throws Exception {
+    public List<PositionSnapshot> listOpenPositions() throws RuntimeException {
 
         ConversationContext conversationContext = authenticationContext.getConversationContext();
-        GetPositionsV2Response positionsResponse = restAPI.getPositionsV2(conversationContext);
-      LOG.info("Open positions Amoo Amir: {}", positionsResponse.getPositions().size());
+        GetPositionsV2Response positionsResponse = null;
+        try {
+            positionsResponse = restAPI.getPositionsV2(conversationContext);
+        } catch (Exception e) {
+            LOG.warn("Unable to load list of positions",e);
+            throw new RuntimeException(e);
+        }
+        LOG.info("Open positions Amoo Amir: {}", positionsResponse.getPositions().size());
 
       List<PositionSnapshot> positionSnapshotList = positionsResponse.getPositions().stream()
               .map( positionsItem -> createPositionSnapshot(positionsItem))
@@ -365,28 +368,28 @@ public class IGClient implements TradingAPI {
    }
 
    @Override
-   public String createPosition(String epic, Direction direction, BigDecimal size, BigDecimal stopDistance) throws Exception{
+   public Position createPosition(TradingSignal signal) throws Exception{
 
            com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.Direction igDirection
-                   = convertToIGDirection(direction);
-           MarketInfo marketInfo = this.getMarketInfo(epic);
+                   = convertToIGDirection(signal.getDirection());
+           MarketInfo marketInfo = this.getMarketInfo(signal.getEpic());
 
            CreateOTCPositionV1Request createPositionRequest = new CreateOTCPositionV1Request();
-           createPositionRequest.setEpic(epic);
+           createPositionRequest.setEpic(signal.getEpic());
            createPositionRequest.setExpiry(marketInfo.getExpiry());
            createPositionRequest.setDirection(igDirection);
 
            createPositionRequest.setOrderType(OrderType.MARKET);
 
            createPositionRequest.setCurrencyCode("GBP");
-           createPositionRequest.setSize(size);
-           createPositionRequest.setStopDistance(stopDistance);
+           createPositionRequest.setSize(signal.getSize());
+           createPositionRequest.setStopDistance(signal.getStopDistance());
            createPositionRequest.setGuaranteedStop(false);
            createPositionRequest.setForceOpen(true);
 
            LOG.info(">>> Creating {} position epic={}, expiry={} size={} orderType={} level={} currency={}"
                    ,createPositionRequest.getDirection()
-                   ,epic
+                   ,createPositionRequest.getEpic()
                    , createPositionRequest.getExpiry()
                    , createPositionRequest.getSize()
                    , createPositionRequest.getOrderType()
@@ -394,7 +397,14 @@ public class IGClient implements TradingAPI {
                    , createPositionRequest.getCurrencyCode()
            );
            CreateOTCPositionV1Response response = restAPI.createOTCPositionV1(authenticationContext.getConversationContext(), createPositionRequest);
-           return response.getDealReference();
+           Position position = new Position(
+                   createPositionRequest.getEpic()
+                   ,response.getDealReference()
+                   ,createPositionRequest.getSize().doubleValue()
+                   ,signal.getDirection()
+
+           );
+           return position;
     }
 
    private com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.Direction convertToIGDirection(Direction pDirection){
@@ -410,16 +420,16 @@ public class IGClient implements TradingAPI {
    }
 
    @Override
-   public void closeOpenPosition(String dealId,String epic,  Direction direction, BigDecimal size) throws Exception {
+   public void closeOpenPosition(Position position) throws Exception {
        GetMarketDetailsV2Response marketDetails = restAPI.getMarketDetailsV2(
-               authenticationContext.getConversationContext(), epic);
+               authenticationContext.getConversationContext(), position.getEpic());
 
-       Direction closeDirection = direction.opposite();
+       Direction closeDirection = position.getDirection().opposite();
        CloseOTCPositionV1Request closePositionRequest = new CloseOTCPositionV1Request();
-       closePositionRequest.setDealId(dealId);
+       closePositionRequest.setDealId(position.getDealId());
        closePositionRequest.setDirection(
                com.iggroup.webapi.samples.client.rest.dto.positions.otc.closeOTCPositionV1.Direction.valueOf(closeDirection.toString()));
-       closePositionRequest.setSize(size);
+       closePositionRequest.setSize(new BigDecimal(position.getSize()));
        closePositionRequest.setTimeInForce(TimeInForce.FILL_OR_KILL);
 
        if(marketDetails.getDealingRules().getMarketOrderPreference() != MarketOrderPreference.NOT_AVAILABLE) {
@@ -430,7 +440,7 @@ public class IGClient implements TradingAPI {
        }
        closePositionRequest.setTimeInForce(TimeInForce.FILL_OR_KILL);
 
-       LOG.info("<<< Closing position: dealId={} direction={} size={} orderType={} level={}", dealId, direction, size,
+       LOG.info("<<< Closing position: dealId={} direction={} size={} orderType={} level={}", position.getDealId(), position.getDirection(), position.getSize(),
                closePositionRequest.getOrderType(), closePositionRequest.getLevel());
        restAPI.closeOTCPositionV1(authenticationContext.getConversationContext(), closePositionRequest);
    }

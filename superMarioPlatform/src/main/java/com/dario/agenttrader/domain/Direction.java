@@ -29,6 +29,10 @@ public class Direction {
     public boolean isBuy() {
         return direction==BUY_INT;
     }
+    //TODO:test
+    public boolean isInOppositDirection(Direction targetDirection){
+        return (this.getDirection()+targetDirection.getDirection())==0;
+    }
 
     @Override
     public String toString() {

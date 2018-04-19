@@ -3,9 +3,9 @@ package com.dario.agenttrader.strategies;
 import com.dario.agenttrader.domain.Direction;
 import com.dario.agenttrader.dto.MarketInfo;
 import com.dario.agenttrader.dto.PriceTick;
+import com.dario.agenttrader.dto.TradingSignal;
 import com.dario.agenttrader.marketStrategies.MarketActor;
 import com.dario.agenttrader.marketStrategies.Position;
-import com.dario.agenttrader.marketStrategies.StrategyActor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.ta4j.core.*;
@@ -149,25 +149,25 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         );
 
         if ( isStrategyShouldEnter && isSpreadWithinRange && isBuySlopeSatisfied) {
-            StrategyActor.TradingSignal tradingSignal = createTradingSignal(direction);
+            TradingSignal tradingSignal = createTradingSignal(direction);
             strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("ENTER POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
         } else if ( isStrategyShouldExit && isSpreadWithinRange && isSellSlopeSatisfied) {
-            StrategyActor.TradingSignal tradingSignal = createTradingSignal(direction.opposite());
+            TradingSignal tradingSignal = createTradingSignal(direction.opposite());
             strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("EXIT POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
         }
 
     }
 
-    private StrategyActor.TradingSignal createTradingSignal(Direction pDirection) {
+    private TradingSignal createTradingSignal(Direction pDirection) {
         String epic = getEpic();
         LOG.debug("CREATING TRADING SIGNAL FOR {}",epic);
 
         BigDecimal stopDistance = staticMarketInfo.getMinNormalStopLimitDistance().multiply(
                 new BigDecimal(stopDistanceMultiplier));
         BigDecimal size = Optional.ofNullable(dealSize).orElse(staticMarketInfo.getMinDealSize());
-        StrategyActor.TradingSignal tradingSignal= StrategyActor.TradingSignal.createEnterMarketSignal(
+        TradingSignal tradingSignal= TradingSignal.createEnterMarketSignal(
                 epic
                 ,pDirection
                 ,size

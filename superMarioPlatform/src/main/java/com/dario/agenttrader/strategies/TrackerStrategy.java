@@ -3,7 +3,6 @@ package com.dario.agenttrader.strategies;
 import com.dario.agenttrader.dto.*;
 import com.dario.agenttrader.marketStrategies.MarketActor;
 import com.dario.agenttrader.marketStrategies.Position;
-import com.dario.agenttrader.marketStrategies.StrategyActor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,8 +121,8 @@ public class TrackerStrategy extends AbstractMarketStrategy {
                         ,oldTrigger
                         ,nextTrigger.get()
                         ,currentLevel);
-                StrategyActor.TradingSignal strategySignal =
-                        StrategyActor.TradingSignal.createEditPositionSignal(
+                TradingSignal strategySignal =
+                        TradingSignal.createEditPositionSignal(
                                 positionInfo.getDealId()
                                 ,newStop
                                 ,null

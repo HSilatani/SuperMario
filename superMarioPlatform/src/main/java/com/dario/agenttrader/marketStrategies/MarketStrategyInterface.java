@@ -1,5 +1,7 @@
 package com.dario.agenttrader.marketStrategies;
 
+import com.dario.agenttrader.dto.TradingSignal;
+
 import java.util.ArrayList;
 import java.util.function.Consumer;
 
@@ -13,6 +15,6 @@ public interface MarketStrategyInterface {
 
     public ArrayList<String>  getListOfObservedPositions();
 
-    public void setStrategyInstructionConsumer(Consumer<StrategyActor.TradingSignal> pstrategyInstructionConsumer);
+    public void setStrategyInstructionConsumer(Consumer<TradingSignal> pstrategyInstructionConsumer);
 
 }

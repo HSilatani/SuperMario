@@ -7,6 +7,7 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.dario.agenttrader.dto.PositionSnapshot;
+import com.dario.agenttrader.dto.TradingSignal;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 
 import java.util.List;
@@ -38,7 +39,7 @@ public class PortfolioManagerActor extends AbstractActor{
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(StrategyActor.TradingSignal.class,this::onTradingSignal)
+                .match(TradingSignal.class,this::onTradingSignal)
                 .match(List.class,this::onPositionAddRemove)
                 .build();
     }
@@ -49,7 +50,7 @@ public class PortfolioManagerActor extends AbstractActor{
     }
 
 
-    private void onTradingSignal(StrategyActor.TradingSignal signal) {
+    private void onTradingSignal(TradingSignal signal) {
         portfolioManager.processTradingSignal(signal);
     }
 

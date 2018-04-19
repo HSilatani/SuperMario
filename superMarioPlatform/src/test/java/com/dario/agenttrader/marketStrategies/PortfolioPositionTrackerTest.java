@@ -3,6 +3,7 @@ package com.dario.agenttrader.marketStrategies;
 import com.dario.agenttrader.TestPositionProvider;
 import com.dario.agenttrader.domain.Direction;
 import com.dario.agenttrader.dto.DealConfirmation;
+import com.dario.agenttrader.dto.Position;
 import com.dario.agenttrader.dto.PositionSnapshot;
 import com.dario.agenttrader.utility.IGClientUtility;
 import org.junit.Test;
@@ -33,7 +34,7 @@ public class PortfolioPositionTrackerTest {
     public void testTrackNewPositionBasicAcceptAndRejectConfirm(){
         PortfolioPositionTracker positionTracker = new PortfolioPositionTracker();
         positionTracker.setPositionReloadSupplier(()->new ArrayList<>());
-        positionTracker.setDealConfirmationFunction(dref->new DealConfirmation(dref,"",PortfolioPositionTracker.STATUS_REJECTED));
+        positionTracker.setDealConfirmationFunction(dref->new DealConfirmation(dref,"",DealConfirmation.STATUS_REJECTED));
 
         String epic= "IX.HNG";
         String ref = "AASSD";
@@ -42,10 +43,10 @@ public class PortfolioPositionTrackerTest {
         double size = 1.5;
         Direction direction = Direction.BUY();
 
-        PortfolioPositionTracker.Position position1 = new PortfolioPositionTracker.Position(epic,ref,size,direction);
+        Position position1 = new Position(epic,ref,size,direction);
         positionTracker.trackNewPosition(position1);
 
-        List<PortfolioPositionTracker.Position> confirmedPositions =  positionTracker.getConfirmedPositionsOnEpic(epic);
+        List<Position> confirmedPositions =  positionTracker.getConfirmedPositionsOnEpic(epic);
         assertThat(confirmedPositions,is(empty()));
 
         positionTracker.confirmPosition(epic,"WRONG_REF",dealId,true);
@@ -72,7 +73,7 @@ public class PortfolioPositionTrackerTest {
         String dealRef="ADASDASDRQEQREGSGSGSG@£$@£$!!";
         PortfolioPositionTracker positionTracker = getPortfolioPositionTrackerWithPositionReloadSupplierAndAcceptConfirmFunction(
                 confirmExpiryTimeOutMili,positionReconciliationTimoutMili,dealRef);
-        PortfolioPositionTracker.Position position1 = createTestBuyPosition(dealRef,1000);
+        Position position1 = createTestBuyPosition(dealRef,1000);
         positionTracker.trackNewPosition(position1);
         //
         boolean isConfirmed = positionTracker.isPositionConfirmed(dealRef);
@@ -86,7 +87,7 @@ public class PortfolioPositionTrackerTest {
         //
         String dealRef = "AASSD";
 
-        PortfolioPositionTracker.Position position1 = createTestBuyPosition(dealRef,600);
+        Position position1 = createTestBuyPosition(dealRef,600);
         positionTracker.trackNewPosition(position1);
         //
         boolean isConfirmed = positionTracker.isPositionConfirmed(dealRef);
@@ -95,7 +96,7 @@ public class PortfolioPositionTrackerTest {
         boolean doesPositionExist = positionTracker.doesPositionExist(dealRef);
         assertThat(doesPositionExist,is(false));
         //
-        List<PortfolioPositionTracker.Position> listOfPositionsOnEpic = positionTracker.getPositionsOnEpic(position1.getEpic());
+        List<Position> listOfPositionsOnEpic = positionTracker.getPositionsOnEpic(position1.getEpic());
         assertThat(listOfPositionsOnEpic,is(empty()));
     }
     @Test
@@ -127,7 +128,7 @@ public class PortfolioPositionTrackerTest {
         PortfolioPositionTracker positionTracker = getPortfolioPositionTrackerWithPositionReloadSupplierWithConfirmNotFoundFunction(confirmExpiryTimeOutMili, positionReconciliationTimoutMili);
         //
         String dealRef = "AASSD";
-        PortfolioPositionTracker.Position position1 = createTestBuyPosition(dealRef,1000);
+        Position position1 = createTestBuyPosition(dealRef,1000);
         positionTracker.trackNewPosition(position1);
         //
         boolean isConfirmed = positionTracker.isPositionConfirmed(dealRef);
@@ -143,7 +144,7 @@ public class PortfolioPositionTrackerTest {
         PortfolioPositionTracker positionTracker = getPortfolioPositionTrackerWithPositionReloadSupplierWithConfirmNotFoundFunction(confirmExpiryTimeOutMili, positionReconciliationTimoutMili);
         //
         String dealRef = "AASSD";
-        PortfolioPositionTracker.Position position1 = createTestBuyPosition(dealRef,10);
+        Position position1 = createTestBuyPosition(dealRef,10);
         positionTracker.trackNewPosition(position1);
         //
         boolean isConfirmed = positionTracker.isPositionConfirmed(dealRef);
@@ -172,9 +173,9 @@ public class PortfolioPositionTrackerTest {
             signals.add(()->{
                 String dealRef = "AASSD" + UUID.randomUUID().toString();
                 LOG.info("Checking if there is a position on {}",epic);
-                if (positionTracker.getPositionsOnEpic(epic).isEmpty()) {
-                    PortfolioPositionTracker.Position position1 = createTestBuyPosition(dealRef, 10);
-                    positionTracker.trackNewPosition(position1);
+                Position position1 = createTestBuyPosition(dealRef, 10);
+                boolean tracked = positionTracker.trackIfEPICHasNoOtherPosition(position1);
+                if (tracked) {
                     LOG.info("Horray created my position on attempt number {}",attempt);
                 }
                 return  dealRef;
@@ -223,7 +224,7 @@ public class PortfolioPositionTrackerTest {
                 dRef-> new DealConfirmation(
                         positionSnapshot.getPositionsItem().getPosition().getDealReference()
                         ,positionSnapshot.getPositionsItem().getPosition().getDealId()
-                        ,PortfolioPositionTracker.STATUS_REJECTED));
+                        ,DealConfirmation.STATUS_REJECTED));
         return positionTracker;
     }
     private PortfolioPositionTracker getPortfolioPositionTrackerWithPositionReloadSupplierAndAcceptConfirmFunction(
@@ -238,18 +239,18 @@ public class PortfolioPositionTrackerTest {
                 dRef-> new DealConfirmation(
                         dealRef
                         ,"DIASDFSFDS£@£$@£$@£$"
-                        ,PortfolioPositionTracker.STATUS_ACEPTED));
+                        ,DealConfirmation.STATUS_ACEPTED));
         return positionTracker;
     }
-    private PortfolioPositionTracker.Position createTestBuyPosition(String epic,String dealRef,int positionAgeInMilis) {
+    private Position createTestBuyPosition(String epic, String dealRef, int positionAgeInMilis) {
         String dealId = "dealID";
         String createdDateTime =
                 Instant.now().minusMillis(positionAgeInMilis).atZone(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);;
         double size = 1.5;
         Direction direction = Direction.BUY();
-        return new PortfolioPositionTracker.Position(epic,dealRef,size,direction,createdDateTime);
+        return new Position(epic,dealRef,size,direction,createdDateTime);
     }
-    private PortfolioPositionTracker.Position createTestBuyPosition(String dealRef,int positionAgeInMilis) {
+    private Position createTestBuyPosition(String dealRef, int positionAgeInMilis) {
         String epic= "IX.HNG";
         String dealId = "dealID";
         return  createTestBuyPosition(epic,dealRef,positionAgeInMilis);
@@ -266,7 +267,7 @@ public class PortfolioPositionTrackerTest {
         return positionTracker;
     }
 
-    private PortfolioPositionTracker.Position createtestPosition(PositionSnapshot positionSnapshot) {
+    private Position createtestPosition(PositionSnapshot positionSnapshot) {
         String epic= positionSnapshot.getPositionsItem().getMarket().getEpic();
         String ref =  positionSnapshot.getPositionsItem().getPosition().getDealId();
         double size = positionSnapshot.getPositionsItem().getPosition().getSize().doubleValue();
@@ -275,6 +276,6 @@ public class PortfolioPositionTrackerTest {
         );
         String createdDateTime = positionSnapshot.getPositionsItem().getPosition().getCreatedDateUTC();
 
-        return new PortfolioPositionTracker.Position(epic,ref,size,direction,createdDateTime);
+        return new Position(epic,ref,size,direction,createdDateTime);
     }
 }

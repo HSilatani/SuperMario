@@ -1,9 +1,7 @@
 package com.dario.agenttrader.tradingservices;
 
 import com.dario.agenttrader.domain.CandleResolution;
-import com.dario.agenttrader.dto.DealConfirmation;
-import com.dario.agenttrader.dto.MarketInfo;
-import com.dario.agenttrader.dto.PositionSnapshot;
+import com.dario.agenttrader.dto.*;
 import com.dario.agenttrader.domain.Direction;
 import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.AccountsItem;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
@@ -28,7 +26,7 @@ public interface TradingAPI {
 
     void subscribeToLighstreamerAccountUpdates() throws Exception;
 
-    List<PositionSnapshot> listOpenPositions() throws Exception;
+    List<PositionSnapshot> listOpenPositions() throws RuntimeException;
 
     PositionSnapshot getPositionSnapshot(String positionId) throws Exception;
 
@@ -36,15 +34,15 @@ public interface TradingAPI {
     public void editPosition(String dealId, BigDecimal newStop, BigDecimal newLimit) throws Exception;
 
 
-    public String createPosition(String epic, Direction direction, BigDecimal size, BigDecimal stopDistance) throws Exception;
+    public Position createPosition(TradingSignal signal) throws Exception;
+
+    public void closeOpenPosition(Position position) throws Exception;
 
     public void subscribeToLighstreamerHeartbeat(HandyTableListenerAdapter listener) throws Exception;
 
     public void subscribeToPositionConfirms(HandyTableListenerAdapter listener) throws Exception;
 
     PositionSnapshot createPositionSnapshot(PositionsItem position);
-
-    public void closeOpenPosition(String dealId,String epic,  Direction direction, BigDecimal size) throws Exception;
 
     public DealConfirmation confirmPosition(String dealRef);
 

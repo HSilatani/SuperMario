@@ -1,7 +1,9 @@
 package com.dario.agenttrader.tradingservices;
 
 import com.dario.agenttrader.domain.CandleResolution;
+import com.dario.agenttrader.dto.DealConfirmation;
 import com.dario.agenttrader.dto.PriceCandle;
+import com.dario.agenttrader.utility.IGClientUtility;
 import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
 import com.lightstreamer.ls_client.UpdateInfo;
 import org.slf4j.Logger;
@@ -175,7 +177,28 @@ public class TradingDataStreamingService {
         String key= CONFIRMS+":"+subscriberUniqRef;
         return key;
     }
+    public void subscribeToDealConfirmStream(String subscriberUniqRef, Consumer<DealConfirmation> dealConfConsumer) throws Exception{
+        Consumer<UpdateInfo> consumer = u->
+        {
+            String updateStr = u.getNewValue("CONFIRMS");
+            if (updateStr != null) {
+                DealConfirmation dealConf = null;
+                try {
+                    dealConf = IGClientUtility.convertConfirmMessageToDealConfirm(updateStr);
+                }catch (Exception e){
+                    LOG.warn("Unable to parse CONFIRM message",e);
+                }
+                dealConfConsumer.accept(dealConf);
+                LOG.info("Trade confirm update data Ref:{} ID:{} EPIC:{}"
+                        , dealConf.getDealRef()
+                        ,dealConf.getDealId()
+                        ,dealConf.getEpic()
+                );
+            }
+        };
 
+        subscribeToConfirms(subscriberUniqRef,consumer);
+    }
     public void subscribeToConfirms(
             String subscriberUniqRef
             , Consumer<UpdateInfo> consumer) throws  Exception{

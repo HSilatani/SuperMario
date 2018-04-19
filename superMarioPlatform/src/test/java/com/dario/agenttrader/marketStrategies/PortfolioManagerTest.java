@@ -5,6 +5,8 @@ import static org.mockito.Mockito.*;
 
 import com.dario.agenttrader.domain.Direction;
 import com.dario.agenttrader.dto.PositionSnapshot;
+import com.dario.agenttrader.dto.TradingSignal;
+import com.dario.agenttrader.tradingservices.TradingDataStreamingService;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Market;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Position;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
@@ -13,6 +15,9 @@ import org.junit.*;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,6 +32,7 @@ public class PortfolioManagerTest {
     public  void setup() {
         mockedTradingAPI = mock(TradingAPI.class);
         portfolioManager = new PortfolioManager(mockedTradingAPI);
+        TradingDataStreamingService.getInstance().initializeStreamingService(mockedTradingAPI);
     }
 
     @After
@@ -44,8 +50,8 @@ public class PortfolioManagerTest {
 
         BigDecimal size = BigDecimal.ONE;
         BigDecimal stopDistance = BigDecimal.ONE;
-        StrategyActor.TradingSignal signal =
-                StrategyActor.TradingSignal.createEnterMarketSignal(
+        TradingSignal signal =
+                TradingSignal.createEnterMarketSignal(
                         testEpic,
                         Direction.BUY(),
                         size,
@@ -53,18 +59,18 @@ public class PortfolioManagerTest {
 
         portfolioManager.processTradingSignal(signal);
 
-        verify(mockedTradingAPI,never()).createPosition(testEpic,Direction.BUY(),size,stopDistance);
+        verify(mockedTradingAPI,never()).createPosition(signal);
     }
     @Test
     public void testProcessTradingSignalWhenThereIsNOOpenPositionOnTheMarket() throws Exception {
         List<PositionSnapshot> positionSnapshots = new ArrayList();
         when(mockedTradingAPI.listOpenPositions()).thenReturn(positionSnapshots);
-
+        when(mockedTradingAPI.createPosition(any(TradingSignal.class))).thenReturn(createDummyMarioPosition());
         BigDecimal size = BigDecimal.ONE;
         BigDecimal stopDistance = BigDecimal.ONE;
         Direction directionBuy = Direction.BUY();
-        StrategyActor.TradingSignal signal =
-                StrategyActor.TradingSignal.createEnterMarketSignal(
+        TradingSignal signal =
+                TradingSignal.createEnterMarketSignal(
                         testEpic,
                         directionBuy,
                         size,
@@ -72,7 +78,19 @@ public class PortfolioManagerTest {
 
         portfolioManager.processTradingSignal(signal);
 
-        verify(mockedTradingAPI,times(1)).createPosition(testEpic,directionBuy,size,stopDistance);
+        verify(mockedTradingAPI,times(1)).createPosition(signal);
+    }
+
+    private com.dario.agenttrader.dto.Position createDummyMarioPosition() {
+            long positionAgeInMilis=10;
+            String dealId = "dealID";
+            String epic="IX.HAN";
+            String dealRef="REF1";
+            String createdDateTime =
+                    Instant.now().minusMillis(positionAgeInMilis).atZone(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);;
+            double size = 1.5;
+            Direction direction = Direction.BUY();
+            return new com.dario.agenttrader.dto.Position(epic,dealRef,size,direction,createdDateTime);
     }
 
     @Test
@@ -82,7 +100,7 @@ public class PortfolioManagerTest {
         BigDecimal newLimitLevel = BigDecimal.ONE;
 
 
-        StrategyActor.TradingSignal signal = StrategyActor.TradingSignal.createEditPositionSignal(
+        TradingSignal signal = TradingSignal.createEditPositionSignal(
                 dealId
                 ,newStopLevel
                 ,newLimitLevel
@@ -108,7 +126,10 @@ public class PortfolioManagerTest {
         Position position =
                 new Position();
         position.setDealId("DEAL_ID");
+        position.setDealReference("DEAL_REF");
         position.setDirection(com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Direction.SELL);
+        position.setSize(BigDecimal.ONE);
+        position.setCreatedDateUTC(Instant.now().atZone(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
         return position;
     }
 
