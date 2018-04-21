@@ -43,7 +43,7 @@ public class Application {
 
         igClient.subscribeToLighstreamerAccountUpdates();
 
-        igClient.listOpenPositions();
+        igClient.listOpenPositionsWithProfitAndLoss();
 
        Thread.sleep(20000);
         igClient.disconnect();

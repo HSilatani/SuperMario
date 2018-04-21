@@ -1,17 +1,16 @@
-package com.dario.agenttrader.marketStrategies;
+package com.dario.agenttrader.actors;
 
 import akka.actor.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.DeciderBuilder;
+import com.dario.agenttrader.marketStrategies.MarketStrategyInterface;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.utility.ActorRegistery;
 import scala.concurrent.duration.Duration;
 
-import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 
-import static akka.actor.SupervisorStrategy.escalate;
 import static akka.actor.SupervisorStrategy.resume;
 
 

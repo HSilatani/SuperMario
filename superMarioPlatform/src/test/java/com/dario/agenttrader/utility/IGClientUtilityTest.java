@@ -1,14 +1,12 @@
 package com.dario.agenttrader.utility;
 
 
-import com.dario.agenttrader.dto.PositionInfo;
-import com.dario.agenttrader.dto.PositionSnapshot;
-import com.dario.agenttrader.dto.PriceTick;
-import com.dario.agenttrader.dto.UpdateEvent;
-import com.dario.agenttrader.marketStrategies.PositionManager;
+import com.dario.agenttrader.domain.PositionInfo;
+import com.dario.agenttrader.domain.PositionSnapshot;
+import com.dario.agenttrader.domain.PriceTick;
+import com.dario.agenttrader.domain.UpdateEvent;
+import com.dario.agenttrader.actors.PositionManager;
 import com.dario.agenttrader.TestPositionProvider;
-import org.hamcrest.Matchers;
-import org.hamcrest.number.BigDecimalCloseTo;
 import org.junit.Test;
 
 import java.math.BigDecimal;

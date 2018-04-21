@@ -1,13 +1,10 @@
 package com.dario.agenttrader.utility;
 
-import com.dario.agenttrader.domain.Direction;
-import com.dario.agenttrader.dto.*;
-import com.dario.agenttrader.marketStrategies.PositionManager;
+import com.dario.agenttrader.domain.*;
+import com.dario.agenttrader.actors.PositionManager;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Market;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Position;
 import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesV3.PricesItem;

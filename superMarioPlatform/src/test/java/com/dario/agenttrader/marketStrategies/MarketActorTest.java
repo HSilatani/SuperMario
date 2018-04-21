@@ -5,21 +5,13 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
 import akka.testkit.javadsl.TestKit;
-import com.dario.agenttrader.dto.MarketInfo;
-import com.dario.agenttrader.dto.PositionSnapshot;
+import com.dario.agenttrader.actors.MarketActor;
+import com.dario.agenttrader.actors.MarketManager;
 import com.dario.agenttrader.tradingservices.TradingAPI;
-import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.AccountsItem;
-import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
-import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
-import com.lightstreamer.ls_client.UpdateInfo;
 import org.hamcrest.Matchers;
 import org.junit.*;
 import scala.concurrent.duration.FiniteDuration;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.*;

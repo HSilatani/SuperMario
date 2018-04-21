@@ -1,9 +1,6 @@
 package com.dario.agenttrader.marketStrategies;
 
-import com.dario.agenttrader.domain.CandleResolution;
-import com.dario.agenttrader.domain.Direction;
-import com.dario.agenttrader.dto.*;
-import com.dario.agenttrader.dto.Position;
+import com.dario.agenttrader.domain.*;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.AccountsItem;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
@@ -39,10 +36,13 @@ public class MarketUpdateProducerTradingAPIMock implements TradingAPI {
     }
 
     @Override
+    public List<PositionSnapshot> listOpenPositionsWithProfitAndLoss() throws RuntimeException {
+        return null;
+    }
+    @Override
     public List<PositionSnapshot> listOpenPositions() throws RuntimeException {
         return null;
     }
-
     @Override
     public PositionSnapshot getPositionSnapshot(String positionId) throws Exception {
         return null;

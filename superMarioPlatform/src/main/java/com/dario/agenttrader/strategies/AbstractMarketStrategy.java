@@ -1,6 +1,6 @@
 package com.dario.agenttrader.strategies;
 
-import com.dario.agenttrader.dto.TradingSignal;
+import com.dario.agenttrader.domain.TradingSignal;
 import com.dario.agenttrader.marketStrategies.MarketStrategyInterface;
 
 import java.util.ArrayList;

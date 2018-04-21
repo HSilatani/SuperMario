@@ -1,4 +1,4 @@
-package com.dario.agenttrader.marketStrategies;
+package com.dario.agenttrader.actors;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -6,8 +6,7 @@ import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import com.dario.agenttrader.domain.CandleResolution;
-import com.dario.agenttrader.dto.*;
+import com.dario.agenttrader.domain.*;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.tradingservices.TradingDataStreamingService;
 import com.dario.agenttrader.utility.Calculator;
@@ -28,7 +27,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Consumer;
 
-import static com.dario.agenttrader.marketStrategies.MarketManager.*;
+import static com.dario.agenttrader.actors.MarketManager.*;
 
 //TODO: Cant recover for bad input or failure
 public class MarketActor extends AbstractActor {
@@ -109,7 +108,7 @@ public class MarketActor extends AbstractActor {
         Consumer<UpdateInfo> consumer = updateInfo -> {
             PriceTick chartPriceTick = IGClientUtility.extractMarketPriceTick(updateInfo);
             MarketUpdate<PriceTick> marketUpdate = new MarketUpdate(chartPriceTick,staticMarketInfo);
-            LOG.info("Chart data {}", updateInfo);
+            LOG.debug("Chart data {}", updateInfo);
             getSelf().tell(new MarketUpdated(epic, marketUpdate),getSelf());
         };
         //TODO: TradinsDataStreamingService should be memeber var and passed to the Actor

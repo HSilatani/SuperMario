@@ -1,17 +1,13 @@
-package com.dario.agenttrader.marketStrategies;
+package com.dario.agenttrader.actors;
 
 
 import akka.actor.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.japi.pf.DeciderBuilder;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.utility.ActorRegistery;
 import java.util.Map;
 import java.util.Set;
-
-import static akka.actor.SupervisorStrategy.escalate;
-import static akka.actor.SupervisorStrategy.stop;
 
 public class MarketManager extends AbstractActorWithTimers{
 

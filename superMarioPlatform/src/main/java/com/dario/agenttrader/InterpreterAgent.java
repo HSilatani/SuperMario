@@ -1,8 +1,8 @@
 package com.dario.agenttrader;
 
 import com.dario.agenttrader.bots.SlackBot;
-import com.dario.agenttrader.dto.PositionInfo;
-import com.dario.agenttrader.dto.PositionSnapshot;
+import com.dario.agenttrader.domain.PositionInfo;
+import com.dario.agenttrader.domain.PositionSnapshot;
 
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -12,8 +12,8 @@ import java.util.stream.Collectors;
 
 
 import com.dario.agenttrader.marketStrategies.MarketStrategySystem;
-import com.dario.agenttrader.marketStrategies.Position;
-import com.dario.agenttrader.marketStrategies.PositionManager;
+import com.dario.agenttrader.actors.Position;
+import com.dario.agenttrader.actors.PositionManager;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
 import org.slf4j.Logger;
@@ -52,7 +52,7 @@ public class InterpreterAgent {
         String reply = "Oops 0_0";
 
         try {
-            List<PositionSnapshot> positionSnapshots = tradingAPI.listOpenPositions();
+            List<PositionSnapshot> positionSnapshots = tradingAPI.listOpenPositionsWithProfitAndLoss();
             reply = formatPositionList(positionSnapshots);
 
         } catch (Exception e) {

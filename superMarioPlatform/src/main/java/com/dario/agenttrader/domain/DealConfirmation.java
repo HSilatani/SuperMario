@@ -1,4 +1,4 @@
-package com.dario.agenttrader.dto;
+package com.dario.agenttrader.domain;
 
 public class DealConfirmation {
     public static final String DEAL_REFERENCE = "dealReference";

@@ -1,4 +1,4 @@
-package com.dario.agenttrader.marketStrategies;
+package com.dario.agenttrader.actors;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -6,10 +6,12 @@ import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import com.dario.agenttrader.dto.UpdateEvent;
+import com.dario.agenttrader.domain.UpdateEvent;
+import com.dario.agenttrader.marketStrategies.MarketStrategyInterface;
+import com.dario.agenttrader.marketStrategies.MarketStrategySystem;
 import com.dario.agenttrader.strategies.TrackerStrategy;
 import com.dario.agenttrader.utility.IGClientUtility;
-import com.dario.agenttrader.dto.PositionInfo;
+import com.dario.agenttrader.domain.PositionInfo;
 import com.dario.agenttrader.utility.SubscriberActorRegistery;
 
 import java.util.ArrayList;

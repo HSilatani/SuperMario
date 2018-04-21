@@ -1,4 +1,4 @@
-package com.dario.agenttrader.dto;
+package com.dario.agenttrader.domain;
 
 import java.util.Map;
 

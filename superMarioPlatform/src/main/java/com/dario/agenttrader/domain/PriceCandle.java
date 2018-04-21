@@ -1,7 +1,6 @@
-package com.dario.agenttrader.dto;
+package com.dario.agenttrader.domain;
 
 import java.math.BigDecimal;
-import java.sql.Struct;
 import java.util.Optional;
 
 

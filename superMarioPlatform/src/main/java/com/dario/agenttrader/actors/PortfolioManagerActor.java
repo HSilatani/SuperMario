@@ -1,4 +1,4 @@
-package com.dario.agenttrader.marketStrategies;
+package com.dario.agenttrader.actors;
 
 
 import akka.actor.AbstractActor;
@@ -6,8 +6,9 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import com.dario.agenttrader.dto.PositionSnapshot;
-import com.dario.agenttrader.dto.TradingSignal;
+import com.dario.agenttrader.domain.PositionSnapshot;
+import com.dario.agenttrader.domain.TradingSignal;
+import com.dario.agenttrader.marketStrategies.PortfolioManager;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 
 import java.util.List;

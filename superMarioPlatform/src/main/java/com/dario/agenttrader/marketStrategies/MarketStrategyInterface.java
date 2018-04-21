@@ -1,6 +1,8 @@
 package com.dario.agenttrader.marketStrategies;
 
-import com.dario.agenttrader.dto.TradingSignal;
+import com.dario.agenttrader.actors.MarketActor;
+import com.dario.agenttrader.actors.Position;
+import com.dario.agenttrader.domain.TradingSignal;
 
 import java.util.ArrayList;
 import java.util.function.Consumer;

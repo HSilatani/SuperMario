@@ -4,8 +4,8 @@ package com.dario.agenttrader.marketStrategies;
 import static org.mockito.Mockito.*;
 
 import com.dario.agenttrader.domain.Direction;
-import com.dario.agenttrader.dto.PositionSnapshot;
-import com.dario.agenttrader.dto.TradingSignal;
+import com.dario.agenttrader.domain.PositionSnapshot;
+import com.dario.agenttrader.domain.TradingSignal;
 import com.dario.agenttrader.tradingservices.TradingDataStreamingService;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Market;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Position;
@@ -13,6 +13,7 @@ import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Posit
 import org.junit.*;
 
 import com.dario.agenttrader.tradingservices.TradingAPI;
+import org.mockito.Mockito;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -53,7 +54,7 @@ public class PortfolioManagerTest {
         TradingSignal signal =
                 TradingSignal.createEnterMarketSignal(
                         testEpic,
-                        Direction.BUY(),
+                        Direction.SELL(),
                         size,
                         stopDistance);
 
@@ -62,9 +63,33 @@ public class PortfolioManagerTest {
         verify(mockedTradingAPI,never()).createPosition(signal);
     }
     @Test
+    public void testProcessTradingSignalWhenThereIsAnOpenPositionOnOppositeDirection() throws Exception {
+        List<PositionSnapshot> positionSnapshots =
+                createPositionSnapsohtsListWithAPositionOnTestEPIC();
+        when(mockedTradingAPI.listOpenPositions()).thenReturn(positionSnapshots);
+
+        BigDecimal size = BigDecimal.ONE;
+        BigDecimal stopDistance = BigDecimal.ONE;
+        TradingSignal signal =
+                TradingSignal.createEnterMarketSignal(
+                        testEpic,
+                        Direction.BUY(),
+                        size,
+                        stopDistance);
+
+        portfolioManager.processTradingSignal(signal);
+        verify(mockedTradingAPI,never()).createPosition(signal);
+
+        portfolioManager.processTradingSignal(signal);
+
+        verify(mockedTradingAPI, Mockito.times(1)).createPosition(signal);;
+        verify(mockedTradingAPI, Mockito.times(1)).closeOpenPosition(any());
+        verify(mockedTradingAPI, Mockito.times(1)).listOpenPositions();
+    }
+    @Test
     public void testProcessTradingSignalWhenThereIsNOOpenPositionOnTheMarket() throws Exception {
         List<PositionSnapshot> positionSnapshots = new ArrayList();
-        when(mockedTradingAPI.listOpenPositions()).thenReturn(positionSnapshots);
+        when(mockedTradingAPI.listOpenPositionsWithProfitAndLoss()).thenReturn(positionSnapshots);
         when(mockedTradingAPI.createPosition(any(TradingSignal.class))).thenReturn(createDummyMarioPosition());
         BigDecimal size = BigDecimal.ONE;
         BigDecimal stopDistance = BigDecimal.ONE;
@@ -81,16 +106,16 @@ public class PortfolioManagerTest {
         verify(mockedTradingAPI,times(1)).createPosition(signal);
     }
 
-    private com.dario.agenttrader.dto.Position createDummyMarioPosition() {
+    private com.dario.agenttrader.domain.Position createDummyMarioPosition() {
             long positionAgeInMilis=10;
-            String dealId = "dealID";
+            String dealId="dealID";
             String epic="IX.HAN";
             String dealRef="REF1";
             String createdDateTime =
                     Instant.now().minusMillis(positionAgeInMilis).atZone(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);;
             double size = 1.5;
             Direction direction = Direction.BUY();
-            return new com.dario.agenttrader.dto.Position(epic,dealRef,size,direction,createdDateTime);
+            return new com.dario.agenttrader.domain.Position(epic,dealRef,size,direction,createdDateTime);
     }
 
     @Test
@@ -114,7 +139,7 @@ public class PortfolioManagerTest {
         market.setEpic(testEpic);
         PositionsItem positionItem = new PositionsItem();
         positionItem.setMarket(market);
-        Position position = createDummyPosition();
+        Position position = createDummySellPosition();
         positionItem.setPosition(position);
         PositionSnapshot positionSnapshot = new PositionSnapshot(positionItem);
         List<PositionSnapshot> positionSnapShots = new ArrayList();
@@ -122,7 +147,7 @@ public class PortfolioManagerTest {
         return  positionSnapShots;
     }
 
-    private Position createDummyPosition() {
+    private Position createDummySellPosition() {
         Position position =
                 new Position();
         position.setDealId("DEAL_ID");

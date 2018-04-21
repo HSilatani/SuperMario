@@ -1,8 +1,8 @@
 package com.dario.agenttrader;
 
 
-import com.dario.agenttrader.dto.PositionSnapshot;
-import com.dario.agenttrader.marketStrategies.PositionManager;
+import com.dario.agenttrader.domain.PositionSnapshot;
+import com.dario.agenttrader.actors.PositionManager;
 import com.dario.agenttrader.utility.Calculator;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Direction;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Market;
@@ -10,7 +10,6 @@ import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Posit
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 

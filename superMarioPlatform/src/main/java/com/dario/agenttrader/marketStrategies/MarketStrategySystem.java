@@ -3,6 +3,10 @@ package com.dario.agenttrader.marketStrategies;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
+import com.dario.agenttrader.actors.MarketManager;
+import com.dario.agenttrader.actors.PortfolioManagerActor;
+import com.dario.agenttrader.actors.PositionManager;
+import com.dario.agenttrader.actors.StrategyManager;
 import com.dario.agenttrader.domain.Direction;
 import com.dario.agenttrader.strategies.ReEntryStrategy;
 import com.dario.agenttrader.tradingservices.TradingAPI;

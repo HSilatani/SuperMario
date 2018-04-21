@@ -1,7 +1,5 @@
 package com.dario.agenttrader.domain;
 
-import com.dario.agenttrader.dto.PriceCandle;
-
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;

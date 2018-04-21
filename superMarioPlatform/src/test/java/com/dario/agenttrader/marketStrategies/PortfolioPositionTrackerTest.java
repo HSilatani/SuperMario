@@ -2,9 +2,9 @@ package com.dario.agenttrader.marketStrategies;
 
 import com.dario.agenttrader.TestPositionProvider;
 import com.dario.agenttrader.domain.Direction;
-import com.dario.agenttrader.dto.DealConfirmation;
-import com.dario.agenttrader.dto.Position;
-import com.dario.agenttrader.dto.PositionSnapshot;
+import com.dario.agenttrader.domain.DealConfirmation;
+import com.dario.agenttrader.domain.Position;
+import com.dario.agenttrader.domain.PositionSnapshot;
 import com.dario.agenttrader.utility.IGClientUtility;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -31,7 +31,7 @@ public class PortfolioPositionTrackerTest {
 
 
     @Test
-    public void testTrackNewPositionBasicAcceptAndRejectConfirm(){
+    public void testTrackNewPositionBasicAcceptAndRejectConfirmForBUYPosition(){
         PortfolioPositionTracker positionTracker = new PortfolioPositionTracker();
         positionTracker.setPositionReloadSupplier(()->new ArrayList<>());
         positionTracker.setDealConfirmationFunction(dref->new DealConfirmation(dref,"",DealConfirmation.STATUS_REJECTED));
@@ -48,23 +48,70 @@ public class PortfolioPositionTrackerTest {
 
         List<Position> confirmedPositions =  positionTracker.getConfirmedPositionsOnEpic(epic);
         assertThat(confirmedPositions,is(empty()));
+        assertThat(positionTracker.epicHasNoPosition(epic),is(false));
 
         positionTracker.confirmPosition(epic,"WRONG_REF",dealId,true);
         confirmedPositions =  positionTracker.getConfirmedPositionsOnEpic(epic);
         assertThat(confirmedPositions,is(empty()));
+        assertThat(positionTracker.epicHasNoPosition(epic),is(false));
 
         positionTracker.confirmPosition("WRONG_REF",ref,dealId,true);
         confirmedPositions =  positionTracker.getConfirmedPositionsOnEpic(epic);
         assertThat(confirmedPositions,is(empty()));
+        assertThat(positionTracker.epicHasNoPosition(epic),is(false));
 
         positionTracker.confirmPosition(epic,ref,dealId,true);
         confirmedPositions =  positionTracker.getConfirmedPositionsOnEpic(epic);
         assertThat(confirmedPositions,hasItem(position1));
         assertThat(confirmedPositions,hasSize(1));
+        assertThat(positionTracker.epicHasNoPosition(epic),is(false));
 
         positionTracker.confirmPosition(epic,ref,dealId,false);
         confirmedPositions =  positionTracker.getConfirmedPositionsOnEpic(epic);
         assertThat(confirmedPositions,is(empty()));
+        assertThat(positionTracker.epicHasNoPosition(epic),is(true));
+    }
+    @Test
+    public void testTrackNewPositionBasicAcceptAndRejectConfirmForSELLPosition(){
+        PortfolioPositionTracker positionTracker = new PortfolioPositionTracker();
+        positionTracker.setPositionReloadSupplier(()->new ArrayList<>());
+        positionTracker.setDealConfirmationFunction(dref->new DealConfirmation(dref,"",DealConfirmation.STATUS_REJECTED));
+
+        String epic= "IX.HNG";
+        String ref = "AASSD";
+        String dealId = "dealID";
+
+        double size = 1.5;
+        Direction direction = Direction.SELL();
+
+        Position position1 = new Position(epic,ref,size,direction);
+        positionTracker.trackNewPosition(position1);
+
+        List<Position> confirmedPositions =  positionTracker.getConfirmedPositionsOnEpic(epic);
+        assertThat(positionTracker.epicHasNoPosition(epic),is(false));
+        assertThat(confirmedPositions,is(empty()));
+
+        positionTracker.confirmPosition(epic,"WRONG_REF",dealId,true);
+        confirmedPositions =  positionTracker.getConfirmedPositionsOnEpic(epic);
+        assertThat(positionTracker.epicHasNoPosition(epic),is(false));
+        assertThat(confirmedPositions,is(empty()));
+
+        positionTracker.confirmPosition("WRONG_REF",ref,dealId,true);
+        confirmedPositions =  positionTracker.getConfirmedPositionsOnEpic(epic);
+        assertThat(positionTracker.epicHasNoPosition(epic),is(false));
+        assertThat(confirmedPositions,is(empty()));
+
+        positionTracker.confirmPosition(epic,ref,dealId,true);
+        confirmedPositions =  positionTracker.getConfirmedPositionsOnEpic(epic);
+        assertThat(positionTracker.epicHasNoPosition(epic),is(false));
+        assertThat(confirmedPositions,hasItem(position1));
+        assertThat(confirmedPositions,hasSize(1));
+
+        positionTracker.confirmPosition(epic,ref,dealId,false);
+        confirmedPositions =  positionTracker.getConfirmedPositionsOnEpic(epic);
+        assertThat(positionTracker.epicHasNoPosition(epic),is(true));
+        assertThat(confirmedPositions,is(empty()));
+
     }
     @Test
     public void testTrackNewAcceptedPositionWithConfirmExpiration(){

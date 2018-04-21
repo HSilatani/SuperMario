@@ -1,9 +1,9 @@
 package com.dario.agenttrader.marketStrategies;
 
-import com.dario.agenttrader.dto.DealConfirmation;
-import com.dario.agenttrader.dto.Position;
-import com.dario.agenttrader.dto.PositionSnapshot;
-import com.dario.agenttrader.dto.TradingSignal;
+import com.dario.agenttrader.domain.DealConfirmation;
+import com.dario.agenttrader.domain.Position;
+import com.dario.agenttrader.domain.PositionSnapshot;
+import com.dario.agenttrader.domain.TradingSignal;
 import com.dario.agenttrader.utility.IGClientUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,34 +20,42 @@ public class PortfolioPositionTracker{
     private final static Logger LOG = LoggerFactory.getLogger(PortfolioPositionTracker.class);
 
 
-    private volatile Map<String,Map<String, com.dario.agenttrader.dto.Position>> epicToPositions = new ConcurrentHashMap<String, Map<String, com.dario.agenttrader.dto.Position>>();
-    private volatile Map<String, com.dario.agenttrader.dto.Position>  dealRefToPosition = new ConcurrentHashMap<String, com.dario.agenttrader.dto.Position>();
+    private volatile Map<String,Map<String, Position>> epicToPositions = new ConcurrentHashMap<String, Map<String, Position>>();
+    private volatile Map<String, Position>  dealRefToPosition = new ConcurrentHashMap<String, Position>();
     private long confirmExpiryTimeOutMili = 2000;
     private long positionReconciliationTimeOutMili = 30000;
     private Instant lastPositionReconciliationTime = null;
     private Supplier<List<PositionSnapshot>> positionReloadSupplier;
     private Function<String,DealConfirmation> dealConfirmationFunction;
 
-    public void trackNewPosition(com.dario.agenttrader.dto.Position position){
-        Map<String, com.dario.agenttrader.dto.Position> positionsOnEpic = epicToPositions.get(position.getEpic());
-        positionsOnEpic = Optional.ofNullable(positionsOnEpic).orElse(new ConcurrentHashMap<String, com.dario.agenttrader.dto.Position>());
+    public void trackNewPosition(Position position){
+        Map<String, Position> positionsOnEpic = epicToPositions.get(position.getEpic());
+        positionsOnEpic = Optional.ofNullable(positionsOnEpic).orElse(new ConcurrentHashMap<String, Position>());
+        int sizeBeforeTracking = positionsOnEpic.size();
         positionsOnEpic.put(position.getDealRef(),position);
         registerPosition(position, positionsOnEpic);
+        int sizeAfterTracking = epicToPositions.get(position.getEpic()).size();
+        LOG.debug("Number of positions on {} incremented from  {} to {}",position.getEpic(),sizeBeforeTracking,sizeAfterTracking);
     }
-
-    private  void registerPosition(com.dario.agenttrader.dto.Position position, Map<String, com.dario.agenttrader.dto.Position> positionsOnEpic) {
+    public void removePosition(String dealRef) {
+        unRegisterPosition(dealRef);
+    }
+    private  void registerPosition(Position position, Map<String, Position> positionsOnEpic) {
         epicToPositions.put(position.getEpic(),positionsOnEpic);
         dealRefToPosition.put(position.getDealRef(),position);
+
+        int countOfAllPositionsInEpicToPosition = epicToPositions.values().stream().filter(v->v!=null).mapToInt(v->v.size()).sum();
+        LOG.debug("Count of positions in DealRefToPosition={}, EpicTpPosition={}",dealRefToPosition.size(),countOfAllPositionsInEpicToPosition);
     }
     private  void unRegisterPosition(String dealRef) {
-        com.dario.agenttrader.dto.Position position = dealRefToPosition.remove(dealRef);
+        Position position = dealRefToPosition.remove(dealRef);
         epicToPositions.get(position.getEpic()).remove(dealRef);
 
     }
 
     public void confirmPosition(String epic, String dealRef,String dealId, boolean accepted){
-        Map<String, com.dario.agenttrader.dto.Position> positionsOnEpic = Optional.ofNullable(epicToPositions.get(epic)).orElse(new HashMap<>());
-        com.dario.agenttrader.dto.Position position = positionsOnEpic.get(dealRef);
+        Map<String, Position> positionsOnEpic = Optional.ofNullable(epicToPositions.get(epic)).orElse(new HashMap<>());
+        Position position = positionsOnEpic.get(dealRef);
         if(position!=null){
             if(accepted) {
                 position.setConfirmed(true);
@@ -66,15 +74,15 @@ public class PortfolioPositionTracker{
                 ,dealConf.isAccepted());
 
     }
-    public void confirmPosition(com.dario.agenttrader.dto.Position position, boolean accepted){
+    public void confirmPosition(Position position, boolean accepted){
         confirmPosition(position.getEpic(),position.getDealRef(),position.getDealId(),accepted);
 
     }
-    public  List<com.dario.agenttrader.dto.Position> getPositionsOnEpic(String epic){
+    public  List<Position> getPositionsOnEpic(String epic){
         reconcilePositionsIfReconciliationIsDue();
-        Map<String, com.dario.agenttrader.dto.Position> positionsOnEpic
-                = Optional.ofNullable(epicToPositions.get(epic)).orElse(new ConcurrentHashMap<String, com.dario.agenttrader.dto.Position>());
-        List<com.dario.agenttrader.dto.Position> listOfPositionsOnEpic =
+        Map<String, Position> positionsOnEpic
+                = Optional.ofNullable(epicToPositions.get(epic)).orElse(new ConcurrentHashMap<String, Position>());
+        List<Position> listOfPositionsOnEpic =
                 positionsOnEpic.values().stream().collect(Collectors.toList());
 
         return listOfPositionsOnEpic;
@@ -82,6 +90,8 @@ public class PortfolioPositionTracker{
 
     private void reconcilePositionsIfReconciliationIsDue() {
         if(isPositionReconciliationExpired()){
+            //TODO:this protective mechanism (if cant reload positions reset the timer to protect end point) should be replaced by circuitBreaker mechanism
+            lastPositionReconciliationTime=Instant.now();
             List<PositionSnapshot> psnapshots = positionReloadSupplier.get();
             reconcilePositions(psnapshots);
         }
@@ -96,7 +106,7 @@ public class PortfolioPositionTracker{
     private void removeMistmatchPositionsInLocalCache(List<PositionSnapshot> psnapshots) {
         Map<String,PositionSnapshot> dealRefToSnapshot = psnapshots.stream().collect(
                  Collectors.toMap(k->k.getPositionsItem().getPosition().getDealReference(), v->v));
-        Map<String, com.dario.agenttrader.dto.Position> missingPositions = dealRefToPosition.values().stream().filter(p->{
+        Map<String, Position> missingPositions = dealRefToPosition.values().stream().filter(p->{
              PositionSnapshot positionSnapshot = dealRefToSnapshot.get(p.getDealRef());
              if(positionSnapshot==null){
                  boolean isExpired = isConfirmExpired(p);
@@ -111,9 +121,9 @@ public class PortfolioPositionTracker{
 
     private void addMissingPositionInTheLocalCache(List<PositionSnapshot> psnapshots) {
         psnapshots.stream().forEach(p->{
-           com.dario.agenttrader.dto.Position position = dealRefToPosition.get(p.getPositionsItem().getPosition().getDealReference());
+           Position position = dealRefToPosition.get(p.getPositionsItem().getPosition().getDealReference());
            if(position==null){
-               position = new com.dario.agenttrader.dto.Position(
+               position = new Position(
                        p.getPositionsItem().getMarket().getEpic()
                        ,true
                        ,p.getPositionsItem().getPosition().getDealReference()
@@ -126,8 +136,8 @@ public class PortfolioPositionTracker{
         });
     }
 
-    public List<com.dario.agenttrader.dto.Position> getConfirmedPositionsOnEpic(String epic){
-        List<com.dario.agenttrader.dto.Position> listOfConfirmedPositionsOnEpic = getPositionsOnEpic(epic).stream()
+    public List<Position> getConfirmedPositionsOnEpic(String epic){
+        List<Position> listOfConfirmedPositionsOnEpic = getPositionsOnEpic(epic).stream()
                 .filter(p->p.isConfirmed())
                 .collect(Collectors.toList());
 
@@ -164,7 +174,7 @@ public class PortfolioPositionTracker{
 
     public boolean isPositionConfirmed(String dealRef) {
         reconcilePositionsIfReconciliationIsDue();
-        com.dario.agenttrader.dto.Position position = dealRefToPosition.get(dealRef);
+        Position position = dealRefToPosition.get(dealRef);
         if(position==null){
             return false;
         }
@@ -177,9 +187,11 @@ public class PortfolioPositionTracker{
         return  isConfirmed;
     }
 
-    private void checkConfirmWithBrokerIfConfirmWaitIsExpired(String dealRef, com.dario.agenttrader.dto.Position position) {
+    private void checkConfirmWithBrokerIfConfirmWaitIsExpired(String dealRef, Position position) {
         if(isConfirmExpired(position)){
+            LOG.debug("Calling broker to confirm {}",position.getDealRef());
             DealConfirmation dealConf = dealConfirmationFunction.apply(position.getDealRef());
+            LOG.debug("Retrieved confirm for dealRef {} , conf {}",position.getDealRef(),dealConf);
             if(dealConf!=null && dealConf.isAccepted()){
                 confirmPosition(position,true);
             }else{
@@ -189,19 +201,26 @@ public class PortfolioPositionTracker{
     }
 
     private boolean isPositionReconciliationExpired(){
+        boolean isPositionReconDue = false;
+        long milisSinceLastReconciliation=-1;
         if(lastPositionReconciliationTime==null){
-            return true;
+            isPositionReconDue=true;
+        }else {
+            Instant nowInstant = Instant.now();
+            milisSinceLastReconciliation = ChronoUnit.MILLIS.between(lastPositionReconciliationTime, nowInstant);
+            if (milisSinceLastReconciliation > positionReconciliationTimeOutMili) {
+                isPositionReconDue=true;
+            }
         }
-        Instant nowInstant = Instant.now();
-        long milisSinceLastReconciliation = ChronoUnit.MILLIS.between(lastPositionReconciliationTime,nowInstant);
-        if(milisSinceLastReconciliation>positionReconciliationTimeOutMili){
-            return true;
-        }
-
-        return false;
+        LOG.debug("Position Reconciliation is Due={} , last reconciliation time={},Milis since last reconciliation={}, reconciliation timeout={}",
+                isPositionReconDue
+                ,lastPositionReconciliationTime
+                ,milisSinceLastReconciliation
+                ,positionReconciliationTimeOutMili);
+        return isPositionReconDue;
     }
 
-    private boolean isConfirmExpired(com.dario.agenttrader.dto.Position position) {
+    private boolean isConfirmExpired(Position position) {
         Instant nowInstant = Instant.now();
         Instant confExpiryTime = position.getCreatedTime().plusMillis(confirmExpiryTimeOutMili);
         boolean isExpired = nowInstant.isAfter(confExpiryTime);
@@ -234,4 +253,6 @@ public class PortfolioPositionTracker{
                 .findFirst();
         return position.orElse(null);
     }
+
+
 }

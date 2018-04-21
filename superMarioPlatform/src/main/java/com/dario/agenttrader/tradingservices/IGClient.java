@@ -1,9 +1,7 @@
 package com.dario.agenttrader.tradingservices;
 
 import com.dario.agenttrader.ApplicationBootStrapper;
-import com.dario.agenttrader.domain.CandleResolution;
-import com.dario.agenttrader.dto.*;
-import com.dario.agenttrader.domain.Direction;
+import com.dario.agenttrader.domain.*;
 import com.dario.agenttrader.utility.Calculator;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.iggroup.webapi.samples.PropertiesUtil;
@@ -20,6 +18,7 @@ import com.iggroup.webapi.samples.client.rest.dto.markets.getMarketDetailsV3.Get
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.GetPositionsV2Response;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
 import com.iggroup.webapi.samples.client.rest.dto.positions.otc.closeOTCPositionV1.CloseOTCPositionV1Request;
+import com.iggroup.webapi.samples.client.rest.dto.positions.otc.closeOTCPositionV1.CloseOTCPositionV1Response;
 import com.iggroup.webapi.samples.client.rest.dto.positions.otc.closeOTCPositionV1.TimeInForce;
 import com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.CreateOTCPositionV1Request;
 import com.iggroup.webapi.samples.client.rest.dto.positions.otc.createOTCPositionV1.CreateOTCPositionV1Response;
@@ -144,7 +143,7 @@ public class IGClient implements TradingAPI {
     }
     
     @Override
-    public List<PositionSnapshot> listOpenPositions() throws RuntimeException {
+    public List<PositionSnapshot> listOpenPositionsWithProfitAndLoss() throws RuntimeException {
 
         ConversationContext conversationContext = authenticationContext.getConversationContext();
         GetPositionsV2Response positionsResponse = null;
@@ -162,6 +161,25 @@ public class IGClient implements TradingAPI {
 
       return positionSnapshotList;
    }
+    @Override
+    public List<PositionSnapshot> listOpenPositions() throws RuntimeException {
+
+        ConversationContext conversationContext = authenticationContext.getConversationContext();
+        GetPositionsV2Response positionsResponse = null;
+        try {
+            positionsResponse = restAPI.getPositionsV2(conversationContext);
+        } catch (Exception e) {
+            LOG.warn("Unable to load list of positions",e);
+            throw new RuntimeException(e);
+        }
+        LOG.info("Open positions Amoo Amir: {}", positionsResponse.getPositions().size());
+
+        List<PositionSnapshot> positionSnapshotList = positionsResponse.getPositions().stream()
+                .map( positionsItem -> new PositionSnapshot(positionsItem))
+                .collect(Collectors.toList());
+
+        return positionSnapshotList;
+    }
 
    @Override
    public MarketInfo getMarketInfo(String epic) throws Exception{
@@ -188,7 +206,7 @@ public class IGClient implements TradingAPI {
    public PositionSnapshot getPositionSnapshot(String positionId) throws Exception{
 
 
-      List<PositionSnapshot> positionSnapshotList = listOpenPositions();
+      List<PositionSnapshot> positionSnapshotList = listOpenPositionsWithProfitAndLoss();
 
       Optional<PositionSnapshot> positionSnapShot= positionSnapshotList.stream()
               .filter(psnap -> positionId.equalsIgnoreCase(psnap.getPositionId()))
@@ -442,7 +460,7 @@ public class IGClient implements TradingAPI {
 
        LOG.info("<<< Closing position: dealId={} direction={} size={} orderType={} level={}", position.getDealId(), position.getDirection(), position.getSize(),
                closePositionRequest.getOrderType(), closePositionRequest.getLevel());
-       restAPI.closeOTCPositionV1(authenticationContext.getConversationContext(), closePositionRequest);
+       CloseOTCPositionV1Response closeResp = restAPI.closeOTCPositionV1(authenticationContext.getConversationContext(), closePositionRequest);
    }
 
    @Override

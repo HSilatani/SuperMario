@@ -1,8 +1,6 @@
 package com.dario.agenttrader.tradingservices;
 
-import com.dario.agenttrader.domain.CandleResolution;
-import com.dario.agenttrader.dto.*;
-import com.dario.agenttrader.domain.Direction;
+import com.dario.agenttrader.domain.*;
 import com.iggroup.webapi.samples.client.rest.dto.getAccountsV1.AccountsItem;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.PositionsItem;
 import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesV3.PricesItem;
@@ -25,6 +23,8 @@ public interface TradingAPI {
     void unsubscribeAllLightstreamerListeners() throws Exception;
 
     void subscribeToLighstreamerAccountUpdates() throws Exception;
+
+    List<PositionSnapshot> listOpenPositionsWithProfitAndLoss() throws RuntimeException;
 
     List<PositionSnapshot> listOpenPositions() throws RuntimeException;
 

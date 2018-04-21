@@ -1,11 +1,11 @@
 package com.dario.agenttrader.marketStrategies;
 
-import com.dario.agenttrader.dto.Position;
-import com.dario.agenttrader.dto.PositionSnapshot;
-import com.dario.agenttrader.dto.TradingSignal;
+import com.dario.agenttrader.domain.Position;
+import com.dario.agenttrader.domain.PositionSnapshot;
+import com.dario.agenttrader.domain.TradingSignal;
 import com.dario.agenttrader.tradingservices.TradingAPI;
-import static com.dario.agenttrader.dto.TradingSignal.EDIT_POSITION_INSTRUCTION;
-import static com.dario.agenttrader.dto.TradingSignal.ENTER_MARKET_INSTRUCTION;
+import static com.dario.agenttrader.domain.TradingSignal.EDIT_POSITION_INSTRUCTION;
+import static com.dario.agenttrader.domain.TradingSignal.ENTER_MARKET_INSTRUCTION;
 
 
 import com.dario.agenttrader.tradingservices.TradingDataStreamingService;
@@ -64,7 +64,7 @@ public class PortfolioManager {
     }
 
     private void executeEnterMarketSignal(TradingSignal signal) throws Exception{
-            LOG.info(signal.toString());
+            LOG.info("Processing trading signal:" , signal.toString());
             boolean noOtherPositionsOnEpic = positionTracker.epicHasNoPosition(signal.getEpic());
 
             if (noOtherPositionsOnEpic) {
@@ -77,6 +77,8 @@ public class PortfolioManager {
                 if (oppositePosition!=null){
                     LOG.info("Closing position:{} on EPIC:{}", oppositePosition.getDealId(),oppositePosition.getEpic());
                     tradingAPI.closeOpenPosition(oppositePosition);
+                    positionTracker.removePosition(oppositePosition.getDealRef());
+                    LOG.info("CLOSED position:{} on EPIC:{}", oppositePosition.getDealId(),oppositePosition.getEpic());
                 } else {
                     LOG.info("Enter market signal for {} is ignored", signal.getEpic());
                 }
@@ -95,6 +97,7 @@ public class PortfolioManager {
     }
 
     public void updatePositionList(List<PositionSnapshot> psnapsots){
+        LOG.debug("Updating position list on position add/remove signal",psnapsots);
         positionTracker.reconcilePositions(psnapsots);
     }
 

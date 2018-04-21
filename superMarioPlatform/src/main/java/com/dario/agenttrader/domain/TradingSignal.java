@@ -1,7 +1,4 @@
-package com.dario.agenttrader.dto;
-
-import com.dario.agenttrader.domain.Direction;
-import com.dario.agenttrader.marketStrategies.StrategyActor;
+package com.dario.agenttrader.domain;
 
 import java.math.BigDecimal;
 import java.util.StringJoiner;

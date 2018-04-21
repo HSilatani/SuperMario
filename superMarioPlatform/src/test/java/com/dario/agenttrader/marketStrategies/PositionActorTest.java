@@ -9,10 +9,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import com.dario.agenttrader.TestPositionProvider;
-import com.dario.agenttrader.dto.UpdateEvent;
+import com.dario.agenttrader.actors.Position;
+import com.dario.agenttrader.actors.PositionManager;
+import com.dario.agenttrader.domain.UpdateEvent;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.utility.IGClientUtility;
-import com.dario.agenttrader.dto.PositionInfo;
+import com.dario.agenttrader.domain.PositionInfo;
 import org.junit.*;
 
 import static org.mockito.Mockito.*;

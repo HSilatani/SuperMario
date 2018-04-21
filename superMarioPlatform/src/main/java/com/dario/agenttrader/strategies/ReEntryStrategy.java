@@ -1,11 +1,11 @@
 package com.dario.agenttrader.strategies;
 
 import com.dario.agenttrader.domain.Direction;
-import com.dario.agenttrader.dto.MarketInfo;
-import com.dario.agenttrader.dto.PriceTick;
-import com.dario.agenttrader.dto.TradingSignal;
-import com.dario.agenttrader.marketStrategies.MarketActor;
-import com.dario.agenttrader.marketStrategies.Position;
+import com.dario.agenttrader.domain.MarketInfo;
+import com.dario.agenttrader.domain.PriceTick;
+import com.dario.agenttrader.domain.TradingSignal;
+import com.dario.agenttrader.actors.MarketActor;
+import com.dario.agenttrader.actors.Position;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.ta4j.core.*;
@@ -52,7 +52,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
     @Override
     public void evaluate(MarketActor.MarketUpdated marketUpdate) {
         LOG.debug("Received update for {}",marketUpdate.getEpic());
-        if(isMarketUpdateValid(marketUpdate)) {
+        if(isMarketUpdateValid(marketUpdate)) {//TODO:not sure if it filters updates correctly.Updates from other epics could hit
             updateState(marketUpdate);
             //if(newBarIsAdded()) {
                 evaluateStrategy();

@@ -1,4 +1,4 @@
-package com.dario.agenttrader.dto;
+package com.dario.agenttrader.domain;
 
 import org.ta4j.core.TimeSeries;
 

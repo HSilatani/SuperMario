@@ -1,4 +1,4 @@
-package com.dario.agenttrader.marketStrategies;
+package com.dario.agenttrader.actors;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -6,14 +6,14 @@ import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import com.dario.agenttrader.dto.UpdateEvent;
+import com.dario.agenttrader.domain.UpdateEvent;
 import com.dario.agenttrader.tradingservices.TradingAPI;
 import com.dario.agenttrader.tradingservices.TradingDataStreamingService;
 import com.dario.agenttrader.utility.ActorRegistery;
 import com.dario.agenttrader.utility.IGClientUtility;
 import com.dario.agenttrader.InterpreterAgent;
-import com.dario.agenttrader.dto.PositionInfo;
-import com.dario.agenttrader.dto.PositionSnapshot;
+import com.dario.agenttrader.domain.PositionInfo;
+import com.dario.agenttrader.domain.PositionSnapshot;
 import com.dario.agenttrader.utility.SubscriberActorRegistery;
 import com.lightstreamer.ls_client.UpdateInfo;
 
@@ -92,7 +92,7 @@ public class PositionManager extends AbstractActor{
     }
 
     private void onLoadPositions(LoadPositionsRequest loadPositionsRequest) throws Exception {
-            List<PositionSnapshot> positionSnapshots = tradingAPI.listOpenPositions();
+            List<PositionSnapshot> positionSnapshots = tradingAPI.listOpenPositionsWithProfitAndLoss();
 
             positionSnapshots.forEach(psnapshot ->{
                 registerNewPosition(psnapshot);
