@@ -225,19 +225,19 @@ public class MarketActor extends AbstractActor {
 
     private void addBarToPriceTimeSeries(PriceCandle priceCandle) {
         ZonedDateTime barOpenTime = Calculator.zonedDateTimeFromString(priceCandle.getUTM());
-        BaseBar newbar = new BaseBar(
-                candleResolution.getCandleBarDuration()
-                ,barOpenTime
-                ,Decimal.valueOf(priceCandle.getBID_OPEN().doubleValue())
-                ,Decimal.valueOf(priceCandle.getBID_HIGH().doubleValue())
-                ,Decimal.valueOf(priceCandle.getBID_LOW().doubleValue())
-                ,Decimal.valueOf(priceCandle.getBID_CLOSE().doubleValue())
-                ,Decimal.valueOf(Optional.ofNullable(priceCandle.getLastTradeVolume()).orElse(BigDecimal.ZERO).doubleValue()));
-
-       // registerTheCurrentBarIfItIsCompleted(newbar);
-        //currentBar=newbar;
-
-        updateTimeSeries(newbar);
+        try {
+            BaseBar newbar = new BaseBar(
+                    candleResolution.getCandleBarDuration()
+                    , barOpenTime
+                    , Decimal.valueOf(priceCandle.getBID_OPEN().doubleValue())
+                    , Decimal.valueOf(priceCandle.getBID_HIGH().doubleValue())
+                    , Decimal.valueOf(priceCandle.getBID_LOW().doubleValue())
+                    , Decimal.valueOf(priceCandle.getBID_CLOSE().doubleValue())
+                    , Decimal.valueOf(Optional.ofNullable(priceCandle.getLastTradeVolume()).orElse(BigDecimal.ZERO).doubleValue()));
+            updateTimeSeries(newbar);
+        }catch (Exception e){
+            LOG.warning("Unable to create a price bar",e);
+        }
 
         LOG.info("EPIC= {} Price Tick Count: {}",epic,priceTimeSeries.getBarCount());
     }

@@ -5,7 +5,7 @@ public class DealConfirmation {
     public static final String DEAL_ID = "dealId";
     public static final String DEAL_STATUS = "dealStatus";
     public static final String DEAL_EPIC = "epic";
-    public static final String STATUS_ACEPTED = "ACEPTED";
+    public static final String STATUS_ACEPTED = "ACCEPTED";
     public static final String STATUS_REJECTED = "REJECTED";
 
     private String dealRef;

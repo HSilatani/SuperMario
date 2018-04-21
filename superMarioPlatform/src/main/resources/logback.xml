@@ -90,8 +90,10 @@
    <logger name="org.apache.http" level="warn"/>
    <logger name="org.springframework" level="warn"/>
    <logger name="akka" level="DEBUG" />
+
+
    <logger name="com.iggroup.webapi.samples.client.streaming" level="info"/>
-   <logger name="com.dario.agenttrader.marketStrategies.PortfolioPositionTracker" level="debug"/>
+   <logger name="com.dario.agenttrader.marketStrategies" level="debug"/>
 
    <logger name="com.dario.agenttrader.strategies.ReEntryStrategy" level="debug">
       <appender-ref ref="STRATEGY_DEBUG"/>
