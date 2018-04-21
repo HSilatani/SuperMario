@@ -1,10 +1,7 @@
 package com.dario.agenttrader.utility;
 
 
-import com.dario.agenttrader.domain.PositionInfo;
-import com.dario.agenttrader.domain.PositionSnapshot;
-import com.dario.agenttrader.domain.PriceTick;
-import com.dario.agenttrader.domain.UpdateEvent;
+import com.dario.agenttrader.domain.*;
 import com.dario.agenttrader.actors.PositionManager;
 import com.dario.agenttrader.TestPositionProvider;
 import org.junit.Test;
@@ -16,6 +13,7 @@ import static junit.framework.TestCase.assertNotNull;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.junit.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -169,7 +167,23 @@ public class IGClientUtilityTest {
         String dealId = flattenedOPU.get(PositionInfo.DEAL_ID_KEY);
         assertEquals(TestPositionProvider.DEAL_ID, dealId);
     }
+    @Test
+    public void testJsonConfirmMessageToDealConfirm() {
+        String confirmMessage ="{\"direction\":\"SELL\",\"epic\":\"IX.D.HANGSENG.DAILY.IP\",\"stopLevel\":30050.8,\"limitLevel\":null,\"dealReference\":\"J4GFJYSABN644S4\",\"dealId\":\"DIAAAABVYCXSXAL\",\"limitDistance\":null,\"stopDistance\":null,\"expiry\":\"DFB\",\"affectedDeals\":[{\"dealId\":\"DIAAAABVYCXSXAL\",\"status\":\"OPENED\"}],\"dealStatus\":\"ACCEPTED\",\"guaranteedStop\":false,\"trailingStop\":false,\"level\":30010.8,\"reason\":\"SUCCESS\",\"status\":\"OPEN\",\"size\":1,\"profit\":null,\"profitCurrency\":null,\"date\":\"2018-03-28T20:05:03.879\",\"channel\":\"PublicRestOTC\"}";
+        String expectedDealId = "DIAAAABVYCXSXAL";
+        String expectedDealRef = "J4GFJYSABN644S4";
+        String expectedDealStatus = "ACCEPTED";
+        String expectedEpic = "IX.D.HANGSENG.DAILY.IP";
 
+        DealConfirmation dealConf = IGClientUtility.convertConfirmMessageToDealConfirm(confirmMessage);
+        assertNotNull(dealConf);
+
+        assertThat(dealConf.getDealId(),equalToIgnoringCase(expectedDealId));
+        assertThat(dealConf.getDealRef(),equalToIgnoringCase(expectedDealRef));
+        assertThat(dealConf.isAccepted(),is(true));
+        assertThat(dealConf.getStatus(),equalToIgnoringCase(expectedDealStatus));
+        assertThat(dealConf.getEpic(),equalToIgnoringCase(expectedEpic));
+    }
     @Test
     public void testJsonConfirmMessageFlatter() {
         String confirmMessage ="{\"direction\":\"SELL\",\"epic\":\"IX.D.HANGSENG.DAILY.IP\",\"stopLevel\":30050.8,\"limitLevel\":null,\"dealReference\":\"J4GFJYSABN644S4\",\"dealId\":\"DIAAAABVYCXSXAL\",\"limitDistance\":null,\"stopDistance\":null,\"expiry\":\"DFB\",\"affectedDeals\":[{\"dealId\":\"DIAAAABVYCXSXAL\",\"status\":\"OPENED\"}],\"dealStatus\":\"ACCEPTED\",\"guaranteedStop\":false,\"trailingStop\":false,\"level\":30010.8,\"reason\":\"SUCCESS\",\"status\":\"OPEN\",\"size\":1,\"profit\":null,\"profitCurrency\":null,\"date\":\"2018-03-28T20:05:03.879\",\"channel\":\"PublicRestOTC\"}";
