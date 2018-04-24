@@ -38,6 +38,7 @@ import com.iggroup.webapi.samples.client.streaming.HandyTableListenerAdapter;
 import com.lightstreamer.ls_client.UpdateInfo;
 
 
+import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -46,9 +47,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IGClient implements TradingAPI {
-    private static IGClient OneAndOnlyIGClient = new IGClient();
+    private static TradingAPI OneAndOnlyIGClient = (TradingAPI) Proxy.newProxyInstance(
+            IGClient.class.getClassLoader(),new Class[]{TradingAPI.class},new TradingAPIAuditor(new IGClient()));
 
-    public static IGClient getInstance(){
+    public static TradingAPI getInstance(){
         return OneAndOnlyIGClient;
     }
 

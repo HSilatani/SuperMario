@@ -17,6 +17,7 @@ import java.util.function.Consumer;
 public class TradingDataStreamingService {
 
     private static final Logger LOG = LoggerFactory.getLogger(TradingDataStreamingService.class);
+    private final Logger PRICE_LOGGER = LoggerFactory.getLogger("PRICE_LOGGER");
     public static final String CHART_TICK = "CHART_TICK";
     public static final String CHART_CANDLE = "CHART_CANDLE";
     private static final String OPU = "OPU" ;
@@ -214,7 +215,7 @@ public class TradingDataStreamingService {
     }
 
     private void subscribeToConfirmsUpdate(Consumer<UpdateInfo> consumer) throws Exception{
-        HandyTableListenerAdapter lightStreamerConfirmsListener = createLSListener(consumer);
+        HandyTableListenerAdapter lightStreamerConfirmsListener = createLSListener("CONFIRM",consumer);
         tradingAPI.subscribeToPositionConfirms(lightStreamerConfirmsListener);
         LOG.info("Subscribed to Confirms update");
     }
@@ -233,7 +234,7 @@ public class TradingDataStreamingService {
     }
 
     private void subscribeToPositionUpdate(Consumer<UpdateInfo> consumer) throws Exception{
-        HandyTableListenerAdapter lightStreamerOPUListener = createLSListener(consumer);
+        HandyTableListenerAdapter lightStreamerOPUListener = createLSListener("POSITION",consumer);
         tradingAPI.subscribeToOpenPositionUpdates(lightStreamerOPUListener);
         LOG.info("Subscribed to position update");
     }
@@ -252,7 +253,7 @@ public class TradingDataStreamingService {
     }
 
     private void subscribeToChartTickUpdates(String epic, Consumer newSubscriberConsumer) throws Exception {
-        HandyTableListenerAdapter lightStreamerChartTickListner = createLSListener(newSubscriberConsumer);
+        HandyTableListenerAdapter lightStreamerChartTickListner = createLSListener(epic,newSubscriberConsumer);
         tradingAPI.subscribeToLighstreamerChartUpdates(epic, lightStreamerChartTickListner);
         LOG.info("Subscribed to Chart Tick update");
     }
@@ -272,15 +273,16 @@ public class TradingDataStreamingService {
         }
     }
     private void subscribeToChartCandleUpdates(String epic,String resolution, Consumer newSubscriberConsumer) throws Exception {
-        HandyTableListenerAdapter lightStreamerChartCandleListner = createLSListener(newSubscriberConsumer);
+        HandyTableListenerAdapter lightStreamerChartCandleListner = createLSListener(epic,newSubscriberConsumer);
         tradingAPI.subscribeToLighstreamerChartCandleUpdates(epic,resolution, lightStreamerChartCandleListner);
         LOG.info("Subscribed to Chart Candle update");
     }
-    private  HandyTableListenerAdapter createLSListener(Consumer consumer){
+    private  HandyTableListenerAdapter createLSListener(String key,Consumer consumer){
         HandyTableListenerAdapter subscriptionListner = new HandyTableListenerAdapter() {
             @Override
             public void onUpdate(int i, String s, UpdateInfo updateInfo) {
-               consumer.accept(updateInfo);
+                PRICE_LOGGER.info("{} - {}",key,updateInfo.toString());
+                consumer.accept(updateInfo);
             }
         };
         return  subscriptionListner;

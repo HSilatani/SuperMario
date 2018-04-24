@@ -47,6 +47,18 @@ public class IGClientUtility {
 
         return json;
     }
+    public static String priceCandleToJason(com.dario.agenttrader.domain.Position position){
+        ObjectWriter writer = mapper.writer();
+        String json =null;
+
+        try {
+            json = writer.writeValueAsString(position);
+        } catch (JsonProcessingException e) {
+            LOG.warn("Unable to convert {} to JSON",position,e);
+        }
+
+        return json;
+    }
     public static Map<String,String> flatJSontoMap(String json){
         ObjectReader reader = mapper.reader();
         Map<String,String> map = null;
