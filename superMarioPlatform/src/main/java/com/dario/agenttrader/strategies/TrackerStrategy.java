@@ -26,7 +26,8 @@ public class TrackerStrategy extends AbstractMarketStrategy {
     private BigDecimal openLevel;
     private int direction;
     private MarketInfo staticMarketInfo = null;
-    private BigDecimal profitProtectingThreshold = BigDecimal.TEN;
+    //TODO: this needs to be calculated based on market spread
+    private BigDecimal profitProtectingThreshold = BigDecimal.valueOf(20);
 
 
     public TrackerStrategy(ArrayList<String> epics,PositionInfo pPositionInfo) {
@@ -139,6 +140,7 @@ public class TrackerStrategy extends AbstractMarketStrategy {
             BigDecimal applicablePrice = getCurrentApplicablePrice();
             BigDecimal plFactor = applicablePrice.subtract(openLevel);
             plFactor = plFactor.multiply(new BigDecimal(direction));
+
             int comparePLFactorGreaterToThreashold = plFactor.compareTo(profitProtectingThreshold);
             if(comparePLFactorGreaterToThreashold>0){
                 profitProtectingStopDistance = staticMarketInfo.getMinNormalStopLimitDistance();

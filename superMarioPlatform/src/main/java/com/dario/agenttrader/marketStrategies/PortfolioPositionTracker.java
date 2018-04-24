@@ -191,7 +191,7 @@ public class PortfolioPositionTracker{
         if(isConfirmExpired(position)){
             LOG.debug("Calling broker to confirm {}",position.getDealRef());
             DealConfirmation dealConf = dealConfirmationFunction.apply(position.getDealRef());
-            LOG.debug("Retrieved confirm for dealRef {} , conf {}",position.getDealRef(),dealConf);
+            LOG.debug("Retrieved confirm for  {} , conf {}",position,dealConf);
             if(dealConf!=null && dealConf.isAccepted()){
                 confirmPosition(position,true);
             }else{

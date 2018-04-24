@@ -53,6 +53,7 @@ public class IGClient implements TradingAPI {
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(IGClient.class);
+    private final Logger TRADE_LOGGER = LoggerFactory.getLogger("TRADE_LOGGER");
 
     private Calculator cal = new Calculator();
 
@@ -422,6 +423,7 @@ public class IGClient implements TradingAPI {
                    ,signal.getDirection()
 
            );
+           TRADE_LOGGER.info("TRADE: {}",position);
            return position;
     }
 
@@ -461,7 +463,8 @@ public class IGClient implements TradingAPI {
        LOG.info("<<< Closing position: dealId={} direction={} size={} orderType={} level={}", position.getDealId(), position.getDirection(), position.getSize(),
                closePositionRequest.getOrderType(), closePositionRequest.getLevel());
        CloseOTCPositionV1Response closeResp = restAPI.closeOTCPositionV1(authenticationContext.getConversationContext(), closePositionRequest);
-   }
+       TRADE_LOGGER.info("TRADE: {}",position);
+    }
 
    @Override
    public DealConfirmation confirmPosition(String dealRef){
@@ -476,7 +479,11 @@ public class IGClient implements TradingAPI {
                ,igDealConf.getDealStatus().name());
 
        } catch (Exception e) {
-           LOG.warn("Unable to retrieve DealConfirmation",e);
+           if(e.getMessage()!=null && "404 Not Found".contains(e.getMessage())){
+               LOG.info("Unable to find confirmation: {}",e.getMessage());
+           }else {
+               LOG.warn("Unable to retrieve DealConfirmation", e);
+           }
        }
 
        return dealConf;

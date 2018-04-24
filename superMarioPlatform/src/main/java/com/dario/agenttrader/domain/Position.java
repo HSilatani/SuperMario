@@ -74,4 +74,17 @@ public final class Position {
     public void setDealId(String dealId) {
         this.dealId = dealId;
     }
+
+    @Override
+    public String toString() {
+        return "Position{" +
+                "epic='" + epic + '\'' +
+                ", confirmed=" + confirmed +
+                ", dealRef='" + dealRef + '\'' +
+                ", dealId='" + dealId + '\'' +
+                ", size=" + size +
+                ", direction=" + direction +
+                ", createdTime=" + createdTime +
+                '}';
+    }
 }

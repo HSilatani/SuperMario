@@ -71,6 +71,7 @@ public class PortfolioManager {
                 Position position = tradingAPI.createPosition(signal);
                 positionTracker.trackNewPosition(position);
                 LOG.info("Position created:{}", signal);
+
             } else {
                 Position oppositePosition = positionTracker.getOppositePosition(signal);
 

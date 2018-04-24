@@ -81,7 +81,7 @@
 
       <encoder>
          <charset>UTF-8</charset>
-         <pattern>%date{ISO8601}%msg%n</pattern>
+         <pattern>%date{ISO8601} %msg%n</pattern>
       </encoder>
    </appender>
    <!-- third party code loggers -->
@@ -89,13 +89,14 @@
    <logger name="org.apache.commons" level="warn"/>
    <logger name="org.apache.http" level="warn"/>
    <logger name="org.springframework" level="warn"/>
-   <logger name="akka" level="DEBUG" />
+   <logger name="akka" level="debug" />
 
 
    <logger name="com.iggroup.webapi.samples.client.streaming" level="info"/>
    <logger name="com.dario.agenttrader.marketStrategies" level="debug"/>
+   <logger name="com.dario.agenttrader.actors.MarketActor" level="debug"/>
 
-   <logger name="com.dario.agenttrader.strategies.ReEntryStrategy" level="debug">
+   <logger name="com.dario.agenttrader.strategies.ReEntryStrategy" level="DEBUG">
       <appender-ref ref="STRATEGY_DEBUG"/>
    </logger>
    <logger name="com.dario.agenttrader.strategies" level="info">
@@ -109,5 +110,10 @@
    <logger name="PRICE_LOGGER" level="info">
       <appender-ref ref="PRICE_FILE"/>
    </logger>
+
+    <logger name="TRADE_LOGGER" level="info">
+        <appender-ref ref="PRICE_FILE"/>
+    </logger>
+
 
 </configuration>

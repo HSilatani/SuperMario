@@ -2,13 +2,17 @@ package com.dario.agenttrader.utility;
 
 import com.dario.agenttrader.domain.*;
 import com.dario.agenttrader.actors.PositionManager;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Market;
 import com.iggroup.webapi.samples.client.rest.dto.positions.getPositionsV2.Position;
 import com.iggroup.webapi.samples.client.rest.dto.prices.getPricesV3.PricesItem;
 import com.lightstreamer.ls_client.UpdateInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -16,6 +20,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class IGClientUtility {
+    private static final Logger LOG = LoggerFactory.getLogger(IGClientUtility.class);
 
     static final ObjectMapper mapper = new ObjectMapper();
 
@@ -30,6 +35,18 @@ public class IGClientUtility {
         return locale;
     }
 
+    public static String PositionToJason(com.dario.agenttrader.domain.Position position){
+        ObjectWriter writer = mapper.writer();
+        String json =null;
+
+        try {
+            json = writer.writeValueAsString(position);
+        } catch (JsonProcessingException e) {
+            LOG.warn("Unable to convert {} to JSON",position,e);
+        }
+
+        return json;
+    }
     public static Map<String,String> flatJSontoMap(String json){
         ObjectReader reader = mapper.reader();
         Map<String,String> map = null;

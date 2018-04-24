@@ -274,7 +274,7 @@ public class MarketActor extends AbstractActor {
     private void registerNewBarInPriceTimeSeries(Bar bar) {
         try{
             priceTimeSeries.addBar(bar);
-            PRICE_LOGGER.info("EPIC {}:{}-{},CLOSE {}, OPEN {},Max {} , Min {}"
+            PRICE_LOGGER.info("EPIC {},:DATETIME_RANGE {}-{},CLOSE {}, OPEN {},Max {} , Min {}"
                     ,epic
                     ,bar.getBeginTime()
                     ,bar.getEndTime()
