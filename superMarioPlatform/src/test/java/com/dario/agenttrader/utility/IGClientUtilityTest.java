@@ -168,7 +168,7 @@ public class IGClientUtilityTest {
         assertEquals(TestPositionProvider.DEAL_ID, dealId);
     }
     @Test
-    public void testJsonConfirmMessageToDealConfirm() {
+    public void testJsonSuccessConfirmMessageToDealConfirm() {
         String confirmMessage ="{\"direction\":\"SELL\",\"epic\":\"IX.D.HANGSENG.DAILY.IP\",\"stopLevel\":30050.8,\"limitLevel\":null,\"dealReference\":\"J4GFJYSABN644S4\",\"dealId\":\"DIAAAABVYCXSXAL\",\"limitDistance\":null,\"stopDistance\":null,\"expiry\":\"DFB\",\"affectedDeals\":[{\"dealId\":\"DIAAAABVYCXSXAL\",\"status\":\"OPENED\"}],\"dealStatus\":\"ACCEPTED\",\"guaranteedStop\":false,\"trailingStop\":false,\"level\":30010.8,\"reason\":\"SUCCESS\",\"status\":\"OPEN\",\"size\":1,\"profit\":null,\"profitCurrency\":null,\"date\":\"2018-03-28T20:05:03.879\",\"channel\":\"PublicRestOTC\"}";
         String expectedDealId = "DIAAAABVYCXSXAL";
         String expectedDealRef = "J4GFJYSABN644S4";
@@ -183,6 +183,25 @@ public class IGClientUtilityTest {
         assertThat(dealConf.isAccepted(),is(true));
         assertThat(dealConf.getStatus(),equalToIgnoringCase(expectedDealStatus));
         assertThat(dealConf.getEpic(),equalToIgnoringCase(expectedEpic));
+    }
+    @Test
+    public void testJsonRejectedConfirmMessageToDealConfirm() {
+        String confirmMessage ="{\"direction\":\"BUY\",\"epic\":\"IX.D.HANGSENG.DAILY.IP\",\"stopLevel\":null,\"limitLevel\":null,\"dealReference\":\"34XWU3SN6SJ44S3\",\"dealId\":\"DIAAAABXJP2XEBC\",\"limitDistance\":null,\"stopDistance\":null,\"expiry\":null,\"affectedDeals\":[],\"dealStatus\":\"REJECTED\",\"guaranteedStop\":false,\"trailingStop\":false,\"level\":null,\"reason\":\"ATTACHED_ORDER_LEVEL_ERROR\",\"status\":null,\"size\":null,\"profit\":null,\"profitCurrency\":null,\"date\":\"2018-04-25T07:41:04.118\",\"channel\":\"PublicRestOTC\"}";
+        String expectedDealId = "DIAAAABXJP2XEBC";
+        String expectedDealRef = "34XWU3SN6SJ44S3";
+        String expectedDealStatus = "REJECTED";
+        String expectedEpic = "IX.D.HANGSENG.DAILY.IP";
+        String expectedReason ="ATTACHED_ORDER_LEVEL_ERROR";
+
+        DealConfirmation dealConf = IGClientUtility.convertConfirmMessageToDealConfirm(confirmMessage);
+        assertNotNull(dealConf);
+
+        assertThat(dealConf.getDealId(),equalToIgnoringCase(expectedDealId));
+        assertThat(dealConf.getDealRef(),equalToIgnoringCase(expectedDealRef));
+        assertThat(dealConf.isAccepted(),is(false));
+        assertThat(dealConf.getStatus(),equalToIgnoringCase(expectedDealStatus));
+        assertThat(dealConf.getEpic(),equalToIgnoringCase(expectedEpic));
+        assertThat(dealConf.getReason(),equalToIgnoringCase(expectedReason));
     }
     @Test
     public void testJsonConfirmMessageFlatter() {

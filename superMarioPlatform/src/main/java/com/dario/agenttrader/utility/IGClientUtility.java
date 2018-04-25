@@ -102,7 +102,8 @@ public class IGClientUtility {
         String dealId = confirmKeyValue.get(DealConfirmation.DEAL_ID);
         String dealStatus = confirmKeyValue.get(DealConfirmation.DEAL_STATUS);
         String dealEpic = confirmKeyValue.get(DealConfirmation.DEAL_EPIC);
-        DealConfirmation dealConf = new DealConfirmation(dealEpic,dealRef,dealId,dealStatus);
+        String dealReason = confirmKeyValue.get(DealConfirmation.DEAL_REASON);
+        DealConfirmation dealConf = new DealConfirmation(dealEpic,dealRef,dealId,dealStatus,dealReason);
 
         return dealConf;
     }

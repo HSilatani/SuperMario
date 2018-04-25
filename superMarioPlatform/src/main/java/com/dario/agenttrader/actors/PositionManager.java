@@ -144,7 +144,10 @@ public class PositionManager extends AbstractActor{
             positionActor.forward(opu,getContext());
         }else{
             PositionSnapshot psnap = tradingAPI.getPositionSnapshot(positionId);
-            registerNewPosition(psnap);
+            if(psnap!=null){
+                registerNewPosition(psnap);
+            }
+
         }
 
     }

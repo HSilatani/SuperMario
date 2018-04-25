@@ -64,7 +64,7 @@ public class PortfolioManager {
     }
 
     private void executeEnterMarketSignal(TradingSignal signal) throws Exception{
-            LOG.info("Processing trading signal:" , signal.toString());
+            LOG.info("Processing trading signal:{}" , signal.toString());
             boolean noOtherPositionsOnEpic = positionTracker.epicHasNoPosition(signal.getEpic());
 
             if (noOtherPositionsOnEpic) {

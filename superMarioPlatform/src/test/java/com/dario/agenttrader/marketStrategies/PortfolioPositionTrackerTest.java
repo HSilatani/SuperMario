@@ -66,8 +66,25 @@ public class PortfolioPositionTrackerTest {
         assertThat(confirmedPositions,hasSize(1));
         assertThat(positionTracker.epicHasNoPosition(epic),is(false));
 
+    }
+    @Test
+    public void testTrackNewPositionBasicRejectConfirmForBUYPosition(){
+        PortfolioPositionTracker positionTracker = new PortfolioPositionTracker();
+        positionTracker.setPositionReloadSupplier(()->new ArrayList<>());
+        positionTracker.setDealConfirmationFunction(dref->new DealConfirmation(dref,"",DealConfirmation.STATUS_REJECTED));
+
+        String epic= "IX.HNG";
+        String ref = "AASSD";
+        String dealId = "dealID";
+
+        double size = 1.5;
+        Direction direction = Direction.BUY();
+
+        Position position1 = new Position(epic,ref,size,direction);
+        positionTracker.trackNewPosition(position1);
+
         positionTracker.confirmPosition(epic,ref,dealId,false);
-        confirmedPositions =  positionTracker.getConfirmedPositionsOnEpic(epic);
+        List<Position> confirmedPositions  =  positionTracker.getConfirmedPositionsOnEpic(epic);
         assertThat(confirmedPositions,is(empty()));
         assertThat(positionTracker.epicHasNoPosition(epic),is(true));
     }
@@ -107,8 +124,27 @@ public class PortfolioPositionTrackerTest {
         assertThat(confirmedPositions,hasItem(position1));
         assertThat(confirmedPositions,hasSize(1));
 
+
+
+    }
+    @Test
+    public void testTrackNewPositionBasicRejectConfirmForSELLPosition(){
+        PortfolioPositionTracker positionTracker = new PortfolioPositionTracker();
+        positionTracker.setPositionReloadSupplier(()->new ArrayList<>());
+        positionTracker.setDealConfirmationFunction(dref->new DealConfirmation(dref,"",DealConfirmation.STATUS_REJECTED));
+
+        String epic= "IX.HNG";
+        String ref = "AASSD";
+        String dealId = "dealID";
+
+        double size = 1.5;
+        Direction direction = Direction.SELL();
+
+        Position position1 = new Position(epic,ref,size,direction);
+        positionTracker.trackNewPosition(position1);
+
         positionTracker.confirmPosition(epic,ref,dealId,false);
-        confirmedPositions =  positionTracker.getConfirmedPositionsOnEpic(epic);
+        List<Position> confirmedPositions=  positionTracker.getConfirmedPositionsOnEpic(epic);
         assertThat(positionTracker.epicHasNoPosition(epic),is(true));
         assertThat(confirmedPositions,is(empty()));
 
@@ -124,6 +160,24 @@ public class PortfolioPositionTrackerTest {
         positionTracker.trackNewPosition(position1);
         //
         boolean isConfirmed = positionTracker.isPositionConfirmed(dealRef);
+        assertThat(isConfirmed,is(true));
+    }
+    @Test
+    public void testTracAcceptedPositionFollowedByRejectedEdit(){
+        int confirmExpiryTimeOutMili = 500;
+        int positionReconciliationTimoutMili=5000;
+        String dealRef="ADASDASDRQEQREGSGSGSG@£$@£$!!";
+        PortfolioPositionTracker positionTracker = getPortfolioPositionTrackerWithPositionReloadSupplierAndAcceptConfirmFunction(
+                confirmExpiryTimeOutMili,positionReconciliationTimoutMili,dealRef);
+        Position position1 = createTestBuyPosition(dealRef,1000);
+        positionTracker.trackNewPosition(position1);
+        //
+        boolean isConfirmed = positionTracker.isPositionConfirmed(dealRef);
+        assertThat(isConfirmed,is(true));
+        //
+        DealConfirmation dealEditRejected = new DealConfirmation(position1.getEpic(),dealRef,"DEALID!@£!@£",DealConfirmation.STATUS_REJECTED,"ATTACHED_ORDER_REJECTED");
+        positionTracker.confirmPosition(dealEditRejected);
+        isConfirmed = positionTracker.isPositionConfirmed(dealRef);
         assertThat(isConfirmed,is(true));
     }
     @Test

@@ -40,7 +40,10 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
     private int slopeTimeFrame=3;
     private long barMaturityThresholdSeconds =59;
     private BigDecimal absoluteSlopeThreshold = new BigDecimal(3);
-    private BigDecimal absoluteSlopeChangeThreshold = new BigDecimal(0.25);
+    private BigDecimal absoluteSlopeChangeThreshold = new BigDecimal(0.60);
+    private BigDecimal macdNeutralZone = BigDecimal.TEN;
+    private BigDecimal oppositeStreamSafetyCoeficient = new BigDecimal(2);
+    private Direction lastSignalDirection = null;
     private int stopDistanceMultiplier = 3;
 
     private MarketInfo staticMarketInfo = null;
@@ -138,12 +141,14 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         BigDecimal emaDifference = shortEMAValue.minus(longEMAValue).getDelegate().setScale(3,BigDecimal.ROUND_HALF_UP);
         Decimal slopeOfMACD = slopeOfMACDIndicator.getValue(endIndex);
         Decimal accelarationOfMACD = accelarationOfMACDSLOPEIndicator.getValue(endIndex);
+        BigDecimal buySafetyCoefficient = (macdValue.isLessThan(macdNeutralZone))?oppositeStreamSafetyCoeficient:BigDecimal.ONE;
+        BigDecimal sellSafetyCoefficient = (macdValue.isGreaterThan(macdNeutralZone.negate()))?oppositeStreamSafetyCoeficient:BigDecimal.ONE;
         boolean isStrategyShouldEnter = strategy.shouldEnter(endIndex);
         boolean isStrategyShouldExit = strategy.shouldExit(endIndex);
         boolean isSpreadWithinRange = latesSpread < maxAllowedSpread;
         boolean isEMAdifferenceInSafeZone = emaDifference.doubleValue() >emaDifferenceSafeDistance;
-        boolean isBuyMACDAccelarationSatisfied = BigDecimal.valueOf(accelarationOfMACD.doubleValue()).compareTo(absoluteSlopeChangeThreshold)>0;
-        boolean isSellMACDAccelarationSatisfied = BigDecimal.valueOf(accelarationOfMACD.doubleValue()).compareTo(absoluteSlopeChangeThreshold.negate())<0;
+        boolean isBuyMACDAccelarationSatisfied = BigDecimal.valueOf(accelarationOfMACD.doubleValue()).compareTo(absoluteSlopeChangeThreshold.multiply(buySafetyCoefficient))>0;
+        boolean isSellMACDAccelarationSatisfied = BigDecimal.valueOf(accelarationOfMACD.doubleValue()).compareTo(absoluteSlopeChangeThreshold.negate().multiply(sellSafetyCoefficient))<0;
         boolean isBuyMACDSlopeSatisfied = BigDecimal.valueOf(slopeOfMACD.doubleValue()).compareTo(absoluteSlopeThreshold)>0;
         boolean isSellMACDSlopeSatisfied = BigDecimal.valueOf(slopeOfMACD.doubleValue()).compareTo(absoluteSlopeThreshold.negate())<0;
         LOG.info("EPIC:{},EndIndex:{},price_open:{},close:{},high:{},low:{},spread:{},is_Spread_within_range:{},short_EMA:{},Long_EMA:{},MACD:{},MACDSIGNAL:{},EMA_Diff:{},slope:{},MACD_Slope_Buy:{},MACD_Slope_Sell:{},MACD_Accelaratio:{},MACD_ACCELARATION_Buy:{},MACD_ACCELARATIO_Sell:{},ENTER:{},EXIT:{},{}"

@@ -74,8 +74,8 @@ public class MarketUpdateProducerTradingAPIMock implements TradingAPI {
     }
 
     @Override
-    public void closeOpenPosition(Position positionx) throws Exception {
-
+    public String closeOpenPosition(Position positionx) throws Exception {
+        return "";
     }
 
     @Override

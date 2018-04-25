@@ -36,7 +36,7 @@ public interface TradingAPI {
 
     public Position createPosition(TradingSignal signal) throws Exception;
 
-    public void closeOpenPosition(Position position) throws Exception;
+    public String closeOpenPosition(Position position) throws Exception;
 
     public void subscribeToLighstreamerHeartbeat(HandyTableListenerAdapter listener) throws Exception;
 

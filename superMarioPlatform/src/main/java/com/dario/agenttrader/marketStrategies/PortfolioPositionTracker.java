@@ -56,7 +56,7 @@ public class PortfolioPositionTracker{
     public void confirmPosition(String epic, String dealRef,String dealId, boolean accepted){
         Map<String, Position> positionsOnEpic = Optional.ofNullable(epicToPositions.get(epic)).orElse(new HashMap<>());
         Position position = positionsOnEpic.get(dealRef);
-        if(position!=null){
+        if(position!=null && !position.isConfirmed()){
             if(accepted) {
                 position.setConfirmed(true);
                 position.setDealId(dealId);

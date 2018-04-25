@@ -7,22 +7,27 @@ public class DealConfirmation {
     public static final String DEAL_EPIC = "epic";
     public static final String STATUS_ACEPTED = "ACCEPTED";
     public static final String STATUS_REJECTED = "REJECTED";
+    public static final String DEAL_REASON = "reason";
 
     private String dealRef;
     private String dealId;
     private String status;
     private String epic;
+    public String reason;
 
     public DealConfirmation(String dealRef, String dealId, String status) {
         this("NA",dealRef,dealId,status);
     }
     public DealConfirmation(String epic,String dealRef, String dealId, String status) {
+        this(epic,dealRef,dealId,status,"");
+    }
+    public DealConfirmation(String epic,String dealRef, String dealId, String status,String reason) {
         this.dealRef = dealRef;
         this.dealId = dealId;
         this.status = status;
         this.epic = epic;
+        this.reason = reason;
     }
-
     public String getDealRef() {
         return dealRef;
     }
@@ -35,12 +40,28 @@ public class DealConfirmation {
         return status;
     }
 
-    public String getEpic() {
+    public String getEpic()
+    {
         return epic;
+    }
+
+    public String getReason() {
+        return reason;
     }
 
     public boolean isAccepted() {
         boolean isAccepted = STATUS_ACEPTED.equalsIgnoreCase(getStatus());
         return isAccepted;
+    }
+
+    @Override
+    public String toString() {
+        return "DealConfirmation{" +
+                "dealRef='" + dealRef + '\'' +
+                ", dealId='" + dealId + '\'' +
+                ", status='" + status + '\'' +
+                ", epic='" + epic + '\'' +
+                ", reason='" + reason + '\'' +
+                '}';
     }
 }

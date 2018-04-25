@@ -215,7 +215,7 @@ public class IGClient implements TradingAPI {
               .filter(psnap -> positionId.equalsIgnoreCase(psnap.getPositionId()))
               .findFirst();
 
-      return positionSnapShot.get();
+      return positionSnapShot.orElseGet(null);
    }
 
    @Override
@@ -442,7 +442,7 @@ public class IGClient implements TradingAPI {
    }
 
    @Override
-   public void closeOpenPosition(Position position) throws Exception {
+   public String closeOpenPosition(Position position) throws Exception {
        GetMarketDetailsV2Response marketDetails = restAPI.getMarketDetailsV2(
                authenticationContext.getConversationContext(), position.getEpic());
 
@@ -465,7 +465,10 @@ public class IGClient implements TradingAPI {
        LOG.info("<<< Closing position: dealId={} direction={} size={} orderType={} level={}", position.getDealId(), position.getDirection(), position.getSize(),
                closePositionRequest.getOrderType(), closePositionRequest.getLevel());
        CloseOTCPositionV1Response closeResp = restAPI.closeOTCPositionV1(authenticationContext.getConversationContext(), closePositionRequest);
+
        TRADE_LOGGER.info("TRADE: {}",position);
+
+       return closeResp.getDealReference();
     }
 
    @Override
