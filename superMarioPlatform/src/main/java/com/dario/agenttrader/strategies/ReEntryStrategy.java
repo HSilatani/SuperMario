@@ -39,12 +39,12 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
     private int emaDifferenceSafeDistance = 20;
     private int slopeTimeFrame=3;
     private long barMaturityThresholdSeconds =59;
-    private BigDecimal absoluteSlopeThreshold = new BigDecimal(3);
+    private BigDecimal absoluteSlopeThreshold = new BigDecimal(2);
     private BigDecimal absoluteSlopeChangeThreshold = new BigDecimal(0.60);
     private BigDecimal macdNeutralZone = BigDecimal.TEN;
-    private BigDecimal oppositeStreamSafetyCoeficient = new BigDecimal(2);
+    private BigDecimal oppositeStreamSafetyCoeficient = new BigDecimal(3);
     private Direction lastSignalDirection = null;
-    private int stopDistanceMultiplier = 3;
+    private int stopDistanceMultiplier = 6;
 
     private MarketInfo staticMarketInfo = null;
     private Instant newBarTimeStamp=null;
