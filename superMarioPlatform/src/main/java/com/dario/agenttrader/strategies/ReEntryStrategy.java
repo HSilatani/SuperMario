@@ -44,7 +44,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
     private BigDecimal macdNeutralZone = BigDecimal.TEN;
     private BigDecimal oppositeStreamSafetyCoeficient = new BigDecimal(3);
     private Direction lastSignalDirection = null;
-    private int stopDistanceMultiplier = 6;
+    private int stopDistanceMultiplier = 50;
 
     private MarketInfo staticMarketInfo = null;
     private Instant newBarTimeStamp=null;
