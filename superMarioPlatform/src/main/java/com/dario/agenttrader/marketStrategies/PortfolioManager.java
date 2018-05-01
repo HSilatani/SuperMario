@@ -36,6 +36,10 @@ public class PortfolioManager {
         positionTracker.setPositionReconciliationTimeOutMili(positionReconciliationTimoutMillis);
     }
 
+    public void setEpicCoolingOffPeriodTimeOut(long minutes){
+        positionTracker.setEpiccoolingOffPeriod(Duration.ofMinutes(minutes));
+    }
+
     public void processTradingSignal(TradingSignal signal){
         subscribeToConfirms();
         try {
@@ -65,6 +69,13 @@ public class PortfolioManager {
 
     private void executeEnterMarketSignal(TradingSignal signal) throws Exception{
             LOG.info("Processing trading signal:{}" , signal.toString());
+            boolean isEpicInCoolingOffPeriod = positionTracker.isEpicInCoolingOffPeriod(signal.getEpic());
+
+            if(isEpicInCoolingOffPeriod){
+                LOG.info("IGNORING Enter market signal for {}", signal.getEpic());
+                return;
+            }
+
             boolean noOtherPositionsOnEpic = positionTracker.epicHasNoPosition(signal.getEpic());
 
             if (noOtherPositionsOnEpic) {
@@ -81,7 +92,7 @@ public class PortfolioManager {
                     positionTracker.removePosition(oppositePosition.getDealRef());
                     LOG.info("CLOSED position:{} on EPIC:{}", oppositePosition.getDealId(),oppositePosition.getEpic());
                 } else {
-                    LOG.info("Enter market signal for {} is ignored", signal.getEpic());
+                    LOG.info("IGNORING Enter market signal for {}", signal.getEpic());
                 }
             }
     }

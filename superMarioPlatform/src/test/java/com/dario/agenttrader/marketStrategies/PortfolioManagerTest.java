@@ -64,6 +64,7 @@ public class PortfolioManagerTest {
     }
     @Test
     public void testProcessTradingSignalWhenThereIsAnOpenPositionOnOppositeDirection() throws Exception {
+        portfolioManager.setEpicCoolingOffPeriodTimeOut(0);
         List<PositionSnapshot> positionSnapshots =
                 createPositionSnapsohtsListWithAPositionOnTestEPIC();
         when(mockedTradingAPI.listOpenPositions()).thenReturn(positionSnapshots);
@@ -83,6 +84,31 @@ public class PortfolioManagerTest {
         portfolioManager.processTradingSignal(signal);
 
         verify(mockedTradingAPI, Mockito.times(1)).createPosition(signal);;
+        verify(mockedTradingAPI, Mockito.times(1)).closeOpenPosition(any());
+        verify(mockedTradingAPI, Mockito.times(1)).listOpenPositions();
+    }
+    @Test
+    public void testCoolingOffperiod() throws Exception {
+        portfolioManager.setEpicCoolingOffPeriodTimeOut(100000);
+        List<PositionSnapshot> positionSnapshots =
+                createPositionSnapsohtsListWithAPositionOnTestEPIC();
+        when(mockedTradingAPI.listOpenPositions()).thenReturn(positionSnapshots);
+
+        BigDecimal size = BigDecimal.ONE;
+        BigDecimal stopDistance = BigDecimal.ONE;
+        TradingSignal signal =
+                TradingSignal.createEnterMarketSignal(
+                        testEpic,
+                        Direction.BUY(),
+                        size,
+                        stopDistance);
+
+        portfolioManager.processTradingSignal(signal);
+        verify(mockedTradingAPI,never()).createPosition(signal);
+
+        portfolioManager.processTradingSignal(signal);
+
+        verify(mockedTradingAPI, Mockito.times(0)).createPosition(signal);;
         verify(mockedTradingAPI, Mockito.times(1)).closeOpenPosition(any());
         verify(mockedTradingAPI, Mockito.times(1)).listOpenPositions();
     }

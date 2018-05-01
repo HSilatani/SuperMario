@@ -1,6 +1,5 @@
 package com.dario.agenttrader.domain;
 
-import com.dario.agenttrader.domain.Direction;
 import com.dario.agenttrader.utility.Calculator;
 
 import java.time.Instant;

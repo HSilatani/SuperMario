@@ -232,10 +232,10 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                     + " but received update for " + epic);
         }
         boolean isValid = true;
-        if(! (marketUpdated.getMarketupdate().getUpdate() instanceof PriceTick)){
+        if(marketUpdated.getMarketupdate().getUpdate() instanceof PriceTick){
             isValid=false;
         }
-
+        LOG.debug("Market update {} is Valid: {}",marketUpdated.getMarketupdate().getUpdate(),isValid);
         return  isValid;
     }
 

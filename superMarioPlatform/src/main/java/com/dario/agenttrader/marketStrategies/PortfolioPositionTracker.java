@@ -8,6 +8,7 @@ import com.dario.agenttrader.utility.IGClientUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -27,6 +28,8 @@ public class PortfolioPositionTracker{
     private Instant lastPositionReconciliationTime = null;
     private Supplier<List<PositionSnapshot>> positionReloadSupplier;
     private Function<String,DealConfirmation> dealConfirmationFunction;
+    private Map<String, Instant> epicsInCoolingOffPeriod = new ConcurrentHashMap<>();
+    private Duration epiccoolingOffPeriod = Duration.ofMinutes(6);
 
     public void trackNewPosition(Position position){
         Map<String, Position> positionsOnEpic = epicToPositions.get(position.getEpic());
@@ -50,12 +53,14 @@ public class PortfolioPositionTracker{
     private  void unRegisterPosition(String dealRef) {
         Position position = dealRefToPosition.remove(dealRef);
         epicToPositions.get(position.getEpic()).remove(dealRef);
+        epicsInCoolingOffPeriod.put(position.getEpic(),Instant.now());
 
     }
 
     public void confirmPosition(String epic, String dealRef,String dealId, boolean accepted){
         Map<String, Position> positionsOnEpic = Optional.ofNullable(epicToPositions.get(epic)).orElse(new HashMap<>());
         Position position = positionsOnEpic.get(dealRef);
+        LOG.debug("Updating local position cache for position {} with confirm [{},{},{},{}]",position,epic,dealRef,dealId,accepted);
         if(position!=null && !position.isConfirmed()){
             if(accepted) {
                 position.setConfirmed(true);
@@ -237,6 +242,19 @@ public class PortfolioPositionTracker{
         return  emptyEpic;
     }
 
+    public boolean isEpicInCoolingOffPeriod(String epic){
+        boolean isInCoolingOffPeriodStill = true;
+
+        Instant coolingStartTime = epicsInCoolingOffPeriod.get(epic);
+        if (coolingStartTime != null){
+            isInCoolingOffPeriodStill=Duration.between(coolingStartTime,Instant.now()).toMillis()<epiccoolingOffPeriod.toMillis();
+        }else{
+            isInCoolingOffPeriodStill = false;
+        }
+        LOG.debug("epic:{} is in cooling off period:{} since:{}",epic,isInCoolingOffPeriodStill,coolingStartTime);
+        return isInCoolingOffPeriodStill;
+    }
+
     public boolean trackIfEPICHasNoOtherPosition(Position position){
         boolean empty = epicHasNoPosition(position.getEpic());
         if(empty){
@@ -254,5 +272,23 @@ public class PortfolioPositionTracker{
         return position.orElse(null);
     }
 
+    public long getConfirmExpiryTimeOutMili() {
+        return confirmExpiryTimeOutMili;
+    }
 
+    public Instant getLastPositionReconciliationTime() {
+        return lastPositionReconciliationTime;
+    }
+
+    public Duration getEpiccoolingOffPeriod() {
+        return epiccoolingOffPeriod;
+    }
+
+    public void setLastPositionReconciliationTime(Instant lastPositionReconciliationTime) {
+        this.lastPositionReconciliationTime = lastPositionReconciliationTime;
+    }
+
+    public void setEpiccoolingOffPeriod(Duration epiccoolingOffPeriod) {
+        this.epiccoolingOffPeriod = epiccoolingOffPeriod;
+    }
 }
