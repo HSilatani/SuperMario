@@ -33,7 +33,10 @@ public class Direction {
     public boolean isInOppositDirection(Direction targetDirection){
         return (this.getDirection()+targetDirection.getDirection())==0;
     }
-
+    //TODO:TEST
+    public boolean isInSameDirection(Direction direction) {
+        return this.getDirection()==direction.getDirection();
+    }
     @Override
     public String toString() {
         String strDirection="";
@@ -53,4 +56,6 @@ public class Direction {
             return Direction.BUY();
         }
     }
+
+
 }

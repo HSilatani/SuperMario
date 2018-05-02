@@ -9,6 +9,7 @@ import org.ta4j.core.*;
 import org.ta4j.core.indicators.EMAIndicator;
 import org.ta4j.core.indicators.MACDIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
+import org.ta4j.core.indicators.helpers.GainIndicator;
 import org.ta4j.core.indicators.statistics.SimpleLinearRegressionIndicator;
 import org.ta4j.core.trading.rules.OverIndicatorRule;
 import org.ta4j.core.trading.rules.UnderIndicatorRule;
@@ -113,6 +114,9 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         return isNewBarAdded;
     }
 
+    //TODO:test Exit market
+    //TODO: test gain
+    //TODO: move messy rules to proper TA4J rule
     private void evaluateStrategy() {
         ClosePriceIndicator closePrice = new ClosePriceIndicator(priceTimeSeries);
         int endIndex = priceTimeSeries.getEndIndex();
@@ -121,6 +125,8 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         EMAIndicator longEMA = new EMAIndicator(closePrice,longPeriod);
         MACDIndicator macdIndicator = new MACDIndicator(closePrice,shortPeriod,longPeriod);
         EMAIndicator macdSignal = new EMAIndicator(macdIndicator,9);
+        GainIndicator gainSignal = new GainIndicator(closePrice);
+        //
         SimpleLinearRegressionIndicator slopeOfMACDIndicator =
                 new SimpleLinearRegressionIndicator(
                         macdIndicator
@@ -140,6 +146,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
 
         Strategy strategy = new BaseStrategy(buyingRule, sellingRule);
 
+        Decimal lastBarsGain = gainSignal.getValue(endIndex);
         Decimal shortEMAValue = shortEMA.getValue(endIndex);
         Decimal longEMAValue = longEMA.getValue(endIndex);
         Decimal macdValue = macdIndicator.getValue(endIndex);
@@ -149,6 +156,9 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         Decimal accelarationOfMACD = accelarationOfMACDSLOPEIndicator.getValue(endIndex);
         BigDecimal buySafetyCoefficient = (macdValue.isLessThan(macdNeutralZone))?oppositeStreamSafetyCoeficient:BigDecimal.ONE;
         BigDecimal sellSafetyCoefficient = (macdValue.isGreaterThan(macdNeutralZone.negate()))?oppositeStreamSafetyCoeficient:BigDecimal.ONE;
+        boolean isLastBarGreen = lastBarsGain.isPositive();
+        boolean isCloseSellPosition = accelarationOfMACD.isPositive();
+        boolean isCloseBuyPosition = accelarationOfMACD.isNegative();
         boolean isStrategyShouldEnter = strategy.shouldEnter(endIndex);
         boolean isStrategyShouldExit = strategy.shouldExit(endIndex);
         boolean isSpreadWithinRange = latesSpread < maxAllowedSpread;
@@ -157,7 +167,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         boolean isSellMACDAccelarationSatisfied = BigDecimal.valueOf(accelarationOfMACD.doubleValue()).compareTo(absoluteSlopeChangeThreshold.negate().multiply(sellSafetyCoefficient))<0;
         boolean isBuyMACDSlopeSatisfied = BigDecimal.valueOf(slopeOfMACD.doubleValue()).compareTo(absoluteSlopeThreshold)>0;
         boolean isSellMACDSlopeSatisfied = BigDecimal.valueOf(slopeOfMACD.doubleValue()).compareTo(absoluteSlopeThreshold.negate())<0;
-        LOG.info("EPIC:{},EndIndex:{},price_open:{},close:{},high:{},low:{},spread:{},is_Spread_within_range:{},short_EMA:{},Long_EMA:{},MACD:{},MACDSIGNAL:{},EMA_Diff:{},slope:{},MACD_Slope_Buy:{},MACD_Slope_Sell:{},MACD_Accelaratio:{},MACD_ACCELARATION_Buy:{},MACD_ACCELARATIO_Sell:{},ENTER:{},EXIT:{},{}"
+        LOG.info("EPIC:{},IDX:{},O:{},C:{},H:{},L:{},SPRD:{},SPRD_IN:{},S_EMA:{},L_EMA:{},MACD:{},MACD_S:{},EMA_Diff:{},slope:{},MACD_Slope_B:{},MACD_Slope_S:{},MACD_Acc:{},MACD_ACC_B:{},MACD_ACC_S:{},GAIN:{},CLOSE_BUY:{},CLOSE_SELL:{},ENTER:{},EXIT:{},{}"
                 , getEpic()
                 ,endIndex
                 ,priceTimeSeries.getLastBar().getOpenPrice()
@@ -177,21 +187,56 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                 ,accelarationOfMACD.getDelegate().setScale(3,BigDecimal.ROUND_HALF_UP)
                 ,isBuyMACDAccelarationSatisfied
                 ,isSellMACDAccelarationSatisfied
+                ,lastBarsGain.getDelegate().setScale(3,BigDecimal.ROUND_HALF_UP)
+                ,isCloseBuyPosition
+                ,isCloseSellPosition
                 ,isStrategyShouldEnter
                 ,isStrategyShouldExit
                 ,priceTimeSeries.getLastBar().getSimpleDateName()
         );
 
-        if ( isStrategyShouldEnter && isSpreadWithinRange && isBuyMACDAccelarationSatisfied && isBuyMACDSlopeSatisfied) {
+        if ( isStrategyShouldEnter && isSpreadWithinRange && isBuyMACDAccelarationSatisfied && isBuyMACDSlopeSatisfied && isLastBarGreen) {
             TradingSignal tradingSignal = createTradingSignal(direction);
             strategyInstructionConsumer.accept(tradingSignal);
-            LOG.info("ENTER POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
+            LOG.info("ENTER LONG POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
         } else if ( isStrategyShouldExit && isSpreadWithinRange && isSellMACDAccelarationSatisfied && isSellMACDSlopeSatisfied) {
             TradingSignal tradingSignal = createTradingSignal(direction.opposite());
             strategyInstructionConsumer.accept(tradingSignal);
-            LOG.info("EXIT POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
+            LOG.info("ENTER SHORT POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
+        } else if(isCloseBuyPosition){
+            TradingSignal tradingSignal = createTradingSignalCloseIfThereIsABuyPositionOpen();
+            strategyInstructionConsumer.accept(tradingSignal);
+            LOG.info("CLOSE LONG POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
+        } else if(isCloseSellPosition){
+            TradingSignal tradingSignal = createTradingSignalCloseIfThereIsASellPositionOpen();
+            strategyInstructionConsumer.accept(tradingSignal);
+            LOG.info("CLOSE SHORT POSITION SIGNAL:level:{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal.toString());
         }
 
+    }
+
+    private TradingSignal createTradingSignalCloseIfThereIsASellPositionOpen() {
+        String epic = getEpic();
+        LOG.debug("CREATING TRADING SIGNAL FOR {}",epic);
+
+        TradingSignal tradingSignal= TradingSignal.createExitMarketSignal(
+                epic
+                ,Direction.SELL()
+        );
+        LOG.debug("TRADING SIGNAL CREATED:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
+        return tradingSignal;
+    }
+
+    private TradingSignal createTradingSignalCloseIfThereIsABuyPositionOpen() {
+        String epic = getEpic();
+        LOG.debug("CREATING TRADING SIGNAL FOR {}",epic);
+
+        TradingSignal tradingSignal= TradingSignal.createExitMarketSignal(
+                epic
+                ,Direction.BUY()
+                );
+        LOG.debug("TRADING SIGNAL CREATED:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
+        return tradingSignal;
     }
 
     private TradingSignal createTradingSignal(Direction pDirection) {

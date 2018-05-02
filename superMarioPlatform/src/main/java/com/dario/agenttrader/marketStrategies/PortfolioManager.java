@@ -43,14 +43,39 @@ public class PortfolioManager {
     public void processTradingSignal(TradingSignal signal){
         subscribeToConfirms();
         try {
-            if (EDIT_POSITION_INSTRUCTION.equalsIgnoreCase(signal.getInstruction())) {
+            if (signal.isEditMarketSignal()) {
                 executeEditPositionSignal(signal);
-            } else if (ENTER_MARKET_INSTRUCTION.equalsIgnoreCase(signal.getInstruction())) {
+            }else if(signal.isExitMarketSignal()){
+                executeExitPositionSignal(signal);
+            }else if (signal.isEnterMarketSignal()) {
                 executeEnterMarketSignal(signal);
             }
         }catch (Exception ex){
             LOG.warn("Unable to execute signal",ex);
         }
+    }
+
+    private void executeExitPositionSignal(TradingSignal signal) throws Exception{
+        LOG.info("Processing trading signal:{}" , signal.toString());
+
+        boolean noPositionsOnEpic = positionTracker.epicHasNoPosition(signal.getEpic());
+        LOG.debug("There is no position to close:{}",noPositionsOnEpic);
+
+        if (noPositionsOnEpic) {
+            return;
+        } else {
+            Position openPositionToClose = positionTracker.getPositionsOnEpic(signal.getEpic(),signal.getDirection());
+
+            if (openPositionToClose!=null){
+                LOG.info("Closing position:{} on EPIC:{}", openPositionToClose.getDealId(),openPositionToClose.getEpic());
+                tradingAPI.closeOpenPosition(openPositionToClose);
+                positionTracker.removePosition(openPositionToClose.getDealRef());
+                LOG.info("CLOSED position:{} on EPIC:{}", openPositionToClose.getDealId(),openPositionToClose.getEpic());
+            } else {
+                LOG.info("IGNORING Exit market signal {}", signal);
+            }
+        }
+
     }
 
     private void subscribeToConfirms() {

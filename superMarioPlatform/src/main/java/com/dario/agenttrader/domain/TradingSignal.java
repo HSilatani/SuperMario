@@ -3,9 +3,12 @@ package com.dario.agenttrader.domain;
 import java.math.BigDecimal;
 import java.util.StringJoiner;
 
+//TODO:Test Exit Market
+//TODO: Test new isMarket... methods
 public final class TradingSignal {
     public static final String ENTER_MARKET_INSTRUCTION="ENTER MARKET";
     public static final String EDIT_POSITION_INSTRUCTION="EDIT POSITION";
+    private static final String EXIT_MARKET_INSTRUCTION = "EXIT MARKET";
     String instruction ="";
     BigDecimal newStopLevel;
     BigDecimal newLimitLevel;
@@ -28,6 +31,15 @@ public final class TradingSignal {
         newSingal.setSize(pSize);
 
         return newSingal;
+    }
+
+    public static TradingSignal createExitMarketSignal(String epic, Direction direction) {
+        TradingSignal newSignal = new TradingSignal();
+        newSignal.setInstruction(EXIT_MARKET_INSTRUCTION);
+        newSignal.setDirection(direction);
+        newSignal.setEpic(epic);
+
+        return newSignal;
     }
 
     public static TradingSignal createEditPositionSignal(
@@ -116,21 +128,26 @@ public final class TradingSignal {
     @Override
     public String toString() {
         StringJoiner instruction = new StringJoiner(",");
-        if(EDIT_POSITION_INSTRUCTION.equalsIgnoreCase(this.getInstruction())){
-            instruction.add(this.getInstruction());
-            instruction.add(this.getEpic());
-            instruction.add("DealID="+this.getDealId());
-            instruction.add("STOP="+getNewStopLevel());
-            instruction.add("LIMIT="+getNewLimitLevel());
 
-        }else if(ENTER_MARKET_INSTRUCTION.equalsIgnoreCase(this.getInstruction())){
             instruction.add(this.getInstruction());
             instruction.add(this.getEpic());
-            instruction.add("Direction="+this.getDirection().toString());
+            instruction.add("Direction="+this.getDirection());
+            instruction.add("DealID="+this.getDealId());
             instruction.add("Size="+this.getSize());
             instruction.add("STOP="+getStopDistance());
             instruction.add("LIMIT="+getNewLimitLevel());
-        }
         return instruction.toString();
+    }
+
+    public boolean isEditMarketSignal() {
+        return EDIT_POSITION_INSTRUCTION.equalsIgnoreCase(getInstruction());
+    }
+
+    public boolean isExitMarketSignal() {
+        return EXIT_MARKET_INSTRUCTION.equalsIgnoreCase(getInstruction());
+    }
+
+    public boolean isEnterMarketSignal() {
+        return ENTER_MARKET_INSTRUCTION.equalsIgnoreCase(getInstruction());
     }
 }

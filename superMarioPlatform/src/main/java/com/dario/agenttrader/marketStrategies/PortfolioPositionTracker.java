@@ -1,9 +1,6 @@
 package com.dario.agenttrader.marketStrategies;
 
-import com.dario.agenttrader.domain.DealConfirmation;
-import com.dario.agenttrader.domain.Position;
-import com.dario.agenttrader.domain.PositionSnapshot;
-import com.dario.agenttrader.domain.TradingSignal;
+import com.dario.agenttrader.domain.*;
 import com.dario.agenttrader.utility.IGClientUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -265,9 +262,14 @@ public class PortfolioPositionTracker{
 
     //TODO:test
     public Position getOppositePosition(TradingSignal signal) {
-        List<Position> listOfPositions = getPositionsOnEpic(signal.getEpic());
+        Position position = getPositionsOnEpic(signal.getEpic(),signal.getDirection().opposite());
+        return position;
+    }
+    //TODO:TEST
+    public Position getPositionsOnEpic(String epic, Direction direction) {
+        List<Position> listOfPositions = getPositionsOnEpic(epic);
         Optional<Position> position = listOfPositions.stream()
-                .filter(p->p.getSize()==signal.getSize().doubleValue() && p.getDirection().isInOppositDirection(signal.getDirection()))
+                .filter(p->p.getDirection().isInSameDirection(direction))
                 .findFirst();
         return position.orElse(null);
     }
@@ -291,4 +293,6 @@ public class PortfolioPositionTracker{
     public void setEpiccoolingOffPeriod(Duration epiccoolingOffPeriod) {
         this.epiccoolingOffPeriod = epiccoolingOffPeriod;
     }
+
+
 }
