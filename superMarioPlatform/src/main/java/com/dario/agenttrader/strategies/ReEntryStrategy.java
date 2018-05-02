@@ -1,9 +1,6 @@
 package com.dario.agenttrader.strategies;
 
-import com.dario.agenttrader.domain.Direction;
-import com.dario.agenttrader.domain.MarketInfo;
-import com.dario.agenttrader.domain.PriceTick;
-import com.dario.agenttrader.domain.TradingSignal;
+import com.dario.agenttrader.domain.*;
 import com.dario.agenttrader.actors.MarketActor;
 import com.dario.agenttrader.actors.Position;
 import org.slf4j.Logger;
@@ -64,7 +61,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
             updateState(marketUpdate);
             //if(newBarIsAdded()) {
             LOG.debug("Updatinaluating strategy  state",marketUpdate.getEpic());
-            if(isAllowedToEvaluateStrategy()) {
+            if(isAllowedToEvaluateStrategy(marketUpdate)) {
                 evaluateStrategy();
             }
             LOG.debug("Strategy evaluated",marketUpdate.getEpic());
@@ -88,14 +85,23 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         return spread;
     }
 
-    private boolean isAllowedToEvaluateStrategy(){
+    private boolean isAllowedToEvaluateStrategy(MarketActor.MarketUpdated marketUpdated){
         if(newBarIsAdded()||newBarTimeStamp==null){
             newBarTimeStamp= Instant.now();
         }
 
+        boolean recievedChartUpdate = false;
+        if(marketUpdated.getMarketupdate().getUpdate() instanceof PriceCandle){
+            recievedChartUpdate = true;
+        }
+
         long secondsSinceNewBar=Duration.between(newBarTimeStamp,Instant.now()).getSeconds();
         boolean isMinutesPassedOverThreshold = secondsSinceNewBar> barMaturityThresholdSeconds;
-        return  isMinutesPassedOverThreshold;
+
+        boolean strategyEvaluationConditionsMet = recievedChartUpdate && isMinutesPassedOverThreshold;
+
+        LOG.debug("Strategy evaluation condition met={} - minutes threshold={},recieved chart update={}",strategyEvaluationConditionsMet,isMinutesPassedOverThreshold,recievedChartUpdate);
+        return  strategyEvaluationConditionsMet;
     }
 
     private boolean newBarIsAdded() {
@@ -232,10 +238,8 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                     + " but received update for " + epic);
         }
         boolean isValid = true;
-        if(marketUpdated.getMarketupdate().getUpdate() instanceof PriceTick){
-            isValid=false;
-        }
-        LOG.debug("Market update {} is Valid: {}",marketUpdated.getMarketupdate().getUpdate(),isValid);
+
+
         return  isValid;
     }
 
