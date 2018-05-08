@@ -26,7 +26,7 @@ public class PortfolioPositionTracker{
     private Supplier<List<PositionSnapshot>> positionReloadSupplier;
     private Function<String,DealConfirmation> dealConfirmationFunction;
     private Map<String, Instant> epicsInCoolingOffPeriod = new ConcurrentHashMap<>();
-    private Duration epiccoolingOffPeriod = Duration.ofMinutes(6);
+    private Duration epiccoolingOffPeriod = Duration.ofMinutes(2);
 
     public void trackNewPosition(Position position){
         Map<String, Position> positionsOnEpic = epicToPositions.get(position.getEpic());

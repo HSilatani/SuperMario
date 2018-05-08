@@ -13,7 +13,7 @@ if(/>>>/)
 else if(/MACD/)
  {
   split($8,arr,",")
-  print $2,arr[9],arr[10],arr[11],arr[14],arr[15],arr[16],arr[17],arr[20],arr[21]
+  print $2,arr[9],arr[10],arr[11],arr[14],arr[15],arr[16],arr[17],arr[18],arr[19],arr[20],arr[21],arr[22],arr[23],arr[24],arr[25]
  }
 else if(/CONFIRM.{7}d/)
  {print $0}

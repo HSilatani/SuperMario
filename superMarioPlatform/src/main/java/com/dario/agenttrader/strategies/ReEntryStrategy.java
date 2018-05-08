@@ -36,10 +36,11 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
     private int longPeriod= 26;
     private int emaDifferenceSafeDistance = 20;
     private int slopeTimeFrame=3;
-    private long barMaturityThresholdSeconds =59;
-    private BigDecimal absoluteSlopeThreshold = new BigDecimal(2);
+    private long barMaturityThresholdSeconds =280;
+    private BigDecimal absoluteSlopeThreshold = new BigDecimal(1.5);
     private BigDecimal absoluteSlopeChangeThreshold = new BigDecimal(0.60);
-    private BigDecimal macdNeutralZone = BigDecimal.TEN;
+    private BigDecimal macdNeutralZone = new BigDecimal(5);
+    private BigDecimal macdAccelarionNeutralZone = new BigDecimal(0.15);
     private BigDecimal oppositeStreamSafetyCoeficient = new BigDecimal(3);
     private Direction lastSignalDirection = null;
     private int stopDistanceMultiplier = 50;
@@ -157,8 +158,8 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         BigDecimal buySafetyCoefficient = (macdValue.isLessThan(macdNeutralZone))?oppositeStreamSafetyCoeficient:BigDecimal.ONE;
         BigDecimal sellSafetyCoefficient = (macdValue.isGreaterThan(macdNeutralZone.negate()))?oppositeStreamSafetyCoeficient:BigDecimal.ONE;
         boolean isLastBarGreen = lastBarsGain.isPositive();
-        boolean isCloseSellPosition = accelarationOfMACD.isPositive();
-        boolean isCloseBuyPosition = accelarationOfMACD.isNegative();
+        boolean isCloseSellPosition = accelarationOfMACD.minus(macdAccelarionNeutralZone).isPositive();
+        boolean isCloseBuyPosition = accelarationOfMACD.plus(macdAccelarionNeutralZone).isNegative();
         boolean isStrategyShouldEnter = strategy.shouldEnter(endIndex);
         boolean isStrategyShouldExit = strategy.shouldExit(endIndex);
         boolean isSpreadWithinRange = latesSpread < maxAllowedSpread;
@@ -195,21 +196,31 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                 ,priceTimeSeries.getLastBar().getSimpleDateName()
         );
 
-        if ( isStrategyShouldEnter && isSpreadWithinRange && isBuyMACDAccelarationSatisfied && isBuyMACDSlopeSatisfied && isLastBarGreen) {
+        if ( isStrategyShouldEnter
+                && isSpreadWithinRange
+                //&& isBuyMACDAccelarationSatisfied
+                //&& isBuyMACDSlopeSatisfied
+                && isLastBarGreen
+                ) {
             TradingSignal tradingSignal = createTradingSignal(direction);
             strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("ENTER LONG POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
-        } else if ( isStrategyShouldExit && isSpreadWithinRange && isSellMACDAccelarationSatisfied && isSellMACDSlopeSatisfied) {
+        } else if ( isStrategyShouldExit
+                && isSpreadWithinRange
+                //&& isSellMACDAccelarationSatisfied
+                //&& isSellMACDSlopeSatisfied
+                && !isLastBarGreen
+                ) {
             TradingSignal tradingSignal = createTradingSignal(direction.opposite());
             strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("ENTER SHORT POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
         } else if(isCloseBuyPosition){
             TradingSignal tradingSignal = createTradingSignalCloseIfThereIsABuyPositionOpen();
-            strategyInstructionConsumer.accept(tradingSignal);
+            //strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("CLOSE LONG POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
         } else if(isCloseSellPosition){
             TradingSignal tradingSignal = createTradingSignalCloseIfThereIsASellPositionOpen();
-            strategyInstructionConsumer.accept(tradingSignal);
+            //strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("CLOSE SHORT POSITION SIGNAL:level:{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal.toString());
         }
 
