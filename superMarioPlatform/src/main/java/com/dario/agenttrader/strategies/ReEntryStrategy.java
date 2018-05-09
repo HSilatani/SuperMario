@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.ta4j.core.*;
 import org.ta4j.core.indicators.EMAIndicator;
 import org.ta4j.core.indicators.MACDIndicator;
+import org.ta4j.core.indicators.WilliamsRIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.helpers.GainIndicator;
 import org.ta4j.core.indicators.statistics.SimpleLinearRegressionIndicator;
@@ -32,11 +33,12 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
     private Long latesSpread=Long.MAX_VALUE;
     private long maxAllowedSpread = 25;
     private BigDecimal dealSize = BigDecimal.ONE;
-    private int shortPeriod = 12;
-    private int longPeriod= 26;
+    private int shortPeriod = 6;
+    private int longPeriod= 12;
     private int emaDifferenceSafeDistance = 20;
     private int slopeTimeFrame=3;
     private long barMaturityThresholdSeconds =280;
+    private int william_r_timeFrame = 12;
     private BigDecimal absoluteSlopeThreshold = new BigDecimal(1.5);
     private BigDecimal absoluteSlopeChangeThreshold = new BigDecimal(0.60);
     private BigDecimal macdNeutralZone = new BigDecimal(5);
@@ -44,6 +46,8 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
     private BigDecimal oppositeStreamSafetyCoeficient = new BigDecimal(3);
     private Direction lastSignalDirection = null;
     private int stopDistanceMultiplier = 50;
+    private BigDecimal william_r_no_buy = new BigDecimal(-20);
+    private BigDecimal william_r_no_sell = new BigDecimal(-80);
 
     private MarketInfo staticMarketInfo = null;
     private Instant newBarTimeStamp=null;
@@ -127,6 +131,8 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         MACDIndicator macdIndicator = new MACDIndicator(closePrice,shortPeriod,longPeriod);
         EMAIndicator macdSignal = new EMAIndicator(macdIndicator,9);
         GainIndicator gainSignal = new GainIndicator(closePrice);
+        WilliamsRIndicator williamRIndicator = new WilliamsRIndicator(priceTimeSeries, william_r_timeFrame);
+
         //
         SimpleLinearRegressionIndicator slopeOfMACDIndicator =
                 new SimpleLinearRegressionIndicator(
@@ -147,6 +153,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
 
         Strategy strategy = new BaseStrategy(buyingRule, sellingRule);
 
+        Decimal williamr = williamRIndicator.getValue(endIndex);
         Decimal lastBarsGain = gainSignal.getValue(endIndex);
         Decimal shortEMAValue = shortEMA.getValue(endIndex);
         Decimal longEMAValue = longEMA.getValue(endIndex);
@@ -157,7 +164,10 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         Decimal accelarationOfMACD = accelarationOfMACDSLOPEIndicator.getValue(endIndex);
         BigDecimal buySafetyCoefficient = (macdValue.isLessThan(macdNeutralZone))?oppositeStreamSafetyCoeficient:BigDecimal.ONE;
         BigDecimal sellSafetyCoefficient = (macdValue.isGreaterThan(macdNeutralZone.negate()))?oppositeStreamSafetyCoeficient:BigDecimal.ONE;
+        boolean william_r_no_buy_flag = williamr.isGreaterThanOrEqual(william_r_no_buy);
+        boolean william_r_no_sell_flag = williamr.isLessThanOrEqual(william_r_no_sell);
         boolean isLastBarGreen = lastBarsGain.isPositive();
+        boolean isLastBarRed = !isLastBarGreen;
         boolean isCloseSellPosition = accelarationOfMACD.minus(macdAccelarionNeutralZone).isPositive();
         boolean isCloseBuyPosition = accelarationOfMACD.plus(macdAccelarionNeutralZone).isNegative();
         boolean isStrategyShouldEnter = strategy.shouldEnter(endIndex);
@@ -168,7 +178,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         boolean isSellMACDAccelarationSatisfied = BigDecimal.valueOf(accelarationOfMACD.doubleValue()).compareTo(absoluteSlopeChangeThreshold.negate().multiply(sellSafetyCoefficient))<0;
         boolean isBuyMACDSlopeSatisfied = BigDecimal.valueOf(slopeOfMACD.doubleValue()).compareTo(absoluteSlopeThreshold)>0;
         boolean isSellMACDSlopeSatisfied = BigDecimal.valueOf(slopeOfMACD.doubleValue()).compareTo(absoluteSlopeThreshold.negate())<0;
-        LOG.info("EPIC:{},IDX:{},O:{},C:{},H:{},L:{},SPRD:{},SPRD_IN:{},S_EMA:{},L_EMA:{},MACD:{},MACD_S:{},EMA_Diff:{},slope:{},MACD_Slope_B:{},MACD_Slope_S:{},MACD_Acc:{},MACD_ACC_B:{},MACD_ACC_S:{},GAIN:{},CLOSE_BUY:{},CLOSE_SELL:{},ENTER:{},EXIT:{},{}"
+        LOG.info("EPIC:{},IDX:{},O:{},C:{},H:{},L:{},SP:{},SP_IN:{},S_EMA:{},L_EMA:{},EMA_D:{},MACD:{},MACD_S:{},WR:{},WR_NB:{},WR_NS:{},SL:{},MACD_SL_B:{},MACD_SL_S:{},MACD_AC:{},MACD_AC_B:{},MACD_AC_S:{},GN:{},C_BUY:{},C_SELL:{},LNG:{},SHRT:{},{}"
                 , getEpic()
                 ,endIndex
                 ,priceTimeSeries.getLastBar().getOpenPrice()
@@ -179,9 +189,12 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                 ,isSpreadWithinRange
                 ,shortEMAValue.getDelegate().setScale(3,BigDecimal.ROUND_HALF_UP)
                 ,longEMAValue.getDelegate().setScale(3,BigDecimal.ROUND_HALF_UP)
+                ,emaDifference
                 ,macdValue.getDelegate().setScale(3,BigDecimal.ROUND_HALF_UP)
                 ,macdSignalValue.getDelegate().setScale(3,BigDecimal.ROUND_HALF_UP)
-                ,emaDifference
+                ,williamr.getDelegate().setScale(2,BigDecimal.ROUND_HALF_UP)
+                ,william_r_no_buy_flag
+                ,william_r_no_sell_flag
                 ,slopeOfMACD.getDelegate().setScale(3,BigDecimal.ROUND_HALF_UP)
                 ,isBuyMACDSlopeSatisfied
                 ,isSellMACDSlopeSatisfied
@@ -201,6 +214,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                 //&& isBuyMACDAccelarationSatisfied
                 //&& isBuyMACDSlopeSatisfied
                 && isLastBarGreen
+                && !william_r_no_buy_flag
                 ) {
             TradingSignal tradingSignal = createTradingSignal(direction);
             strategyInstructionConsumer.accept(tradingSignal);
@@ -209,18 +223,26 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                 && isSpreadWithinRange
                 //&& isSellMACDAccelarationSatisfied
                 //&& isSellMACDSlopeSatisfied
-                && !isLastBarGreen
+                && isLastBarRed
+                && !william_r_no_sell_flag
                 ) {
             TradingSignal tradingSignal = createTradingSignal(direction.opposite());
             strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("ENTER SHORT POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
-        } else if(isCloseBuyPosition){
+        } else if( isStrategyShouldExit
+                && isSpreadWithinRange
+                && isLastBarRed
+                ){
             TradingSignal tradingSignal = createTradingSignalCloseIfThereIsABuyPositionOpen();
-            //strategyInstructionConsumer.accept(tradingSignal);
+            strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("CLOSE LONG POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
-        } else if(isCloseSellPosition){
+        } else if(
+                isStrategyShouldEnter
+                && isSpreadWithinRange
+                && isLastBarGreen
+                ) {
             TradingSignal tradingSignal = createTradingSignalCloseIfThereIsASellPositionOpen();
-            //strategyInstructionConsumer.accept(tradingSignal);
+            strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("CLOSE SHORT POSITION SIGNAL:level:{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal.toString());
         }
 

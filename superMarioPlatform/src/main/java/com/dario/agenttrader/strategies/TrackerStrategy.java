@@ -140,7 +140,7 @@ public class TrackerStrategy extends AbstractMarketStrategy {
             BigDecimal applicablePrice = getCurrentApplicablePrice();
             BigDecimal plFactor = applicablePrice.subtract(openLevel);
             plFactor = plFactor.multiply(new BigDecimal(direction));
-
+            LOG.info("P&L: {},{},{}",positionInfo.getDealId(),positionInfo.getEpic(),plFactor.setScale(2));
             int comparePLFactorGreaterToThreashold = plFactor.compareTo(profitProtectingThreshold);
             if(comparePLFactorGreaterToThreashold>0){
                 profitProtectingStopDistance = staticMarketInfo.getMinNormalStopLimitDistance();

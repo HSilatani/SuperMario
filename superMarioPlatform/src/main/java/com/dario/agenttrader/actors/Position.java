@@ -49,11 +49,10 @@ public class Position extends AbstractActor{
 
     public void onPositionUpdate(PositionManager.OPU opu){
 
-        if(opu.isClosed()){
-          getContext().stop(getSelf());
-        }else if(opu.getPostionInfo()!=null){
+        if(opu.getPostionInfo()!=null){
             PositionInfo newInfo = opu.getPostionInfo();
             Map<String,String[]> delta = IGClientUtility.findDelta(newInfo,positionInfo);
+
 
             delta.forEach((k,v) -> LOG.info("Change detected: {} from {} to {}",k,v[0],v[1]));
 
@@ -67,6 +66,9 @@ public class Position extends AbstractActor{
                     ,new UpdateEvent(positionInfo.getKeyValues(),UpdateEvent.POSITION_UPDATE));
 
             subscribers.informSubscriobers(positionUpdate,getSelf());
+        }
+        if(opu.isClosed()){
+            getContext().stop(getSelf());
         }
     }
     @Override

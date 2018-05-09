@@ -110,7 +110,7 @@ public class InterpreterAgent {
     public void sendMessage(Position.PositionUpdatedDelta positionupdated) {
         String message = ":)";
         message = positionupdated.getDelta().keySet().stream()
-                .filter(k -> PositionInfo.STOP_LEVEL_KEY.equals(k)||PositionInfo.LIMIT_LEVEL_KEY.equals(k))
+                .filter(k -> PositionInfo.LEVEL_KEY.equals(k)||PositionInfo.STOP_LEVEL_KEY.equals(k)||PositionInfo.LIMIT_LEVEL_KEY.equals(k)||PositionInfo.STATUS_KEY.equals(k))
                 .map(k -> k + ":" + positionupdated.getDelta().get(k)[0] + "->" + positionupdated.getDelta().get(k)[1])
                 .collect(Collectors.joining(","));
         message = positionupdated.getEpic() + "/" + positionupdated.getPositionId() +" : "+ message;
