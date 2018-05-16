@@ -27,7 +27,7 @@ public class TrackerStrategy extends AbstractMarketStrategy {
     private int direction;
     private MarketInfo staticMarketInfo = null;
     //TODO: this needs to be calculated based on market spread and volatility. thisis tuned for HK
-    private BigDecimal profitProtectingThreshold = BigDecimal.valueOf(50);
+    private BigDecimal profitProtectingThreshold = BigDecimal.valueOf(30);
 
 
     public TrackerStrategy(ArrayList<String> epics,PositionInfo pPositionInfo) {
@@ -109,26 +109,43 @@ public class TrackerStrategy extends AbstractMarketStrategy {
 
     private void evaluateStrategy() {
         BigDecimal currentLevel = getCurrentApplicablePrice();
+        BigDecimal oldTrigger = nextTrigger.get();
+
         if (isPriceBeyondTriggerPrice(currentLevel)){
-                BigDecimal oldTrigger = nextTrigger.get();
+
                 nextTrigger = Optional.of(currentLevel.add(trailingStep.multiply(BigDecimal.valueOf(direction))));
                 calculateNewProfitProtectingStopDistance();
                 BigDecimal newStop= currentLevel.subtract(stopDistance.get().multiply(BigDecimal.valueOf(direction)));
-                String instruction = "update stopLevel from " +currentStop.orElse(null) + "  -> : " + newStop;
-                LOG.info("Strategy {}-{} issuing instruction {} : Trigger={}->{},currentLevel={}"
-                        ,positionInfo.getDealId()
-                        ,staticMarketInfo.getMarketName()
-                        ,instruction
-                        ,oldTrigger
-                        ,nextTrigger.get()
-                        ,currentLevel);
-                TradingSignal strategySignal =
-                        TradingSignal.createEditPositionSignal(
-                                positionInfo.getDealId()
-                                ,newStop
-                                ,null
-                                );
-                strategyInstructionConsumer.accept(strategySignal);
+                boolean isNewStopValid = newStop.compareTo(currentStop.get())*direction>0;
+                LOG.debug("New stop is valid:{}  {}->{}",isNewStopValid,currentStop.get(),newStop);
+                if(isNewStopValid){
+                    String instruction = "update stopLevel from " +currentStop.orElse(null) + "  -> : " + newStop;
+                    LOG.info("Strategy {}-{} issuing instruction {} : Trigger={}->{},currentLevel={}"
+                            ,positionInfo.getDealId()
+                            ,staticMarketInfo.getMarketName()
+                            ,instruction
+                            ,oldTrigger
+                            ,nextTrigger.get()
+                            ,currentLevel);
+                    TradingSignal strategySignal =
+                            TradingSignal.createEditPositionSignal(
+                                    positionInfo.getDealId()
+                                    ,newStop
+                                    ,null
+                            );
+                    strategyInstructionConsumer.accept(strategySignal);
+                }
+        }
+
+        if(nextTrigger.isPresent() && nextTrigger.get().subtract(currentLevel).abs().compareTo(trailingStep)>0){
+            nextTrigger = Optional.of(currentLevel.add(trailingStep.multiply(BigDecimal.valueOf(direction))));
+
+            LOG.info("Strategy {}-{} correcting trigger: Trigger={}->{},currentLevel={}"
+                    ,positionInfo.getDealId()
+                    ,staticMarketInfo.getMarketName()
+                    ,oldTrigger
+                    ,nextTrigger.get()
+                    ,currentLevel);
         }
     }
 
@@ -140,7 +157,12 @@ public class TrackerStrategy extends AbstractMarketStrategy {
             BigDecimal applicablePrice = getCurrentApplicablePrice();
             BigDecimal plFactor = applicablePrice.subtract(openLevel);
             plFactor = plFactor.multiply(new BigDecimal(direction));
-            LOG.info("P&L: {},{},{}",positionInfo.getDealId(),positionInfo.getEpic(),plFactor.setScale(2));
+            LOG.info("P&L: {},{},{},O:{},L:{}"
+                    ,positionInfo.getDealId()
+                    ,positionInfo.getEpic()
+                    ,plFactor.setScale(2,BigDecimal.ROUND_HALF_UP)
+                    ,openLevel.setScale(2,BigDecimal.ROUND_HALF_UP)
+                    ,applicablePrice.setScale(2,BigDecimal.ROUND_HALF_UP));
             int comparePLFactorGreaterToThreashold = plFactor.compareTo(profitProtectingThreshold);
             if(comparePLFactorGreaterToThreashold>0){
                 profitProtectingStopDistance = staticMarketInfo.getMinNormalStopLimitDistance();

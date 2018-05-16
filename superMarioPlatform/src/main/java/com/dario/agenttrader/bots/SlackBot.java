@@ -191,8 +191,9 @@ public class SlackBot extends Bot {
         message.setType(EventType.MESSAGE.name().toLowerCase());
         message.setChannel(channelID);
         try {
+
             currentWebSocketSession.sendMessage(new TextMessage(message.toJSONString()));
-        } catch (IOException e) {
+        } catch (Exception e) {
             logger.warn("unable to send message to channel",e);
         }
     }

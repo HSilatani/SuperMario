@@ -215,7 +215,7 @@ public class IGClient implements TradingAPI {
               .filter(psnap -> positionId.equalsIgnoreCase(psnap.getPositionId()))
               .findFirst();
 
-      return positionSnapShot.orElseGet(null);
+      return positionSnapShot.get();
    }
 
    @Override

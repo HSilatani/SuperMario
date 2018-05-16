@@ -118,6 +118,9 @@
    <logger name="com.dario.agenttrader.strategies.ReEntryStrategy" level="DEBUG">
       <appender-ref ref="STRATEGY_DEBUG"/>
    </logger>
+   <logger name="com.dario.agenttrader.strategies.TrackerStrategy" level="DEBUG">
+      <appender-ref ref="STRATEGY_DEBUG"/>
+   </logger>
    <logger name="com.dario.agenttrader.strategies" level="info">
       <appender-ref ref="STRATEGY"/>
    </logger>
