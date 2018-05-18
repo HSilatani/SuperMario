@@ -37,11 +37,12 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
     private int shortPeriod = 12;
     private int longPeriod= 26;
     private int emaDifferenceSafeDistance = 20;
-    private int slopeTimeFrame=3;
+    private int slopeTimeFrame=2;
     private long barMaturityThresholdSeconds =280;//280
     private int william_r_timeFrame = 14;
     private BigDecimal absoluteSlopeThreshold = new BigDecimal(0.25);
     private BigDecimal absoluteSlopeChangeThreshold = new BigDecimal(0.60);
+    private BigDecimal absoluteStrongSlopeChange = new BigDecimal(1.5);
     private BigDecimal macdNeutralZone = new BigDecimal(5);
     private BigDecimal macdAccelarionNeutralZone = new BigDecimal(0.15);
     private BigDecimal oppositeStreamSafetyCoeficient = new BigDecimal(2);
@@ -49,7 +50,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
     private int stopDistanceMultiplier = 50;
     private BigDecimal william_r_no_buy = new BigDecimal(-20);
     private BigDecimal william_r_no_sell = new BigDecimal(-79);
-    private BigDecimal minStandardDeviationThreshold = new BigDecimal(20);
+    private BigDecimal minStandardDeviationThreshold = new BigDecimal(18.5);
 
     private MarketInfo staticMarketInfo = null;
     private Instant newBarTimeStamp=null;
@@ -169,8 +170,6 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         BigDecimal buySafetyCoefficient = (macdValue.isLessThan(macdNeutralZone))?oppositeStreamSafetyCoeficient:BigDecimal.ONE;
         BigDecimal sellSafetyCoefficient = (macdValue.isGreaterThan(macdNeutralZone.negate()))?oppositeStreamSafetyCoeficient:BigDecimal.ONE;
         boolean isSDInRange = sd.isGreaterThanOrEqual(minStandardDeviationThreshold);
-        boolean william_r_no_buy_flag = williamr.isGreaterThanOrEqual(william_r_no_buy);
-        boolean william_r_no_sell_flag = williamr.isLessThanOrEqual(william_r_no_sell);
         boolean isLastBarGreen = lastBarsGain.isPositive();
         boolean isLastBarRed = !isLastBarGreen;
         boolean isCloseSellPosition = accelarationOfMACD.minus(macdAccelarionNeutralZone).isPositive();
@@ -181,6 +180,10 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         boolean isEMAdifferenceInSafeZone = emaDifference.doubleValue() >emaDifferenceSafeDistance;
         boolean isBuyMACDAccelarationSatisfied = BigDecimal.valueOf(accelarationOfMACD.doubleValue()).compareTo(absoluteSlopeChangeThreshold.multiply(buySafetyCoefficient))>0;
         boolean isSellMACDAccelarationSatisfied = BigDecimal.valueOf(accelarationOfMACD.doubleValue()).compareTo(absoluteSlopeChangeThreshold.negate().multiply(sellSafetyCoefficient))<0;
+        boolean isBuyMACDAccVeryStrong = BigDecimal.valueOf(accelarationOfMACD.doubleValue()).compareTo(absoluteStrongSlopeChange.multiply(buySafetyCoefficient))>0;
+        boolean isSellMACDAccVeryStrong = BigDecimal.valueOf(accelarationOfMACD.doubleValue()).compareTo(absoluteStrongSlopeChange.negate().multiply(sellSafetyCoefficient))<0;
+        boolean william_r_no_buy_flag = williamr.isGreaterThanOrEqual(william_r_no_buy) && !isBuyMACDAccVeryStrong;
+        boolean william_r_no_sell_flag = williamr.isLessThanOrEqual(william_r_no_sell) && !isSellMACDAccVeryStrong;
         boolean isBuyMACDSlopeSatisfied = BigDecimal.valueOf(slopeOfMACD.doubleValue()).compareTo(absoluteSlopeThreshold)>0;
         boolean isSellMACDSlopeSatisfied = BigDecimal.valueOf(slopeOfMACD.doubleValue()).compareTo(absoluteSlopeThreshold.negate())<0;
         LOG.info("EPIC:{},IDX:{},O:{},C:{},H:{},L:{},SP:{},SP_IN:{},S_EMA:{},L_EMA:{},EMA_D:{},MACD:{},MACD_S:{},WR:{},WR_NB:{},WR_NS:{},SD:{},SD_IN:{},SL:{},MACD_SL_B:{},MACD_SL_S:{},MACD_AC:{},MACD_AC_B:{},MACD_AC_S:{},GN:{},C_BUY:{},C_SELL:{},LNG:{},SHRT:{},{}"
