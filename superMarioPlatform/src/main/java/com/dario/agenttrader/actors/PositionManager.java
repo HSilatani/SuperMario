@@ -102,6 +102,7 @@ public class PositionManager extends AbstractActor{
     }
 
     private void registerNewPosition(PositionSnapshot psnapshot) {
+        InterpreterAgent.getInstance().sendPositionStatusMessage(psnapshot);
         RegisterPositionRequest registerPositionRequest =
                 new RegisterPositionRequest(psnapshot.getPositionId(),psnapshot);
         getSelf().forward(registerPositionRequest,getContext());
@@ -127,7 +128,7 @@ public class PositionManager extends AbstractActor{
     }
 
     private void onPositionUpdated(Position.PositionUpdatedDelta positionupdated){
-        InterpreterAgent.getInstance().sendMessage(positionupdated);
+        InterpreterAgent.getInstance().sendPositionUpdateMessage(positionupdated);
     }
 
     private void onOPU(OPU opu) throws Exception{

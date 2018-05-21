@@ -75,7 +75,7 @@ public class Position extends AbstractActor{
     public Receive createReceive() {
         return receiveBuilder()
                 .match(PositionManager.OPU.class, this::onPositionUpdate)
-                .match(PositionManager.RegisterPositionRequest.class, this::onRegisterPositionRequest)
+                .match(PositionManager.RegisterPositionRequest.class,this::onRegisterPositionRequest)
                 .match(PositionManager.SubscribeToPositionUpdate.class,this::onSubscribeToPositionUpdate)
                 .match(Terminated.class,this::onTerminated)
                 .build();

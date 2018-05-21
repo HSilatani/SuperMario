@@ -107,17 +107,37 @@ public class InterpreterAgent {
     }
 
 
-    public void sendMessage(Position.PositionUpdatedDelta positionupdated) {
+    public void sendPositionUpdateMessage(Position.PositionUpdatedDelta positionupdated) {
         String message = ":)";
         message = positionupdated.getDelta().keySet().stream()
-                .filter(k -> PositionInfo.LEVEL_KEY.equals(k)||PositionInfo.STOP_LEVEL_KEY.equals(k)||PositionInfo.LIMIT_LEVEL_KEY.equals(k)||PositionInfo.STATUS_KEY.equals(k))
+                .filter(k -> PositionInfo.LEVEL_KEY.equals(k)|| PositionInfo.LIMIT_LEVEL_KEY.equals(k)||PositionInfo.STATUS_KEY.equals(k))
                 .map(k -> k + ":" + positionupdated.getDelta().get(k)[0] + "->" + positionupdated.getDelta().get(k)[1])
                 .collect(Collectors.joining(","));
-        message = positionupdated.getEpic() + "/" + positionupdated.getPositionId() +" : "+ message;
+        if(message.length()>5) {
+            message = positionupdated.getEpic() + "/" + positionupdated.getPositionId() + " : " + message;
+            this.sendMessage(message);
+        }
+    }
+    public void sendPositionStatusMessage(PositionSnapshot psnapshot) {
+        String message = ":)";
+
+        message = psnapshot.getPositionsItem().getMarket().getEpic() + "/" + psnapshot.getPositionId()
+            + ":" + psnapshot.getPositionsItem().getPosition().getDealReference()
+            + ", " + psnapshot.getPositionsItem().getPosition().getDirection()
+            + ", " + psnapshot.getPositionsItem().getPosition().getSize()
+            + ", " + psnapshot.getPositionsItem().getPosition().getLevel();
+
+
+        sendMessage(message);
+    }
+    public void sendMessage(String message){
+
         slackBot.sendMessage(message);
     }
 
     public void setSlackBot(SlackBot pslackBot) {
         this.slackBot = pslackBot;
     }
+
+
 }
