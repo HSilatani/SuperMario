@@ -108,7 +108,7 @@ public class MarketActor extends AbstractActor {
         Consumer<UpdateInfo> consumer = updateInfo -> {
             PriceTick chartPriceTick = IGClientUtility.extractMarketPriceTick(updateInfo);
             MarketUpdate<PriceTick> marketUpdate = new MarketUpdate(chartPriceTick,staticMarketInfo);
-            LOG.debug("Chart data {}", updateInfo);
+            LOG.debug("Chart Tick {}", updateInfo);
             getSelf().tell(new MarketUpdated(epic, marketUpdate),getSelf());
         };
         //TODO: TradinsDataStreamingService should be memeber var and passed to the Actor
@@ -120,7 +120,7 @@ public class MarketActor extends AbstractActor {
         Consumer<UpdateInfo> consumer = updateInfo -> {
             PriceCandle chartCandle = IGClientUtility.extractMarketPriceCandle(updateInfo);
             MarketUpdate<PriceCandle> marketUpdate = new MarketUpdate(chartCandle,staticMarketInfo);
-            LOG.debug("ChartCandle data {}", updateInfo);
+            LOG.debug("Chart Candle {}", updateInfo);
             getSelf().tell(new MarketUpdated(epic, marketUpdate),getSelf());
         };
         String uniqSubscriberRef = this.toString();

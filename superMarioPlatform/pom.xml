@@ -35,7 +35,7 @@
       <dependency>
          <groupId>me.ramswaroop.jbot</groupId>
          <artifactId>jbot</artifactId>
-         <version>3.0.2</version>
+         <version>4.0.1</version>
       </dependency>
       <dependency>
          <groupId>org.apache.httpcomponents</groupId>

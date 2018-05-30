@@ -27,7 +27,7 @@ public class TrackerStrategy extends AbstractMarketStrategy {
     private int direction;
     private MarketInfo staticMarketInfo = null;
     //TODO: this needs to be calculated based on market spread and volatility. thisis tuned for HK
-    private BigDecimal profitProtectingThreshold = BigDecimal.valueOf(30);
+    private BigDecimal profitProtectingThreshold = BigDecimal.valueOf(50);
 
 
     public TrackerStrategy(ArrayList<String> epics,PositionInfo pPositionInfo) {
@@ -209,6 +209,7 @@ public class TrackerStrategy extends AbstractMarketStrategy {
         currentAsk = Optional.ofNullable(priceTick.getOffer());
         currentBid = Optional.ofNullable(priceTick.getBid());
         staticMarketInfo = marketUpdated.getMarketupdate().getMarketInfo();
+        LOG.debug("Updating state ask:{},bid:{}",currentAsk.orElse(null),currentBid.orElse(null));
     }
     private void updateState(Position.PositionUpdate positionUpdate){
         UpdateEvent updateEvent = positionUpdate.getUpdateEvent();

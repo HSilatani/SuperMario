@@ -77,7 +77,8 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
     }
 
     private boolean isAllowedToEvaluateStrategy(MarketActor.MarketUpdated marketUpdated){
-        if(newBarIsAdded()||newBarTimeStamp==null){
+        boolean isThisANewBar = newBarIsAdded();
+        if(isThisANewBar ||newBarTimeStamp==null){
             newBarTimeStamp= Instant.now();
         }
 
@@ -89,9 +90,9 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         long secondsSinceNewBar=Duration.between(newBarTimeStamp,Instant.now()).getSeconds();
         boolean isMinutesPassedOverThreshold = secondsSinceNewBar> reEntryParameters.getBarMaturityThresholdSeconds();
 
-        boolean strategyEvaluationConditionsMet = recievedChartUpdate && isMinutesPassedOverThreshold;
+        boolean strategyEvaluationConditionsMet = (recievedChartUpdate && isMinutesPassedOverThreshold)||isThisANewBar;
 
-        LOG.debug("Strategy evaluation condition met={} - minutes threshold={},recieved chart update={}",strategyEvaluationConditionsMet,isMinutesPassedOverThreshold,recievedChartUpdate);
+        LOG.debug("Strategy evaluation condition met={} - minutes threshold={},recieved chart update={}, new bar={}",strategyEvaluationConditionsMet,isMinutesPassedOverThreshold,recievedChartUpdate,isThisANewBar);
         return  strategyEvaluationConditionsMet;
     }
 
@@ -117,7 +118,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         EMAIndicator macdSignal = new EMAIndicator(macdIndicator,9);
         GainIndicator gainSignal = new GainIndicator(closePrice);
         WilliamsRIndicator williamRIndicator = new WilliamsRIndicator(priceTimeSeries, reEntryParameters.getWilliam_r_timeFrame());
-        StandardDeviationIndicator sdIndicator = new StandardDeviationIndicator(closePrice, reEntryParameters.getLongPeriod());
+        StandardDeviationIndicator sdIndicator = new StandardDeviationIndicator(closePrice, reEntryParameters.getSdTimeFrame());
 
         //
         SimpleLinearRegressionIndicator slopeOfMACDIndicator =
@@ -129,6 +130,17 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                 new SimpleLinearRegressionIndicator(
                         slopeOfMACDIndicator
                         , reEntryParameters.getSlopeTimeFrame()
+                        ,SimpleLinearRegressionIndicator.SimpleLinearRegressionType.slope);
+
+        SimpleLinearRegressionIndicator TEST3slopeOfMACDIndicator =
+                new SimpleLinearRegressionIndicator(
+                        macdIndicator
+                        , 3
+                        ,SimpleLinearRegressionIndicator.SimpleLinearRegressionType.slope);
+        SimpleLinearRegressionIndicator TEST3accelarationOfMACDSLOPEIndicator =
+                new SimpleLinearRegressionIndicator(
+                        slopeOfMACDIndicator
+                        , 3
                         ,SimpleLinearRegressionIndicator.SimpleLinearRegressionType.slope);
         //
         Rule buyingRule = new OverIndicatorRule(shortEMA,longEMA)
@@ -149,6 +161,17 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         BigDecimal emaDifference = shortEMAValue.minus(longEMAValue).getDelegate().setScale(3,BigDecimal.ROUND_HALF_UP);
         Decimal slopeOfMACD = slopeOfMACDIndicator.getValue(endIndex);
         Decimal accelarationOfMACD = accelarationOfMACDSLOPEIndicator.getValue(endIndex);
+        Decimal open = priceTimeSeries.getLastBar().getOpenPrice();
+        Decimal close = priceTimeSeries.getLastBar().getClosePrice();
+        Decimal high = priceTimeSeries.getLastBar().getMaxPrice();
+        Decimal low = priceTimeSeries.getLastBar().getMinPrice();
+        Decimal highLowRange = high.minus(low);
+        Decimal openCloseRange = close.minus(open);
+        Decimal bodyStrength = openCloseRange.dividedBy(highLowRange.plus(new BigDecimal(0.001)));
+        //
+        Decimal TEST3slopeOfMACD = TEST3slopeOfMACDIndicator.getValue(endIndex);
+        Decimal TEST3accelarationOfMACD = TEST3accelarationOfMACDSLOPEIndicator.getValue(endIndex);
+        //
         BigDecimal buySafetyCoefficient = (macdValue.isLessThan(reEntryParameters.getMacdNeutralZone()))? reEntryParameters.getOppositeStreamSafetyCoeficient() :BigDecimal.ONE;
         BigDecimal sellSafetyCoefficient = (macdValue.isGreaterThan(reEntryParameters.getMacdNeutralZone().negate()))? reEntryParameters.getOppositeStreamSafetyCoeficient() :BigDecimal.ONE;
         boolean isSDInRange = sd.isGreaterThanOrEqual(reEntryParameters.getMinStandardDeviationThreshold());
@@ -160,21 +183,25 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         boolean isStrategyShouldExit = strategy.shouldExit(endIndex);
         boolean isSpreadWithinRange = latesSpread < reEntryParameters.getMaxAllowedSpread();
         boolean isEMAdifferenceInSafeZone = emaDifference.doubleValue() > reEntryParameters.getEmaDifferenceSafeDistance();
-        boolean isBuyMACDAccelarationSatisfied = BigDecimal.valueOf(accelarationOfMACD.doubleValue()).compareTo(reEntryParameters.getAbsoluteSlopeChangeThreshold().multiply(buySafetyCoefficient))>0;
-        boolean isSellMACDAccelarationSatisfied = BigDecimal.valueOf(accelarationOfMACD.doubleValue()).compareTo(reEntryParameters.getAbsoluteSlopeChangeThreshold().negate().multiply(sellSafetyCoefficient))<0;
+        boolean isBuyMACDAccelarationSatisfied = BigDecimal.valueOf(TEST3accelarationOfMACD.doubleValue()).compareTo(reEntryParameters.getAbsoluteSlopeChangeThreshold().multiply(buySafetyCoefficient))>0;
+        boolean isSellMACDAccelarationSatisfied = BigDecimal.valueOf(TEST3accelarationOfMACD.doubleValue()).compareTo(reEntryParameters.getAbsoluteSlopeChangeThreshold().negate().multiply(sellSafetyCoefficient))<0;
         boolean isBuyMACDAccVeryStrong = BigDecimal.valueOf(accelarationOfMACD.doubleValue()).compareTo(reEntryParameters.getAbsoluteStrongSlopeChange().multiply(buySafetyCoefficient))>0;
         boolean isSellMACDAccVeryStrong = BigDecimal.valueOf(accelarationOfMACD.doubleValue()).compareTo(reEntryParameters.getAbsoluteStrongSlopeChange().negate().multiply(sellSafetyCoefficient))<0;
-        boolean william_r_no_buy_flag = williamr.isGreaterThanOrEqual(reEntryParameters.getWilliam_r_no_buy()) && !isBuyMACDAccVeryStrong;
-        boolean william_r_no_sell_flag = williamr.isLessThanOrEqual(reEntryParameters.getWilliam_r_no_sell()) && !isSellMACDAccVeryStrong;
-        boolean isBuyMACDSlopeSatisfied = BigDecimal.valueOf(slopeOfMACD.doubleValue()).compareTo(reEntryParameters.getAbsoluteSlopeThreshold())>0;
-        boolean isSellMACDSlopeSatisfied = BigDecimal.valueOf(slopeOfMACD.doubleValue()).compareTo(reEntryParameters.getAbsoluteSlopeThreshold().negate())<0;
-        LOG.info("EPIC:{},IDX:{},O:{},C:{},H:{},L:{},SP:{},SP_IN:{},S_EMA:{},L_EMA:{},EMA_D:{},MACD:{},MACD_S:{},WR:{},WR_NB:{},WR_NS:{},SD:{},SD_IN:{},SL:{},MACD_SL_B:{},MACD_SL_S:{},MACD_AC:{},MACD_AC_B:{},MACD_AC_S:{},GN:{},C_BUY:{},C_SELL:{},LNG:{},SHRT:{},{}"
+        boolean william_r_no_buy_flag = williamr.isGreaterThanOrEqual(reEntryParameters.getWilliam_r_no_buy_strong());
+        boolean william_r_no_sell_flag = williamr.isLessThanOrEqual(reEntryParameters.getWilliam_r_no_sell_strong());
+        boolean isBuyMACDSlopeSatisfied = BigDecimal.valueOf(TEST3slopeOfMACD.doubleValue()).compareTo(reEntryParameters.getAbsoluteSlopeThreshold())>0;
+        boolean isSellMACDSlopeSatisfied = BigDecimal.valueOf(TEST3slopeOfMACD.doubleValue()).compareTo(reEntryParameters.getAbsoluteSlopeThreshold().negate())<0;
+        boolean isBodyStrengthSatisfied = bodyStrength.abs().isGreaterThan(reEntryParameters.getMinAbsoluteBodyStrength());
+        boolean isBuyBodyStrengthSatisfied = isBodyStrengthSatisfied && bodyStrength.isPositive();
+        boolean isSellBodyStrengthSatisfied = isBodyStrengthSatisfied && bodyStrength.isNegative();
+        LOG.info("EPIC:{},IDX:{},O:{},C:{},H:{},L:{},BDT:{},SP:{},SP_IN:{},S_EMA:{},L_EMA:{},EMA_D:{},MACD:{},MACD_S:{},WR:{},WR_NB:{},WR_NS:{},SD:{},SD_IN:{},SL:{}({}),MACD_SL_B:{},MACD_SL_S:{},MACD_AC:{}({}),MACD_AC_B:{},MACD_AC_S:{},GN:{},C_BUY:{},C_SELL:{},LNG:{},SHRT:{},{}"
                 , getEpic()
                 ,endIndex
-                ,priceTimeSeries.getLastBar().getOpenPrice()
-                ,priceTimeSeries.getLastBar().getClosePrice()
-                ,priceTimeSeries.getLastBar().getMaxPrice()
-                ,priceTimeSeries.getLastBar().getMinPrice()
+                ,open
+                ,close
+                ,high
+                ,low
+                ,bodyStrength.getDelegate().setScale(2,BigDecimal.ROUND_HALF_UP)
                 ,latesSpread
                 ,isSpreadWithinRange
                 ,shortEMAValue.getDelegate().setScale(3,BigDecimal.ROUND_HALF_UP)
@@ -188,9 +215,11 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                 ,sd.getDelegate().setScale(3,BigDecimal.ROUND_HALF_UP)
                 ,isSDInRange
                 ,slopeOfMACD.getDelegate().setScale(3,BigDecimal.ROUND_HALF_UP)
+                ,TEST3slopeOfMACD.getDelegate().setScale(3,BigDecimal.ROUND_HALF_UP)
                 ,isBuyMACDSlopeSatisfied
                 ,isSellMACDSlopeSatisfied
                 ,accelarationOfMACD.getDelegate().setScale(3,BigDecimal.ROUND_HALF_UP)
+                ,TEST3accelarationOfMACD.getDelegate().setScale(3,BigDecimal.ROUND_HALF_UP)
                 ,isBuyMACDAccelarationSatisfied
                 ,isSellMACDAccelarationSatisfied
                 ,lastBarsGain.getDelegate().setScale(3,BigDecimal.ROUND_HALF_UP)
@@ -200,36 +229,58 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                 ,isStrategyShouldExit
                 ,priceTimeSeries.getLastBar().getSimpleDateName()
         );
+        LOG.info("Applicable long conditions SP:{},SD:{},AC:{},SL:{},BG:{},BDT:{},WR:{}",
+                isSpreadWithinRange,
+                isSDInRange,
+                isBuyMACDAccelarationSatisfied,
+                isBuyMACDSlopeSatisfied,
+                isLastBarGreen,
+                isBuyBodyStrengthSatisfied,
+                !william_r_no_buy_flag);
+        LOG.info("Applicable hort conditions SP:{},SD:{},AC:{},SL:{},BG:{},BDT:{},WR:{}",
+                isSpreadWithinRange,
+                isSDInRange,
+                isSellMACDAccelarationSatisfied,
+                isSellMACDSlopeSatisfied,
+                isLastBarRed,
+                isSellBodyStrengthSatisfied,
+                !william_r_no_sell_flag);
 
-        if ( isStrategyShouldEnter
-                && isSpreadWithinRange
-                && isSDInRange
-                && isBuyMACDAccelarationSatisfied
-                && isBuyMACDSlopeSatisfied
-                && isLastBarGreen
-                && !william_r_no_buy_flag
+        if (    //isStrategyShouldEnter &&
+                isSpreadWithinRange &&
+                isSDInRange &&
+                isBuyMACDAccelarationSatisfied &&
+                isBuyMACDSlopeSatisfied &&
+                isLastBarGreen &&
+                isBuyBodyStrengthSatisfied &&
+                !william_r_no_buy_flag
                 ) {
-            TradingSignal tradingSignal = createTradingSignal(direction);
+
+            int signalStrength = calculateSignalStrength(direction,emaDifference,sd,accelarationOfMACD,slopeOfMACD,williamr);
+            TradingSignal tradingSignal = createTradingSignal(direction,signalStrength);
             strategyInstructionConsumer.accept(tradingSignal);
-            LOG.info("ENTER LONG POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
-        } else if ( isStrategyShouldExit
-                && isSDInRange
-                && isSpreadWithinRange
-                && isSellMACDAccelarationSatisfied
-                && isSellMACDSlopeSatisfied
-                && isLastBarRed
-                && !william_r_no_sell_flag
+            LOG.info("ENTER LONG POSITION SIGNAL:level:{},STG:{},{}",close,signalStrength,tradingSignal);
+        } else if ( //isStrategyShouldExit &&
+                isSDInRange &&
+                isSpreadWithinRange &&
+                isSellMACDAccelarationSatisfied &&
+                isSellMACDSlopeSatisfied &&
+                isLastBarRed &&
+                isSellBodyStrengthSatisfied &&
+                !william_r_no_sell_flag
                 ) {
-            TradingSignal tradingSignal = createTradingSignal(direction.opposite());
+
+            int signalStrength = calculateSignalStrength(direction.opposite(),emaDifference,sd,accelarationOfMACD,slopeOfMACD,williamr);
+            TradingSignal tradingSignal = createTradingSignal(direction.opposite(),signalStrength);
             strategyInstructionConsumer.accept(tradingSignal);
-            LOG.info("ENTER SHORT POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
+            LOG.info("ENTER SHORT POSITION SIGNAL:level:{},STG:{},{}",closePrice,signalStrength,tradingSignal);
         } else if( isStrategyShouldExit
                 && isSDInRange
                 && isSpreadWithinRange
                 && isLastBarRed
                 ){
             TradingSignal tradingSignal = createTradingSignalCloseIfThereIsABuyPositionOpen();
-            strategyInstructionConsumer.accept(tradingSignal);
+           // strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("CLOSE LONG POSITION SIGNAL:level{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal);
         } else if(
                 isSDInRange
@@ -238,10 +289,51 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                 && isLastBarGreen
                 ) {
             TradingSignal tradingSignal = createTradingSignalCloseIfThereIsASellPositionOpen();
-            strategyInstructionConsumer.accept(tradingSignal);
+           // strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("CLOSE SHORT POSITION SIGNAL:level:{},{}",priceTimeSeries.getLastBar().getClosePrice(),tradingSignal.toString());
         }
 
+    }
+
+    private int calculateSignalStrength(Direction direction,BigDecimal emaDifference, Decimal sd, Decimal accelarationOfMACD, Decimal slopeOfMACD, Decimal williamr) {
+        int strength = 1;
+
+        if(Direction.BUY().isInSameDirection(direction)){
+            if(williamr.isLessThan(reEntryParameters.getWilliam_r_no_buy())){
+                strength = strength + 2;
+            }
+        }else {
+            if(williamr.isGreaterThan(reEntryParameters.getWilliam_r_no_sell())){
+                strength = strength +2;
+            }
+
+        }
+
+        if(emaDifference.abs().compareTo(new BigDecimal(reEntryParameters.getEmaDifferenceSafeDistance()*2))>0){
+            strength = strength + 2;
+        } else if (emaDifference.abs().compareTo(new BigDecimal(reEntryParameters.getEmaDifferenceSafeDistance()))>0){
+            strength = strength + 1;
+        }
+
+        if(sd.isGreaterThan(reEntryParameters.getMinStandardDeviationThreshold().multiply(new BigDecimal(3)))){
+            strength = strength +2;
+        }else if (sd.isGreaterThan(reEntryParameters.getMinStandardDeviationThreshold().multiply(new BigDecimal(2)))){
+            strength = strength +1;
+        }
+
+        if(accelarationOfMACD.abs().isGreaterThan(reEntryParameters.getAbsoluteStrongSlopeChange())){
+            strength = strength +3;
+        }else if(accelarationOfMACD.abs().isGreaterThan(reEntryParameters.getAbsoluteSlopeChangeThreshold().multiply(new BigDecimal(2)))){
+            strength = strength + 1;
+        }
+
+        if(slopeOfMACD.abs().isGreaterThan(reEntryParameters.getAbsoluteSlopeThreshold().multiply(new BigDecimal(8)))){
+            strength = strength + 3;
+        }else if(slopeOfMACD.abs().isGreaterThan(reEntryParameters.getAbsoluteSlopeThreshold().multiply(new BigDecimal(6)))){
+            strength = strength + 1;
+        }
+
+        return  strength;
     }
 
     private TradingSignal createTradingSignalCloseIfThereIsASellPositionOpen() {
@@ -268,13 +360,18 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         return tradingSignal;
     }
 
-    private TradingSignal createTradingSignal(Direction pDirection) {
+    private TradingSignal createTradingSignal(Direction pDirection, int strength) {
         String epic = getEpic();
         LOG.debug("CREATING TRADING SIGNAL FOR {}",epic);
 
         BigDecimal stopDistance = staticMarketInfo.getMinNormalStopLimitDistance().multiply(
                 new BigDecimal(reEntryParameters.getStopDistanceMultiplier()));
         BigDecimal size = Optional.ofNullable(reEntryParameters.getDealSize()).orElse(staticMarketInfo.getMinDealSize());
+        if(strength>11){
+            size = size.multiply(new BigDecimal(3));
+        }else if(strength>8){
+            size = size.multiply(new BigDecimal(2));
+        }
         TradingSignal tradingSignal= TradingSignal.createEnterMarketSignal(
                 epic
                 ,pDirection
@@ -350,28 +447,36 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         private int stopDistanceMultiplier;
         private BigDecimal william_r_no_buy;
         private BigDecimal william_r_no_sell;
+        private BigDecimal william_r_no_buy_strong;
+        private BigDecimal william_r_no_sell_strong;
         private BigDecimal minStandardDeviationThreshold;
+        private int sdTimeFrame;
+        private BigDecimal minAbsoluteBodyStrength;
 
         public static ReEntryParameters fiveMinParameterSet(){
             ReEntryParameters fiveMinParameters = new ReEntryParameters();
             fiveMinParameters.maxAllowedSpread = 25;
-            fiveMinParameters.dealSize=BigDecimal.ONE;
-            fiveMinParameters.shortPeriod = 12;
+            fiveMinParameters.dealSize=new BigDecimal(0.5);
+            fiveMinParameters.shortPeriod = 6;//12
             fiveMinParameters.longPeriod = 26;
             fiveMinParameters.emaDifferenceSafeDistance = 20;
             fiveMinParameters.slopeTimeFrame = 2;
             fiveMinParameters.barMaturityThresholdSeconds = 280;
             fiveMinParameters.william_r_timeFrame = 14;
-            fiveMinParameters.absoluteSlopeThreshold = new BigDecimal(0.25);
-            fiveMinParameters.absoluteSlopeChangeThreshold = new BigDecimal(0.60);
-            fiveMinParameters.absoluteStrongSlopeChange = new BigDecimal(1.5);
+            fiveMinParameters.absoluteSlopeThreshold = new BigDecimal(0.9);
+            fiveMinParameters.absoluteSlopeChangeThreshold = new BigDecimal(0.50);
+            fiveMinParameters.absoluteStrongSlopeChange = new BigDecimal(8);
             fiveMinParameters.macdNeutralZone = new BigDecimal(5);
             fiveMinParameters.macdAccelarionNeutralZone = new BigDecimal(0.15);
-            fiveMinParameters.oppositeStreamSafetyCoeficient = new BigDecimal(2);
-            fiveMinParameters.stopDistanceMultiplier = 50;
+            fiveMinParameters.oppositeStreamSafetyCoeficient = new BigDecimal(3);
+            fiveMinParameters.stopDistanceMultiplier = 10;
             fiveMinParameters.william_r_no_buy = new BigDecimal(-20);
             fiveMinParameters.william_r_no_sell = new BigDecimal(-79);
-            fiveMinParameters.minStandardDeviationThreshold = new BigDecimal(18.5);
+            fiveMinParameters.william_r_no_buy_strong = new BigDecimal(-10);
+            fiveMinParameters.william_r_no_sell_strong = new BigDecimal(-90);
+            fiveMinParameters.minStandardDeviationThreshold = new BigDecimal(30);
+            fiveMinParameters.sdTimeFrame = 12;
+            fiveMinParameters.minAbsoluteBodyStrength = new BigDecimal(0.5);
 
             return fiveMinParameters;
         }
@@ -430,9 +535,26 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         public BigDecimal getWilliam_r_no_sell() {
             return william_r_no_sell;
         }
+
+        public BigDecimal getWilliam_r_no_buy_strong() {
+            return william_r_no_buy_strong;
+        }
+
+        public BigDecimal getWilliam_r_no_sell_strong() {
+            return william_r_no_sell_strong;
+        }
+
         public BigDecimal getMinStandardDeviationThreshold() {
             return minStandardDeviationThreshold;
         }
 
+        public int getSdTimeFrame() {
+            return sdTimeFrame;
+        }
+
+
+        public BigDecimal getMinAbsoluteBodyStrength() {
+            return minAbsoluteBodyStrength;
+        }
     }
 }
