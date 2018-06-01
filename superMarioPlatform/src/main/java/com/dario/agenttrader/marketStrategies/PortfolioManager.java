@@ -113,8 +113,8 @@ public class PortfolioManager {
 
                 if (oppositePosition!=null){
                     LOG.info("Closing position:{} on EPIC:{}", oppositePosition.getDealId(),oppositePosition.getEpic());
-                    tradingAPI.closeOpenPosition(oppositePosition);
-                    positionTracker.removePosition(oppositePosition.getDealRef());
+                    //tradingAPI.closeOpenPosition(oppositePosition);
+                    //positionTracker.removePosition(oppositePosition.getDealRef());
                     LOG.info("CLOSED position:{} on EPIC:{}", oppositePosition.getDealId(),oppositePosition.getEpic());
                 } else {
                     LOG.info("IGNORING Enter market signal for {}", signal.getEpic());

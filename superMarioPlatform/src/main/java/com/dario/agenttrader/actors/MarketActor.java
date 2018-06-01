@@ -295,14 +295,16 @@ public class MarketActor extends AbstractActor {
             getContext().stop(getSelf());
         }
     }
-
+    //TODO: once business logic moved to service class , need a test case :1-start with lastTick null, 2- price update, 3- another price update, 4- priceupdate with missing ask and bid
     private Price mergePriceWithSnapshot(Price price){
         if( price instanceof PriceTick){
             lastTick=Optional.ofNullable(lastTick).orElse((PriceTick)price);
             price.mergeWithSnapshot(lastTick);
+            lastTick = (PriceTick)price;
         }else if(price instanceof PriceCandle){
             lastCandle = Optional.ofNullable(lastCandle).orElse((PriceCandle)price);
-            ((PriceCandle) price).mergeWithSnapshot(lastCandle);
+            price.mergeWithSnapshot(lastCandle);
+            lastCandle = (PriceCandle)price;
         }
         return price;
     }

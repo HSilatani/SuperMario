@@ -187,8 +187,8 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
         boolean isSellMACDAccelarationSatisfied = BigDecimal.valueOf(TEST3accelarationOfMACD.doubleValue()).compareTo(reEntryParameters.getAbsoluteSlopeChangeThreshold().negate().multiply(sellSafetyCoefficient))<0;
         boolean isBuyMACDAccVeryStrong = BigDecimal.valueOf(accelarationOfMACD.doubleValue()).compareTo(reEntryParameters.getAbsoluteStrongSlopeChange().multiply(buySafetyCoefficient))>0;
         boolean isSellMACDAccVeryStrong = BigDecimal.valueOf(accelarationOfMACD.doubleValue()).compareTo(reEntryParameters.getAbsoluteStrongSlopeChange().negate().multiply(sellSafetyCoefficient))<0;
-        boolean william_r_no_buy_flag = williamr.isGreaterThanOrEqual(reEntryParameters.getWilliam_r_no_buy_strong());
-        boolean william_r_no_sell_flag = williamr.isLessThanOrEqual(reEntryParameters.getWilliam_r_no_sell_strong());
+        boolean william_r_no_buy_flag = williamr.isGreaterThanOrEqual(reEntryParameters.getWilliam_r_no_buy());
+        boolean william_r_no_sell_flag = williamr.isLessThanOrEqual(reEntryParameters.getWilliam_r_no_sell());
         boolean isBuyMACDSlopeSatisfied = BigDecimal.valueOf(TEST3slopeOfMACD.doubleValue()).compareTo(reEntryParameters.getAbsoluteSlopeThreshold())>0;
         boolean isSellMACDSlopeSatisfied = BigDecimal.valueOf(TEST3slopeOfMACD.doubleValue()).compareTo(reEntryParameters.getAbsoluteSlopeThreshold().negate())<0;
         boolean isBodyStrengthSatisfied = bodyStrength.abs().isGreaterThan(reEntryParameters.getMinAbsoluteBodyStrength());
@@ -237,7 +237,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                 isLastBarGreen,
                 isBuyBodyStrengthSatisfied,
                 !william_r_no_buy_flag);
-        LOG.info("Applicable hort conditions SP:{},SD:{},AC:{},SL:{},BG:{},BDT:{},WR:{}",
+        LOG.info("Applicable short conditions SP:{},SD:{},AC:{},SL:{},BG:{},BDT:{},WR:{}",
                 isSpreadWithinRange,
                 isSDInRange,
                 isSellMACDAccelarationSatisfied,
@@ -270,7 +270,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
                 !william_r_no_sell_flag
                 ) {
 
-            int signalStrength = calculateSignalStrength(direction.opposite(),emaDifference,sd,accelarationOfMACD,slopeOfMACD,williamr);
+            int signalStrength = calculateSignalStrength(direction,emaDifference,sd,accelarationOfMACD,slopeOfMACD,williamr);
             TradingSignal tradingSignal = createTradingSignal(direction.opposite(),signalStrength);
             strategyInstructionConsumer.accept(tradingSignal);
             LOG.info("ENTER SHORT POSITION SIGNAL:level:{},STG:{},{}",closePrice,signalStrength,tradingSignal);
@@ -462,21 +462,21 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
             fiveMinParameters.emaDifferenceSafeDistance = 20;
             fiveMinParameters.slopeTimeFrame = 2;
             fiveMinParameters.barMaturityThresholdSeconds = 280;
-            fiveMinParameters.william_r_timeFrame = 14;
+            fiveMinParameters.william_r_timeFrame = 36;
             fiveMinParameters.absoluteSlopeThreshold = new BigDecimal(0.9);
             fiveMinParameters.absoluteSlopeChangeThreshold = new BigDecimal(0.50);
             fiveMinParameters.absoluteStrongSlopeChange = new BigDecimal(8);
             fiveMinParameters.macdNeutralZone = new BigDecimal(5);
             fiveMinParameters.macdAccelarionNeutralZone = new BigDecimal(0.15);
-            fiveMinParameters.oppositeStreamSafetyCoeficient = new BigDecimal(3);
+            fiveMinParameters.oppositeStreamSafetyCoeficient = new BigDecimal(16);
             fiveMinParameters.stopDistanceMultiplier = 10;
-            fiveMinParameters.william_r_no_buy = new BigDecimal(-20);
-            fiveMinParameters.william_r_no_sell = new BigDecimal(-79);
-            fiveMinParameters.william_r_no_buy_strong = new BigDecimal(-10);
-            fiveMinParameters.william_r_no_sell_strong = new BigDecimal(-90);
-            fiveMinParameters.minStandardDeviationThreshold = new BigDecimal(30);
+            fiveMinParameters.william_r_no_buy = new BigDecimal(-15);
+            fiveMinParameters.william_r_no_sell = new BigDecimal(-77);
+            fiveMinParameters.william_r_no_buy_strong = new BigDecimal(-20);
+            fiveMinParameters.william_r_no_sell_strong = new BigDecimal(-79);
+            fiveMinParameters.minStandardDeviationThreshold = new BigDecimal(10);
             fiveMinParameters.sdTimeFrame = 12;
-            fiveMinParameters.minAbsoluteBodyStrength = new BigDecimal(0.5);
+            fiveMinParameters.minAbsoluteBodyStrength = new BigDecimal(0.85);
 
             return fiveMinParameters;
         }

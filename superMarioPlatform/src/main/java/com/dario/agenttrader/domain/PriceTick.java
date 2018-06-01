@@ -87,4 +87,19 @@ public class PriceTick implements Price<PriceTick>{
         dayHigh= Optional.ofNullable(this.dayHigh).orElse(lastTick.dayHigh);
         dayLow= Optional.ofNullable(this.dayLow).orElse(lastTick.dayLow);
     }
+
+    @Override
+    public String toString() {
+        return "PriceTick{" +
+                "bid=" + bid +
+                ", offer=" + offer +
+                ", lastTradePrice=" + lastTradePrice +
+                ", lastTradeVolume=" + lastTradeVolume +
+                ", utm='" + utm + '\'' +
+                ", dayOpenMid=" + dayOpenMid +
+                ", dayPercentageChangeMid=" + dayPercentageChangeMid +
+                ", dayHigh=" + dayHigh +
+                ", dayLow=" + dayLow +
+                '}';
+    }
 }
