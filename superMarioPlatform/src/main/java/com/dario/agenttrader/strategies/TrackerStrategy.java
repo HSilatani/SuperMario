@@ -27,7 +27,8 @@ public class TrackerStrategy extends AbstractMarketStrategy {
     private int direction;
     private MarketInfo staticMarketInfo = null;
     //TODO: this needs to be calculated based on market spread and volatility. thisis tuned for HK
-    private BigDecimal profitProtectingThreshold = BigDecimal.valueOf(100);
+    private BigDecimal profitProtectingThresholdforLongPosition = BigDecimal.valueOf(100);
+    private BigDecimal profitProtectingThresholdforShortPosition = BigDecimal.valueOf(40);
 
 
     public TrackerStrategy(ArrayList<String> epics,PositionInfo pPositionInfo) {
@@ -151,6 +152,11 @@ public class TrackerStrategy extends AbstractMarketStrategy {
 
     private void calculateNewProfitProtectingStopDistance() {
         BigDecimal profitProtectingStopDistance = null;
+        BigDecimal profitThreshold = profitProtectingThresholdforLongPosition;
+        if(direction == -1){
+            profitThreshold = profitProtectingThresholdforShortPosition;
+        }
+
 
         if(positionInfo.getOpenLevelBigDecimal().isPresent()){
             BigDecimal openLevel = positionInfo.getOpenLevelBigDecimal().get();
@@ -163,7 +169,7 @@ public class TrackerStrategy extends AbstractMarketStrategy {
                     ,plFactor.setScale(2,BigDecimal.ROUND_HALF_UP)
                     ,openLevel.setScale(2,BigDecimal.ROUND_HALF_UP)
                     ,applicablePrice.setScale(2,BigDecimal.ROUND_HALF_UP));
-            int comparePLFactorGreaterToThreashold = plFactor.compareTo(profitProtectingThreshold);
+            int comparePLFactorGreaterToThreashold = plFactor.compareTo(profitThreshold);
             if(comparePLFactorGreaterToThreashold>0){
                 profitProtectingStopDistance = staticMarketInfo.getMinNormalStopLimitDistance();
             }

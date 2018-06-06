@@ -95,7 +95,7 @@
             <maxFileSize>5MB</maxFileSize>
          </timeBasedFileNamingAndTriggeringPolicy>
          <!-- keep 1 days' worth of history -->
-         <maxHistory>1</maxHistory>
+         <maxHistory>3</maxHistory>
       </rollingPolicy>
 
       <encoder>

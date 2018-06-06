@@ -468,7 +468,7 @@ public class ReEntryStrategy extends AbstractMarketStrategy {
             fiveMinParameters.absoluteStrongSlopeChange = new BigDecimal(8);
             fiveMinParameters.macdNeutralZone = new BigDecimal(5);
             fiveMinParameters.macdAccelarionNeutralZone = new BigDecimal(0.15);
-            fiveMinParameters.oppositeStreamSafetyCoeficient = new BigDecimal(16);
+            fiveMinParameters.oppositeStreamSafetyCoeficient = new BigDecimal(10);
             fiveMinParameters.stopDistanceMultiplier = 10;
             fiveMinParameters.william_r_no_buy = new BigDecimal(-15);
             fiveMinParameters.william_r_no_sell = new BigDecimal(-77);
